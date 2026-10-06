@@ -1,0 +1,80 @@
+import type { Metadata } from 'next'
+import { redirect } from 'next/navigation'
+import { createClient } from '@/lib/supabase/server'
+import { body, display } from '@/lib/fonts'
+import { LoginForm } from './login-form'
+
+export const metadata: Metadata = {
+  title: 'Log in · WorkSprout',
+  robots: { index: false, follow: false },
+}
+
+const weave = {
+  backgroundColor: '#0E2F27',
+  backgroundImage:
+    'repeating-linear-gradient(45deg, rgba(255,255,255,.05) 0 2px, transparent 2px 14px), repeating-linear-gradient(-45deg, rgba(255,255,255,.05) 0 2px, transparent 2px 14px)',
+}
+
+// All login animations live here. Each one is disabled under prefers-reduced-motion.
+const css = `
+  @keyframes ws-rise { from { opacity: 0; transform: translateY(14px); } to { opacity: 1; transform: none; } }
+  @keyframes ws-draw { from { stroke-dasharray: 1; stroke-dashoffset: 1; } to { stroke-dasharray: 1; stroke-dashoffset: 0; } }
+  @keyframes ws-leaf { from { opacity: 0; transform: scale(0) rotate(-12deg); } to { opacity: 1; transform: none; } }
+  @keyframes ws-sway { 0%, 100% { transform: rotate(-2.5deg); } 50% { transform: rotate(2.5deg); } }
+  @keyframes ws-shake { 0%, 100% { transform: none; } 20%, 60% { transform: translateX(-6px); } 40%, 80% { transform: translateX(6px); } }
+  @keyframes ws-pulse { from { transform: scale(.7) rotate(-8deg); } to { transform: scale(1.1) rotate(8deg); } }
+  .ws-rise { animation: ws-rise 600ms cubic-bezier(.2,.8,.3,1) both; }
+  .ws-draw { animation: ws-draw 900ms 200ms ease-out both; }
+  .ws-leaf { transform-box: fill-box; transform-origin: 100% 100%; animation: ws-leaf 700ms 900ms cubic-bezier(.2,.8,.3,1) both; }
+  .ws-leaf-r { transform-origin: 0% 100%; animation-delay: 1.2s; }
+  .ws-sway { transform-origin: 50% 90%; animation: ws-sway 5s 2.2s ease-in-out infinite; }
+  .ws-shake { animation: ws-shake 400ms; }
+  .ws-pulse { transform-box: fill-box; transform-origin: 50% 100%; animation: ws-pulse 700ms ease-in-out infinite alternate; }
+  @media (prefers-reduced-motion: reduce) {
+    .ws-rise, .ws-draw, .ws-leaf, .ws-sway, .ws-shake, .ws-pulse { animation: none; }
+  }
+`
+
+export default async function LoginPage() {
+  const supabase = await createClient()
+  const { data } = await supabase.auth.getClaims()
+  if (data?.claims) redirect('/dashboard')
+
+  return (
+    <div className={`${body.className} grid min-h-screen text-[#0E2F27] lg:grid-cols-[0.95fr_1.05fr]`}>
+      <style>{css}</style>
+
+      {/* Brand panel */}
+      <aside className="hidden flex-col items-center justify-center px-12 text-center text-white lg:flex" style={weave}>
+        <svg viewBox="0 0 200 220" className="ws-sway h-60 w-60" aria-hidden="true">
+          <ellipse cx="100" cy="206" rx="46" ry="6" fill="#000" opacity=".25" />
+          <path
+            d="M100 204V108"
+            pathLength={1}
+            stroke="#F4B63F"
+            strokeWidth="6"
+            strokeLinecap="round"
+            fill="none"
+            className="ws-draw"
+          />
+          <path className="ws-leaf" d="M100 124c0-38-26-60-64-60 0 38 26 60 64 60z" fill="#2E9E6B" />
+          <path className="ws-leaf ws-leaf-r" d="M100 104c0-34 22-54 64-54 0 34-22 54-64 54z" fill="#F4B63F" />
+        </svg>
+        <h2
+          className={`${display.className} ws-rise mt-8 max-w-sm text-4xl font-extrabold leading-tight tracking-tight`}
+          style={{ animationDelay: '1.5s' }}
+        >
+          Kumusta! Your work is right where you left it.
+        </h2>
+        <p className="ws-rise mt-4 max-w-xs text-white/75" style={{ animationDelay: '1.7s' }}>
+          Clients, hours, and invoices are waiting.
+        </p>
+      </aside>
+
+      {/* Form */}
+      <main className="flex items-center bg-[#F4F8F5] py-10">
+        <LoginForm />
+      </main>
+    </div>
+  )
+}
