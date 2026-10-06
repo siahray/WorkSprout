@@ -131,9 +131,6 @@ export default function Home() {
           <span className="rounded-full bg-[#F4B63F] px-2.5 py-0.5 text-xs font-semibold">Beta</span>
         </div>
         <div className="flex items-center gap-5">
-          <Link href="/login" className={`font-medium text-[#0E2F27]/70 hover:text-[#0E2F27] ${focus}`}>
-            Log in
-          </Link>
           <Link
             href="#join"
             className={`hidden rounded-lg bg-[#0E2F27] px-5 py-2.5 font-semibold text-white hover:bg-[#1F6B52] sm:block ${focus}`}
