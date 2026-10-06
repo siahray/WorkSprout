@@ -132,6 +132,12 @@ export default function Home() {
         </div>
         <div className="flex items-center gap-5">
           <Link
+            href="/signup"
+            className={`hidden text-sm font-semibold text-[#0E2F27]/75 hover:text-[#0E2F27] sm:block ${focus}`}
+          >
+            Sign up
+          </Link>
+          <Link
             href="#join"
             className={`hidden rounded-lg bg-[#0E2F27] px-5 py-2.5 font-semibold text-white hover:bg-[#1F6B52] sm:block ${focus}`}
           >

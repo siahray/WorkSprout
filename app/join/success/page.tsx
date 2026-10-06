@@ -43,6 +43,16 @@ export default async function JoinSuccessPage({
         >
           Back to home
         </Link>
+
+        <p className="mt-4 text-sm text-[#0E2F27]/65">
+          Ready to dive in?{' '}
+          <Link
+            href={email ? `/signup?email=${encodeURIComponent(email)}` : '/signup'}
+            className={`font-semibold text-[#1F6B52] hover:underline ${focus} rounded`}
+          >
+            Create your account →
+          </Link>
+        </p>
       </div>
     </div>
   )
