@@ -23,8 +23,8 @@ export default async function SignupPage({
 
   return (
     <AuthShell
-      heading="You're in. Let's get your business growing."
-      text="Add a client, track your hours, and send your first invoice today."
+      heading="One code, and you're in."
+      text="Beta access is invite-only. Use your one-time code to finish setting up your account."
     >
       <SignupForm initialEmail={email} />
     </AuthShell>

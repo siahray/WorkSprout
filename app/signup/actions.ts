@@ -6,9 +6,12 @@ import { createClient } from '@/lib/supabase/server'
 // `fullName` and `email` are echoed back on errors so the form keeps what the user typed.
 export type SignupState = { error?: string; fullName?: string; email?: string }
 
+// Beta access is invite-only: an admin emails a one-time OTP. The invitee proves
+// it here, then sets the password they will use for every later login.
 export async function signup(_prevState: SignupState, formData: FormData): Promise<SignupState> {
   const fullName = String(formData.get('full_name') ?? '').trim()
   const email = String(formData.get('email') ?? '').trim().toLowerCase()
+  const token = String(formData.get('token') ?? '').trim()
   const password = String(formData.get('password') ?? '')
 
   const fail = (error: string): SignupState => ({ error, fullName, email })
@@ -16,41 +19,46 @@ export async function signup(_prevState: SignupState, formData: FormData): Promi
   if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
     return fail('Enter a valid email address.')
   }
+  if (!token) {
+    return fail('Enter the one-time code from your invite email.')
+  }
   if (password.length < 8) {
-    return fail('Password must be at least 8 characters.')
+    return fail('Choose a password with at least 8 characters.')
   }
 
   const supabase = await createClient()
 
-  const { data: onList, error: gateError } = await supabase.rpc('is_beta_signup', { p_email: email })
-  if (gateError) {
-    console.error('beta gate check failed:', gateError.message)
-    return fail('Something went wrong — please try again.')
-  }
-  if (!onList) {
-    return fail("This email isn't on the beta list yet — join the beta first.")
+  const { error: verifyError } = await supabase.auth.verifyOtp({ email, token, type: 'email' })
+
+  if (verifyError) {
+    if (verifyError.code === 'otp_expired' || /expired|invalid/i.test(verifyError.message)) {
+      return fail('That code is invalid or has expired — ask the WorkSprout team for a new invite.')
+    }
+    console.error('otp verify failed:', verifyError.message)
+    return fail('Could not verify your code — please try again.')
   }
 
-  const { data, error } = await supabase.auth.signUp({
-    email,
+  const { data, error: passwordError } = await supabase.auth.updateUser({
     password,
-    options: { data: { full_name: fullName } },
+    data: { full_name: fullName },
   })
 
-  if (error) {
-    if (error.code === 'user_already_exists' || /already registered/i.test(error.message)) {
-      return fail('An account with this email already exists — log in instead.')
-    }
-    if (error.code === 'over_email_send_rate_limit' || /rate limit/i.test(error.message)) {
-      return fail('Too many attempts just now — wait a few minutes and try again.')
-    }
-    if (error.code === 'weak_password' || /password/i.test(error.message)) {
+  if (passwordError) {
+    if (passwordError.code === 'weak_password' || /password/i.test(passwordError.message)) {
       return fail('Choose a stronger password (at least 8 characters).')
     }
-    console.error('signup failed:', error.message)
-    return fail('Could not create your account — please try again.')
+    console.error('set password failed:', passwordError.message)
+    return fail('Could not set your password — please try again.')
   }
 
-  if (data.session) redirect('/dashboard')
-  redirect(`/signup/check-email?email=${encodeURIComponent(email)}`)
+  const userId = data.user?.id
+  if (userId && fullName) {
+    const { error: profileError } = await supabase
+      .from('profiles')
+      .update({ full_name: fullName })
+      .eq('id', userId)
+    if (profileError) console.error('profile update failed:', profileError.message)
+  }
+
+  redirect('/dashboard')
 }

@@ -3,6 +3,8 @@ import { createClient } from '@/lib/supabase/server'
 import { display } from '@/lib/fonts'
 import { logout } from './actions'
 import { AdminLogo } from './logo'
+import { InviteForm } from './invite-form'
+import { InviteButton } from './invite-button'
 
 const focus =
   'focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#2E9E6B]'
@@ -32,7 +34,7 @@ export default async function AdminDashboard() {
 
   const { data: rows, error } = await supabase
     .from('beta_signups')
-    .select('id, email, full_name, profession, created_at')
+    .select('id, email, full_name, profession, created_at, invited_at')
     .order('created_at', { ascending: false })
 
   if (error) {
@@ -41,6 +43,7 @@ export default async function AdminDashboard() {
 
   const signups = rows ?? []
   const thisWeek = countInLast7Days(signups)
+  const invited = signups.filter((s) => s.invited_at).length
 
   return (
     <div>
@@ -62,10 +65,15 @@ export default async function AdminDashboard() {
         <h1 className={`${display.className} text-3xl font-extrabold tracking-tight`}>Beta signups</h1>
         <p className="mt-2 text-[#0E2F27]/70">Everyone who has signed up for the WorkSprout beta.</p>
 
-        <div className="mt-8 grid gap-4 sm:grid-cols-3">
+        <div className="mt-8 grid gap-4 sm:grid-cols-4">
           <Stat label="Total signups" value={signups.length} />
+          <Stat label="Invited" value={invited} />
           <Stat label="Last 7 days" value={thisWeek} />
           <Stat label="Signed in as" value={claims.email ?? claims.sub} />
+        </div>
+
+        <div className="mt-8">
+          <InviteForm />
         </div>
 
         <div className="mt-8 overflow-hidden rounded-xl border border-[#0E2F27]/12 bg-white">
@@ -82,6 +90,7 @@ export default async function AdminDashboard() {
                     <th className="px-5 py-3 font-medium">Name</th>
                     <th className="px-5 py-3 font-medium">Profession</th>
                     <th className="px-5 py-3 font-medium">Signed up</th>
+                    <th className="px-5 py-3 font-medium">Invite</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-[#0E2F27]/10">
@@ -104,6 +113,21 @@ export default async function AdminDashboard() {
                           dateStyle: 'medium',
                           timeStyle: 'short',
                         })}
+                      </td>
+                      <td className="px-5 py-3.5">
+                        {s.email ? (
+                          <div className="flex flex-col items-start gap-1">
+                            <InviteButton email={s.email} invited={Boolean(s.invited_at)} />
+                            {s.invited_at && (
+                              <span className="text-xs text-[#0E2F27]/50">
+                                Invited{' '}
+                                {new Date(s.invited_at).toLocaleDateString('en-US', { dateStyle: 'medium' })}
+                              </span>
+                            )}
+                          </div>
+                        ) : (
+                          <span className="text-[#0E2F27]/50">—</span>
+                        )}
                       </td>
                     </tr>
                   ))}

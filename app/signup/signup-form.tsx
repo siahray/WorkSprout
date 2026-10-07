@@ -56,10 +56,10 @@ export function SignupForm({ initialEmail }: { initialEmail: string }) {
           <Logo />
         </Link>
         <Link
-          href="/"
+          href="/login"
           className={`rounded-lg px-2 py-1 text-sm font-medium text-[#0E2F27]/70 hover:text-[#0E2F27] ${focus}`}
         >
-          ← Back
+          Log in
         </Link>
       </div>
 
@@ -70,11 +70,12 @@ export function SignupForm({ initialEmail }: { initialEmail: string }) {
       >
         <div className="ws-rise" style={delay(1)}>
           <span className="mb-3 inline-block rounded-full bg-[#F4B63F] px-2.5 py-0.5 text-xs font-semibold">
-            Free beta
+            Invite only
           </span>
           <h1 className={`${display.className} text-3xl font-extrabold tracking-tight`}>Create your account</h1>
           <p className="mt-1.5 text-[#0E2F27]/65">
-            Beta access is invite-only. Sign up with the email you joined the beta with.
+            Enter the one-time code from your invite email, then choose a password. You&rsquo;ll use that password to
+            log in from now on.
           </p>
         </div>
 
@@ -113,6 +114,25 @@ export function SignupForm({ initialEmail }: { initialEmail: string }) {
           </div>
 
           <div className="ws-rise" style={delay(4)}>
+            <label htmlFor="token" className="mb-1.5 block text-sm font-semibold">
+              One-time code
+            </label>
+            <input
+              id="token"
+              name="token"
+              type="text"
+              required
+              inputMode="numeric"
+              autoComplete="one-time-code"
+              maxLength={8}
+              placeholder="123456"
+              disabled={pending}
+              className={`${input} tracking-[0.3em]`}
+            />
+            <p className="mt-1.5 text-xs text-[#0E2F27]/55">This code works once. Ask for a new invite if it expired.</p>
+          </div>
+
+          <div className="ws-rise" style={delay(5)}>
             <label htmlFor="password" className="mb-1.5 block text-sm font-semibold">
               Password
             </label>
@@ -164,7 +184,7 @@ export function SignupForm({ initialEmail }: { initialEmail: string }) {
           </p>
         )}
 
-        <div className="ws-rise" style={delay(5)}>
+        <div className="ws-rise" style={delay(6)}>
           <button
             type="submit"
             disabled={pending}
@@ -175,20 +195,12 @@ export function SignupForm({ initialEmail }: { initialEmail: string }) {
           </button>
         </div>
 
-        <div className="ws-rise mt-6 space-y-2 text-center text-sm text-[#0E2F27]/65" style={delay(6)}>
-          <p>
-            Already have an account?{' '}
-            <Link href="/login" className={`rounded font-semibold text-[#1F6B52] hover:underline ${focus}`}>
-              Log in
-            </Link>
-          </p>
-          <p>
-            Not on the beta list yet?{' '}
-            <Link href="/join" className={`rounded font-semibold text-[#1F6B52] hover:underline ${focus}`}>
-              Join the beta
-            </Link>
-          </p>
-        </div>
+        <p className="ws-rise mt-6 text-center text-sm text-[#0E2F27]/65" style={delay(7)}>
+          Already have an account?{' '}
+          <Link href="/login" className={`rounded font-semibold text-[#1F6B52] hover:underline ${focus}`}>
+            Log in
+          </Link>
+        </p>
       </form>
     </div>
   )

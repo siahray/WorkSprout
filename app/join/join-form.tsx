@@ -1,19 +1,25 @@
 'use client'
 
-import { useActionState } from 'react'
+import { useActionState, useState } from 'react'
 import Link from 'next/link'
 import { joinBeta } from './actions'
+import { Logo } from '@/components/logo'
 import { display } from '@/lib/fonts'
 
 const focus =
   'focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#2E9E6B]'
 
+const input =
+  'w-full rounded-xl border border-[#0E2F27]/20 bg-white px-4 py-3.5 text-[#0E2F27] placeholder:text-[#0E2F27]/40 transition-colors hover:border-[#0E2F27]/40 ' +
+  focus
+
+const delay = (n: number) => ({ animationDelay: `${150 + n * 90}ms` })
+
+// Quick-picks shown as chips. The full list stays available in the field's suggestions.
+const quickPicks = ['Virtual assistant', 'Developer', 'Designer', 'Writer', 'Photographer']
+
 const professionSuggestions = [
-  'Virtual assistant',
-  'Developer',
-  'Designer',
-  'Writer',
-  'Photographer',
+  ...quickPicks,
   'Videographer',
   'Accountant',
   'Marketer',
@@ -21,32 +27,31 @@ const professionSuggestions = [
   'Other',
 ]
 
-function Logo() {
+function SproutLoader() {
   return (
-    <span className="flex items-center gap-2.5">
-      <svg width="34" height="34" viewBox="0 0 32 32" aria-hidden="true">
-        <rect width="32" height="32" rx="9" fill="#0E2F27" />
-        <path d="M16 25V15" stroke="#F4B63F" strokeWidth="2.5" strokeLinecap="round" />
-        <path d="M16 16c0-4.5-3-7-7.5-7 0 4.5 3 7 7.5 7z" fill="#2E9E6B" />
-        <path d="M16 14c0-4 2.5-6.5 7.5-6.5 0 4-2.5 6.5-7.5 6.5z" fill="#F4B63F" />
-      </svg>
-      <span className={`${display.className} text-2xl font-extrabold tracking-tight`}>WorkSprout</span>
-    </span>
+    <svg width="18" height="18" viewBox="0 0 32 32" aria-hidden="true">
+      <g className="ws-pulse">
+        <path d="M16 28V16" stroke="#F4B63F" strokeWidth="3" strokeLinecap="round" />
+        <path d="M16 17c0-5-3.5-8-9-8 0 5 3.5 8 9 8z" fill="#2E9E6B" />
+        <path d="M16 14c0-4.5 3-7.5 9-7.5 0 4.5-3 7.5-9 7.5z" fill="#F4B63F" />
+      </g>
+    </svg>
   )
 }
 
 export function JoinForm({ initialEmail, source }: { initialEmail: string; source: string }) {
   const [state, formAction, pending] = useActionState(joinBeta, {})
+  const [profession, setProfession] = useState('')
 
   return (
     <div className="mx-auto w-full max-w-md px-6">
-      <div className="mb-8 flex items-center justify-between">
+      <div className="ws-rise mb-8 flex items-center justify-between" style={delay(0)}>
         <Link href="/" className={`${focus} rounded-lg`}>
           <Logo />
         </Link>
         <Link
           href="/"
-          className={`text-sm font-medium text-[#0E2F27]/70 hover:text-[#0E2F27] ${focus} rounded-lg px-2 py-1`}
+          className={`rounded-lg px-2 py-1 text-sm font-medium text-[#0E2F27]/70 hover:text-[#0E2F27] ${focus}`}
         >
           ← Back
         </Link>
@@ -54,17 +59,24 @@ export function JoinForm({ initialEmail, source }: { initialEmail: string; sourc
 
       <form
         action={formAction}
-        className="rounded-2xl border border-[#0E2F27]/12 bg-white p-7 shadow-[0_18px_40px_-24px_rgba(14,47,39,0.35)]"
+        aria-busy={pending}
+        className="rounded-2xl border border-[#0E2F27]/12 bg-white p-8 shadow-[0_24px_50px_-28px_rgba(14,47,39,0.45)]"
       >
         <input type="hidden" name="source" value={source} />
-        <h1 className={`${display.className} text-2xl font-extrabold tracking-tight`}>Get free beta access</h1>
-        <p className="mt-1 text-sm text-[#0E2F27]/65">
-          Free during the beta. No card needed — just tell us a bit about you.
-        </p>
 
-        <div className="mt-6 space-y-4">
-          <div>
-            <label htmlFor="full_name" className="mb-1.5 block text-sm font-medium">
+        <div className="ws-rise" style={delay(1)}>
+          <span className="mb-3 inline-block rounded-full bg-[#F4B63F] px-2.5 py-0.5 text-xs font-semibold">
+            Free beta
+          </span>
+          <h1 className={`${display.className} text-3xl font-extrabold tracking-tight`}>Get free beta access</h1>
+          <p className="mt-1.5 text-[#0E2F27]/65">
+            Free during the beta. No card needed. Just tell us a bit about you.
+          </p>
+        </div>
+
+        <div className="mt-7 space-y-5">
+          <div className="ws-rise" style={delay(2)}>
+            <label htmlFor="full_name" className="mb-1.5 block text-sm font-semibold">
               Your name
             </label>
             <input
@@ -74,11 +86,14 @@ export function JoinForm({ initialEmail, source }: { initialEmail: string; sourc
               required
               autoComplete="name"
               placeholder="Juan Dela Cruz"
-              className={`w-full rounded-xl border border-[#0E2F27]/20 bg-white px-4 py-3 text-[#0E2F27] placeholder:text-[#0E2F27]/40 ${focus}`}
+              defaultValue={state.fullName}
+              disabled={pending}
+              className={input}
             />
           </div>
-          <div>
-            <label htmlFor="email" className="mb-1.5 block text-sm font-medium">
+
+          <div className="ws-rise" style={delay(3)}>
+            <label htmlFor="email" className="mb-1.5 block text-sm font-semibold">
               Email
             </label>
             <input
@@ -87,13 +102,15 @@ export function JoinForm({ initialEmail, source }: { initialEmail: string; sourc
               type="email"
               required
               autoComplete="email"
-              defaultValue={initialEmail}
               placeholder="you@email.com"
-              className={`w-full rounded-xl border border-[#0E2F27]/20 bg-white px-4 py-3 text-[#0E2F27] placeholder:text-[#0E2F27]/40 ${focus}`}
+              defaultValue={state.email ?? initialEmail}
+              disabled={pending}
+              className={input}
             />
           </div>
-          <div>
-            <label htmlFor="profession" className="mb-1.5 block text-sm font-medium">
+
+          <div className="ws-rise" style={delay(4)}>
+            <label htmlFor="profession" className="mb-1.5 block text-sm font-semibold">
               Profession / field
             </label>
             <input
@@ -103,33 +120,67 @@ export function JoinForm({ initialEmail, source }: { initialEmail: string; sourc
               required
               list="profession-suggestions"
               placeholder="e.g. Virtual assistant, Developer, Designer"
-              className={`w-full rounded-xl border border-[#0E2F27]/20 bg-white px-4 py-3 text-[#0E2F27] placeholder:text-[#0E2F27]/40 ${focus}`}
+              value={profession}
+              onChange={(e) => setProfession(e.target.value)}
+              disabled={pending}
+              className={input}
             />
             <datalist id="profession-suggestions">
               {professionSuggestions.map((p) => (
                 <option key={p} value={p} />
               ))}
             </datalist>
+            <div className="mt-3 flex flex-wrap gap-2">
+              {quickPicks.map((p) => {
+                const active = profession === p
+                return (
+                  <button
+                    key={p}
+                    type="button"
+                    onClick={() => setProfession(p)}
+                    aria-pressed={active}
+                    disabled={pending}
+                    className={`rounded-full border px-3 py-1 text-sm font-medium transition-colors ${focus} ${
+                      active
+                        ? 'border-[#0E2F27] bg-[#0E2F27] text-white'
+                        : 'border-[#0E2F27]/20 text-[#0E2F27]/75 hover:border-[#0E2F27]/50'
+                    }`}
+                  >
+                    {p}
+                  </button>
+                )
+              })}
+            </div>
           </div>
         </div>
 
         {state.error && (
-          <p role="alert" className="mt-4 rounded-lg bg-red-50 px-3 py-2 text-sm font-medium text-red-700">
+          <p
+            key={state.error}
+            role="alert"
+            className="ws-shake mt-5 rounded-lg bg-red-50 px-3.5 py-2.5 text-sm font-medium text-red-700"
+          >
             {state.error}
           </p>
         )}
 
-        <button
-          type="submit"
-          disabled={pending}
-          className={`mt-6 w-full rounded-xl bg-[#F4B63F] px-5 py-3 font-semibold text-[#0E2F27] hover:bg-[#e9a82a] disabled:opacity-60 ${focus}`}
-        >
-          {pending ? 'Joining…' : 'Join the beta'}
-        </button>
+        <div className="ws-rise" style={delay(5)}>
+          <button
+            type="submit"
+            disabled={pending}
+            className={`mt-7 flex w-full items-center justify-center gap-2.5 rounded-xl bg-[#F4B63F] px-5 py-3.5 text-base font-semibold text-[#0E2F27] transition-colors hover:bg-[#e9a82a] disabled:cursor-wait disabled:opacity-80 ${focus}`}
+          >
+            {pending && <SproutLoader />}
+            {pending ? 'Joining…' : 'Join the beta'}
+          </button>
+        </div>
 
-        <p className="mt-4 text-center text-xs text-[#0E2F27]/55">
-          No password needed — we will set up your account when your invite is ready.
-        </p>
+        <div className="ws-rise mt-6 text-center text-sm text-[#0E2F27]/65" style={delay(6)}>
+          <p className="text-xs text-[#0E2F27]/55">
+            No password needed now. If you&rsquo;re selected, we&rsquo;ll email you a one-time code to set up your
+            account.
+          </p>
+        </div>
       </form>
     </div>
   )

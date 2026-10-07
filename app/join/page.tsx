@@ -1,6 +1,6 @@
 import type { Metadata } from 'next'
+import { AuthShell } from '@/components/auth-shell'
 import { JoinForm } from './join-form'
-import { body } from '@/lib/fonts'
 
 export const metadata: Metadata = {
   title: 'Join the beta · WorkSprout',
@@ -17,8 +17,11 @@ export default async function JoinPage({
   const source = typeof params.source === 'string' ? params.source : 'beta-landing'
 
   return (
-    <div className={`${body.className} min-h-screen bg-[#F4F8F5] px-6 py-10 text-[#0E2F27]`}>
+    <AuthShell
+      heading="Grow your freelance business with us."
+      text="Join the free beta and we'll email you when your invite is ready."
+    >
       <JoinForm initialEmail={email} source={source} />
-    </div>
+    </AuthShell>
   )
 }
