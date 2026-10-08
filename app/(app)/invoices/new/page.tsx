@@ -17,7 +17,13 @@ type UnbilledRow = {
     | {
         title: string
         project:
-          | { id: string; name: string; hourly_rate: number | string | null; client_id: string }
+          | {
+              id: string
+              name: string
+              hourly_rate: number | string | null
+              fixed_rate: number | string | null
+              client_id: string
+            }
           | null
       }
     | null
@@ -38,7 +44,9 @@ export default async function NewInvoicePage({
     supabase.from('projects').select('id, name, client_id').order('name', { ascending: true }),
     supabase
       .from('time_entries')
-      .select('id, duration_minutes, task:tasks(title, project:projects(id, name, hourly_rate, client_id))')
+      .select(
+        'id, duration_minutes, task:tasks(title, project:projects(id, name, hourly_rate, fixed_rate, client_id))',
+      )
       .eq('billable', true)
       .is('invoice_id', null)
       .not('end_time', 'is', null),
@@ -62,11 +70,13 @@ export default async function NewInvoicePage({
     )
   }
 
-  const groups = new Map<string, UnbilledGroup>()
+const groups = new Map<string, UnbilledGroup>()
   for (const row of (unbilledRes.data ?? []) as unknown as UnbilledRow[]) {
     const project = row.task?.project
     if (!project) continue
-    const key = `${project.id}:${row.task!.title}`
+    const fixedRate = project.fixed_rate != null ? Number(project.fixed_rate) : null
+    // Fixed-price projects bill once, so their time groups together under the project.
+    const key = fixedRate != null ? `fixed:${project.id}` : `${project.id}:${row.task!.title}`
     const existing = groups.get(key)
     const minutes = row.duration_minutes ?? 0
     if (existing) {
@@ -75,12 +85,13 @@ export default async function NewInvoicePage({
     } else {
       groups.set(key, {
         key,
-        taskTitle: row.task!.title,
-        projectId: project.id,
+        taskTitle: fixedRate != null ? project.name : row.task!.title,
         projectName: project.name,
+        projectId: project.id,
         clientId: project.client_id,
         minutes,
-        rate: project.hourly_rate != null ? Number(project.hourly_rate) : null,
+        rate: fixedRate != null ? null : project.hourly_rate != null ? Number(project.hourly_rate) : null,
+        fixedRate,
         entryIds: [row.id],
       })
     }

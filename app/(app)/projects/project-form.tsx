@@ -1,7 +1,7 @@
-'use client'
+"use client"
 
 import Link from 'next/link'
-import { useActionState, useState } from 'react'
+import { useActionState } from 'react'
 import { Field } from '@/components/ui/field'
 import { SubmitButton } from '@/components/ui/submit-button'
 import type { FormState } from '@/lib/validation'
@@ -31,11 +31,6 @@ export function ProjectForm({
   cancelHref: string
 }) {
   const [state, formAction, pending] = useActionState(action, {})
-
-  const initialBilling =
-    defaults.hourly_rate != null ? 'hourly' : defaults.fixed_rate != null ? 'fixed' : 'none'
-  const [billing, setBilling] = useState(initialBilling)
-  const initialRate = defaults.hourly_rate ?? defaults.fixed_rate ?? ''
 
   return (
     <form action={formAction} aria-busy={pending} className={`${card} space-y-5 p-6`}>
@@ -93,33 +88,30 @@ export function ProjectForm({
             <option value="archived">Archived</option>
           </select>
         </Field>
-        <Field label="Billing" htmlFor="billing_type">
-          <select
-            id="billing_type"
-            name="billing_type"
-            value={billing}
-            onChange={(event) => setBilling(event.target.value)}
+        <Field label="Hourly rate (₱)" htmlFor="hourly_rate" hint="Optional">
+          <input
+            id="hourly_rate"
+            name="hourly_rate"
+            type="number"
+            min="0"
+            step="0.01"
+            defaultValue={defaults.hourly_rate != null ? String(defaults.hourly_rate) : ''}
+            placeholder="0.00"
             className={input}
-          >
-            <option value="hourly">Hourly</option>
-            <option value="fixed">Fixed price</option>
-            <option value="none">No rate</option>
-          </select>
+          />
         </Field>
-        {billing !== 'none' && (
-          <Field label={billing === 'hourly' ? 'Rate per hour (₱)' : 'Fixed amount (₱)'} htmlFor="rate">
-            <input
-              id="rate"
-              name="rate"
-              type="number"
-              min="0"
-              step="0.01"
-              defaultValue={initialRate}
-              placeholder="0.00"
-              className={input}
-            />
-          </Field>
-        )}
+        <Field label="Fixed amount (₱)" htmlFor="fixed_rate" hint="Optional">
+          <input
+            id="fixed_rate"
+            name="fixed_rate"
+            type="number"
+            min="0"
+            step="0.01"
+            defaultValue={defaults.fixed_rate != null ? String(defaults.fixed_rate) : ''}
+            placeholder="0.00"
+            className={input}
+          />
+        </Field>
       </div>
 
       {state.error && (

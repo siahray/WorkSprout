@@ -9,8 +9,8 @@ const PROJECT_STATUSES = ['active', 'completed', 'on_hold', 'archived']
 const TASK_STATUSES = ['todo', 'in_progress', 'done']
 
 function readProject(formData: FormData) {
-  const billingType = text(formData, 'billing_type')
-  const rate = money(formData, 'rate')
+  const hourlyRaw = text(formData, 'hourly_rate')
+  const fixedRaw = text(formData, 'fixed_rate')
   const status = text(formData, 'status')
 
   return {
@@ -18,15 +18,23 @@ function readProject(formData: FormData) {
     client_id: text(formData, 'client_id'),
     description: optionalText(formData, 'description'),
     status: PROJECT_STATUSES.includes(status) ? status : 'active',
-    billingType,
-    rate,
+    hourlyRate: hourlyRaw ? money(formData, 'hourly_rate') : null,
+    fixedRate: fixedRaw ? money(formData, 'fixed_rate') : null,
+    hourlyRaw,
+    fixedRaw,
   }
 }
 
-function rateColumns(billingType: string, rate: number | null) {
-  if (billingType === 'hourly') return { hourly_rate: rate, fixed_rate: null }
-  if (billingType === 'fixed') return { fixed_rate: rate, hourly_rate: null }
-  return { hourly_rate: null, fixed_rate: null }
+function validateRates(values: ReturnType<typeof readProject>): string | null {
+  if (values.hourlyRaw && values.hourlyRate === null) return 'Enter a valid hourly rate, or leave it blank.'
+  if (values.fixedRaw && values.fixedRate === null) return 'Enter a valid fixed amount, or leave it blank.'
+  return null
+}
+
+// Both rates are kept side by side: the hourly rate is never wiped when a fixed
+// amount is set, so a project can track hourly value and bill a fixed price.
+function rateColumns(values: ReturnType<typeof readProject>) {
+  return { hourly_rate: values.hourlyRate, fixed_rate: values.fixedRate }
 }
 
 export async function createProject(_prev: FormState, formData: FormData): Promise<FormState> {
@@ -34,9 +42,8 @@ export async function createProject(_prev: FormState, formData: FormData): Promi
 
   if (!values.name) return { error: 'Project name is required.' }
   if (!isUuid(values.client_id)) return { error: 'Choose a client for this project.' }
-  if (values.billingType !== 'none' && (values.rate === null || values.rate <= 0)) {
-    return { error: 'Enter a rate, or set billing to “No rate”.' }
-  }
+  const rateError = validateRates(values)
+  if (rateError) return { error: rateError }
 
   const supabase = await createClient()
   const { data } = await supabase.auth.getClaims()
@@ -50,7 +57,7 @@ export async function createProject(_prev: FormState, formData: FormData): Promi
       name: values.name,
       description: values.description,
       status: values.status,
-      ...rateColumns(values.billingType, values.rate),
+      ...rateColumns(values),
     })
     .select('id')
     .single()
@@ -71,9 +78,8 @@ export async function updateProject(_prev: FormState, formData: FormData): Promi
 
   if (!isUuid(id)) return { error: 'That project could not be found.' }
   if (!values.name) return { error: 'Project name is required.' }
-  if (values.billingType !== 'none' && (values.rate === null || values.rate <= 0)) {
-    return { error: 'Enter a rate, or set billing to “No rate”.' }
-  }
+  const rateError = validateRates(values)
+  if (rateError) return { error: rateError }
 
   const supabase = await createClient()
   const { error } = await supabase
@@ -82,7 +88,7 @@ export async function updateProject(_prev: FormState, formData: FormData): Promi
       name: values.name,
       description: values.description,
       status: values.status,
-      ...rateColumns(values.billingType, values.rate),
+      ...rateColumns(values),
     })
     .eq('id', id)
 

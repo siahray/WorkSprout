@@ -17,7 +17,11 @@ type EntryRateRow = {
   duration_minutes: number | null
   billable: boolean
   invoice_id: string | null
-  task: { project: { hourly_rate: number | string | null } | null } | null
+  task:
+    | {
+        project: { id: string; name: string; hourly_rate: number | string | null; fixed_rate: number | string | null } | null
+      }
+    | null
 }
 
 function round2(n: number): number {
@@ -66,7 +70,9 @@ export async function createInvoice(_prev: FormState, formData: FormData): Promi
   if (allEntryIds.length) {
     const { data: entries, error } = await supabase
       .from('time_entries')
-      .select('id, duration_minutes, billable, invoice_id, task:tasks(project:projects(hourly_rate))')
+      .select(
+        'id, duration_minutes, billable, invoice_id, task:tasks(project:projects(id, name, hourly_rate, fixed_rate))',
+      )
       .in('id', allEntryIds)
     if (error) {
       console.error('load invoice time entries failed:', error.message)
@@ -80,22 +86,62 @@ export async function createInvoice(_prev: FormState, formData: FormData): Promi
   const items: { description: string; quantity: number; unit_rate: number }[] = []
   const linkedEntryIds: string[] = []
 
+  // Fixed-price projects bill once, no matter how many tasks or hours were tracked.
+  const fixedByProject = new Map<string, { name: string; unitRate: number; entryIds: string[] }>()
+  // Remainder: hourly (or unrated) time, grouped per line.
+  const hourlyLines: { description: string; minutes: number; rate: number; entryIds: string[] }[] = []
+
   for (const line of timeLines) {
     const ids = Array.isArray(line.entry_ids) ? line.entry_ids.filter((id): id is string => typeof id === 'string') : []
     const valid = ids.map((id) => entriesById.get(id)).filter((e): e is EntryRateRow => Boolean(e))
     if (valid.length === 0) continue
 
-    const minutes = valid.reduce((sum, e) => sum + (e.duration_minutes ?? 0), 0)
-    const quantity = decimalHours(minutes)
-    if (quantity <= 0) continue
+    for (const e of valid) {
+      const fixedProject = e.task?.project
+      const fixedRate = fixedProject ? Number(fixedProject.fixed_rate ?? 0) : 0
+      if (fixedRate > 0 && fixedProject) {
+        const existing = fixedByProject.get(fixedProject.id)
+        if (existing) existing.entryIds.push(e.id)
+        else
+          fixedByProject.set(fixedProject.id, {
+            name: fixedProject.name,
+            unitRate: fixedRate,
+            entryIds: [e.id],
+          })
+      }
+    }
 
-    const rate = Number(valid[0].task?.project?.hourly_rate ?? 0)
+    const hourly = valid.filter((e) => Number(e.task?.project?.fixed_rate ?? 0) <= 0)
+    const minutes = hourly.reduce((sum, e) => sum + (e.duration_minutes ?? 0), 0)
+    if (minutes > 0) {
+      hourlyLines.push({
+        description: line.description?.trim() || 'Tracked time',
+        minutes,
+        rate: Number(hourly[0].task?.project?.hourly_rate ?? 0),
+        entryIds: hourly.map((e) => e.id),
+      })
+    }
+  }
+
+  for (const fixed of fixedByProject.values()) {
+    if (fixed.unitRate > 0) {
+      items.push({
+        description: `${fixed.name} — fixed price`,
+        quantity: 1,
+        unit_rate: round2(fixed.unitRate),
+      })
+      linkedEntryIds.push(...fixed.entryIds)
+    }
+  }
+  for (const line of hourlyLines) {
+    const quantity = decimalHours(line.minutes)
+    if (quantity <= 0) continue
     items.push({
-      description: line.description?.trim() || 'Tracked time',
+      description: line.description,
       quantity,
-      unit_rate: round2(rate),
+      unit_rate: round2(line.rate),
     })
-    linkedEntryIds.push(...valid.map((e) => e.id))
+    linkedEntryIds.push(...line.entryIds)
   }
 
   // --- Manual lines: validate the numbers the user typed.

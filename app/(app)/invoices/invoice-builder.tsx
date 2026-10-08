@@ -17,6 +17,7 @@ export type UnbilledGroup = {
   clientId: string
   minutes: number
   rate: number | null
+  fixedRate: number | null
   entryIds: string[]
 }
 
@@ -62,7 +63,7 @@ export function InvoiceBuilder({
   const timeLines = visibleGroups.filter((g) => selected[g.key])
 
   const timeSum = timeLines.reduce(
-    (sum, g) => sum + round2(decimalHours(g.minutes) * (g.rate ?? 0)),
+    (sum, g) => sum + round2(g.fixedRate != null ? g.fixedRate : decimalHours(g.minutes) * (g.rate ?? 0)),
     0
   )
   const manualSum = manual.reduce((sum, line) => {
@@ -79,7 +80,8 @@ export function InvoiceBuilder({
   const payload = JSON.stringify([
     ...timeLines.map((g) => ({
       kind: 'time',
-      description: `${g.projectName} · ${g.taskTitle}`,
+      description:
+        g.fixedRate != null ? `${g.projectName} — fixed price` : `${g.projectName} · ${g.taskTitle}`,
       entry_ids: g.entryIds,
     })),
     ...manual
@@ -199,16 +201,24 @@ export function InvoiceBuilder({
                 />
                 <span className="min-w-0 flex-1">
                   <span className="block truncate text-sm font-medium">{g.taskTitle}</span>
-                  <span className="block text-xs text-[#0E2F27]/55">{g.projectName}</span>
+                  <span className="block text-xs text-[#0E2F27]/55">
+                    {g.fixedRate != null
+                      ? `Fixed price · ${decimalHours(g.minutes).toFixed(2)} h work`
+                      : g.projectName}
+                  </span>
                 </span>
                 <span className="text-right text-sm tabular-nums text-[#0E2F27]/75">
-                  {decimalHours(g.minutes).toFixed(2)} h
+                  {g.fixedRate != null ? `1 × fixed` : `${decimalHours(g.minutes).toFixed(2)} h`}
                   <span className="block text-xs text-[#0E2F27]/55">
-                    {g.rate != null ? `${peso(g.rate)}/hr` : 'No rate'}
+                    {g.fixedRate != null
+                      ? peso(g.fixedRate)
+                      : g.rate != null
+                        ? `${peso(g.rate)}/hr`
+                        : 'No rate'}
                   </span>
                 </span>
                 <span className="w-24 text-right text-sm font-semibold tabular-nums">
-                  {peso(decimalHours(g.minutes) * (g.rate ?? 0))}
+                  {peso(g.fixedRate != null ? g.fixedRate : decimalHours(g.minutes) * (g.rate ?? 0))}
                 </span>
               </label>
             ))}

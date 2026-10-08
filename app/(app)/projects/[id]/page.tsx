@@ -132,8 +132,23 @@ export default async function ProjectDetailPage({ params }: { params: Promise<{ 
   const unbilled = entries.filter((e) => e.invoice_id === null && e.billable && e.end_time)
   const unbilledMinutes = unbilled.reduce((sum, e) => sum + (e.duration_minutes ?? 0), 0)
   const hourlyRate = project.hourly_rate != null ? Number(project.hourly_rate) : null
-  const unbilledValue = hourlyRate != null ? decimalHours(unbilledMinutes) * hourlyRate : null
+  const fixedRate = project.fixed_rate != null ? Number(project.fixed_rate) : null
+  const unbilledValue =
+    fixedRate != null
+      ? unbilled.length > 0
+        ? fixedRate
+        : 0
+      : hourlyRate != null
+        ? decimalHours(unbilledMinutes) * hourlyRate
+        : null
   const tasksDone = tasks.filter((t) => t.status === 'done').length
+
+  const unbilledHint = [
+    hourlyRate != null ? `At ${peso(hourlyRate)}/hr` : null,
+    fixedRate != null ? `Fixed ${peso(fixedRate)}` : null,
+  ]
+    .filter(Boolean)
+    .join(' · ')
 
   const taskTitle = new Map(tasks.map((t) => [t.id, t.title]))
 
@@ -159,7 +174,10 @@ export default async function ProjectDetailPage({ params }: { params: Promise<{ 
         <Stat
           label="Unbilled value"
           value={unbilledValue != null ? peso(unbilledValue) : '—'}
-          hint={hourlyRate != null ? `At ${peso(hourlyRate)}/hr` : 'Fixed-price project'}
+          hint={
+            unbilledHint ||
+            (hourlyRate == null && fixedRate == null ? 'No rate set on this project.' : undefined)
+          }
         />
         <Stat label="Tasks done" value={`${tasksDone}/${tasks.length}`} />
       </div>

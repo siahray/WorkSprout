@@ -81,11 +81,12 @@ export default async function ClientDetailPage({ params }: { params: Promise<{ i
                     <span className="font-medium">{p.name}</span>
                     <span className="flex items-center gap-3">
                       <span className="text-xs text-[#0E2F27]/55 tabular-nums">
-                        {p.hourly_rate != null
-                          ? `${peso(p.hourly_rate)}/hr`
-                          : p.fixed_rate != null
-                            ? `${peso(p.fixed_rate)} fixed`
-                            : 'No rate'}
+                        {[
+                          p.hourly_rate != null ? `${peso(p.hourly_rate)}/hr` : null,
+                          p.fixed_rate != null ? `${peso(p.fixed_rate)} fixed` : null,
+                        ]
+                          .filter(Boolean)
+                          .join(' · ') || 'No rate'}
                       </span>
                       <StatusBadge status={p.status ?? 'active'} />
                     </span>

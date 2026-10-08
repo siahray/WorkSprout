@@ -22,9 +22,10 @@ type ProjectRow = {
 }
 
 function rateLabel(p: ProjectRow): string {
-  if (p.hourly_rate != null) return `${peso(p.hourly_rate)}/hr`
-  if (p.fixed_rate != null) return `${peso(p.fixed_rate)} fixed`
-  return 'No rate'
+  const parts = []
+  if (p.hourly_rate != null) parts.push(`${peso(p.hourly_rate)}/hr`)
+  if (p.fixed_rate != null) parts.push(`${peso(p.fixed_rate)} fixed`)
+  return parts.length ? parts.join(' · ') : 'No rate'
 }
 
 export default async function ProjectsPage() {
