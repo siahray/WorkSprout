@@ -70,7 +70,7 @@ function Logo({ light = false }: { light?: boolean }) {
 
 function SignupForm({ id, dark = false }: { id: string; dark?: boolean }) {
   return (
-    <form action="/signup" method="get" className="w-full max-w-lg">
+    <form action="/join" method="get" className="w-full max-w-lg">
       <input type="hidden" name="source" value="beta-landing" />
       <label htmlFor={id} className="sr-only">
         Email address
