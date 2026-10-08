@@ -4,6 +4,7 @@ import { body } from '@/lib/fonts'
 import { Logo } from '@/components/logo'
 import { NavLinks } from '@/components/nav-links'
 import { ActiveTimer, type ActiveTimerInfo } from '@/components/active-timer'
+import { TimerSync } from '@/components/timer-sync'
 import { logout } from '@/app/(app)/actions'
 import { btnGhost, focus } from '@/lib/ui'
 
@@ -20,6 +21,7 @@ export function AppShell({
 }) {
   return (
     <div className={`${body.className} min-h-screen bg-[#F4F8F5] text-[#0E2F27]`}>
+      <TimerSync running={active != null} />
       <div className="lg:grid lg:grid-cols-[240px_1fr]">
         <aside className="sticky top-0 hidden h-screen flex-col border-r border-[#0E2F27]/10 bg-white lg:flex print:hidden">
           <div className="px-5 py-5">
