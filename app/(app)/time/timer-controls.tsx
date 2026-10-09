@@ -3,6 +3,7 @@
 import { useEffect, useState, useTransition } from 'react'
 import { pauseTimer, resumeTimer, startTimer, stopTimer } from './actions'
 import { alertError, btnAccent, btnSecondary, card, focus, input } from '@/lib/ui'
+import { display } from '@/lib/fonts'
 import { formatElapsed, timerElapsedSeconds, type RunningTimer } from '@/lib/timer'
 
 export type ProjectOption = {
@@ -19,11 +20,13 @@ export function StartTimer({
   initialProjectId,
   hasRunning,
   emptyMessage,
+  bare = false,
 }: {
   projects: ProjectOption[]
   initialProjectId?: string
   hasRunning: boolean
   emptyMessage?: string
+  bare?: boolean
 }) {
   const withTasks = projects.filter((p) => p.tasks.length > 0)
   const first = withTasks.find((p) => p.id === initialProjectId) ?? withTasks[0]
@@ -37,7 +40,13 @@ export function StartTimer({
 
   if (withTasks.length === 0) {
     return (
-      <div className={`${card} p-6 text-sm text-[#0E2F27]/65`}>
+      <div
+        className={
+          bare
+            ? 'rounded-xl bg-[#F4F8F5] p-5 text-sm text-[#0E2F27]/65'
+            : `${card} p-6 text-sm text-[#0E2F27]/65`
+        }
+      >
         {emptyMessage ?? 'Add a project and at least one task, then you can start tracking time here.'}
       </div>
     )
@@ -128,7 +137,7 @@ export function RunningTimerCard({ active }: { active: ActiveTimer }) {
   }, [])
 
   const paused = active.pausedAt != null
-  const display = formatElapsed(timerElapsedSeconds(active, now))
+  const elapsed = formatElapsed(timerElapsedSeconds(active, now))
 
   function run(action: () => Promise<{ error?: string } | void>) {
     startTransition(async () => {
@@ -138,36 +147,59 @@ export function RunningTimerCard({ active }: { active: ActiveTimer }) {
 
   return (
     <div
-      className={`${card} flex flex-col gap-4 p-5 sm:flex-row sm:items-center sm:justify-between ${
-        paused ? 'border-[#F4B63F]/50 bg-[#F4B63F]/10' : 'border-[#2E9E6B]/40 bg-[#2E9E6B]/8'
+      className={`${card} relative overflow-hidden p-6 ${
+        paused ? 'border-[#F4B63F]/50' : 'border-[#2E9E6B]/40'
       }`}
     >
-      <div>
-        <p className={`text-xs font-semibold uppercase tracking-wide ${paused ? 'text-[#8a6412]' : 'text-[#1F6B52]'}`}>
-          {paused ? 'Paused' : 'Running now'}
-        </p>
-        <p className="mt-1 font-semibold">{active.label}</p>
-      </div>
-      <div className="flex items-center gap-3">
-        <span className={`text-3xl font-extrabold tabular-nums ${paused ? 'text-[#8a6412]' : 'text-[#1F6B52]'}`}>
-          {display}
-        </span>
-        <button
-          type="button"
-          disabled={pending}
-          onClick={() => run(() => (paused ? resumeTimer(active.id) : pauseTimer(active.id)))}
-          className={`${btnSecondary} ${focus}`}
-        >
-          {pending ? 'Working…' : paused ? 'Resume' : 'Pause'}
-        </button>
-        <button
-          type="button"
-          disabled={pending}
-          onClick={() => run(() => stopTimer(active.id))}
-          className={`${btnAccent} bg-[#0E2F27] hover:bg-[#1F6B52] ${focus}`}
-        >
-          {pending ? 'Stopping…' : 'Stop & save'}
-        </button>
+      <span
+        className={`absolute inset-x-0 top-0 h-1 ${paused ? 'bg-[#F4B63F]' : 'bg-[#2E9E6B]'}`}
+        aria-hidden="true"
+      />
+      <div className="flex flex-col gap-6 sm:flex-row sm:items-center sm:justify-between">
+        <div className="min-w-0">
+          <span
+            className={`inline-flex items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.12em] ${
+              paused ? 'text-[#8a6412]' : 'text-[#1F6B52]'
+            }`}
+          >
+            <span className="relative flex h-2 w-2">
+              {!paused && (
+                <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-[#2E9E6B] opacity-60" />
+              )}
+              <span
+                className={`relative inline-flex h-2 w-2 rounded-full ${paused ? 'bg-[#F4B63F]' : 'bg-[#2E9E6B]'}`}
+              />
+            </span>
+            {paused ? 'Paused' : 'Running now'}
+          </span>
+          <p className="mt-2 truncate font-semibold text-[#0E2F27]">{active.label}</p>
+          <p
+            suppressHydrationWarning
+            className={`${display.className} mt-3 text-4xl font-extrabold leading-none tabular-nums sm:text-5xl ${
+              paused ? 'text-[#8a6412]' : 'text-[#1F6B52]'
+            }`}
+          >
+            {elapsed}
+          </p>
+        </div>
+        <div className="flex shrink-0 items-center gap-3">
+          <button
+            type="button"
+            disabled={pending}
+            onClick={() => run(() => (paused ? resumeTimer(active.id) : pauseTimer(active.id)))}
+            className={`${btnSecondary} ${focus}`}
+          >
+            {pending ? 'Working…' : paused ? 'Resume' : 'Pause'}
+          </button>
+          <button
+            type="button"
+            disabled={pending}
+            onClick={() => run(() => stopTimer(active.id))}
+            className={`${btnAccent} bg-[#0E2F27] hover:bg-[#1F6B52] ${focus}`}
+          >
+            {pending ? 'Stopping…' : 'Stop & save'}
+          </button>
+        </div>
       </div>
     </div>
   )

@@ -25,18 +25,20 @@ export function TimeEntryForm({
   defaults = {},
   submitLabel = 'Log time',
   cancelHref = '/time',
+  bare = false,
 }: {
   action: (state: FormState, formData: FormData) => Promise<FormState>
   projects: ProjectOption[]
   defaults?: EntryDefaults
   submitLabel?: string
   cancelHref?: string
+  bare?: boolean
 }) {
   const [state, formAction, pending] = useActionState(action, {})
   const withTasks = projects.filter((p) => p.tasks.length > 0)
 
   return (
-    <form action={formAction} aria-busy={pending} className={`${card} space-y-5 p-6`}>
+    <form action={formAction} aria-busy={pending} className={bare ? 'space-y-5' : `${card} space-y-5 p-6`}>
       {defaults.id && <input type="hidden" name="id" value={defaults.id} />}
 
       <Field label="Task" htmlFor="task_id">
