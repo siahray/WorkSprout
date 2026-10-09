@@ -49,7 +49,7 @@ export function TaskStatusSelect({ id, status }: { id: string; status: string })
           await setTaskStatus(id, event.target.value)
         })
       }
-      className={`${input} w-auto py-1.5 text-xs`}
+      className={`rounded-xl border border-[#0E2F27]/20 bg-white px-3.5 py-1.5 text-xs text-[#0E2F27] disabled:cursor-not-allowed disabled:opacity-60 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#2E9E6B] w-[130px]`}
     >
       <option value="todo">To do</option>
       <option value="in_progress">In progress</option>
