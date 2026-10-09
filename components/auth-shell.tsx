@@ -40,8 +40,18 @@ export function AuthShell({
     <div className={`${body.className} grid min-h-screen text-[#0E2F27] lg:grid-cols-[0.95fr_1.05fr]`}>
       <style>{css}</style>
 
-      <aside className="hidden flex-col items-center justify-center px-12 text-center text-white lg:flex" style={weave}>
-        <svg viewBox="0 0 200 220" className="ws-sway h-60 w-60" aria-hidden="true">
+      <aside
+        className="relative hidden flex-col items-center justify-center overflow-hidden px-12 text-center text-white lg:flex"
+        style={weave}
+      >
+        <div
+          className="pointer-events-none absolute -top-32 left-1/2 h-80 w-80 -translate-x-1/2 rounded-full bg-[#2E9E6B]/25 blur-3xl"
+          aria-hidden="true"
+        />
+        <span className="relative mb-10 rounded-full border border-white/15 bg-white/5 px-3.5 py-1.5 text-xs font-medium text-white/75">
+          Free beta · no card needed
+        </span>
+        <svg viewBox="0 0 200 220" className="ws-sway relative h-56 w-56" aria-hidden="true">
           <ellipse cx="100" cy="206" rx="46" ry="6" fill="#000" opacity=".25" />
           <path
             d="M100 204V108"
@@ -56,12 +66,13 @@ export function AuthShell({
           <path className="ws-leaf ws-leaf-r" d="M100 104c0-34 22-54 64-54 0 34-22 54-64 54z" fill="#F4B63F" />
         </svg>
         <h2
-          className={`${display.className} ws-rise mt-8 max-w-sm text-4xl font-extrabold leading-tight tracking-tight`}
+          className={`${display.className} ws-rise relative mt-8 max-w-sm text-4xl font-extrabold leading-tight tracking-tight`}
           style={{ animationDelay: '1.5s' }}
         >
           {heading}
         </h2>
-        <p className="ws-rise mt-4 max-w-xs text-white/75" style={{ animationDelay: '1.7s' }}>
+        <span className="ws-rise relative mt-5 h-1 w-10 rounded-full bg-[#F4B63F]" style={{ animationDelay: '1.6s' }} />
+        <p className="ws-rise relative mt-5 max-w-xs text-white/75" style={{ animationDelay: '1.7s' }}>
           {text}
         </p>
       </aside>
