@@ -5,6 +5,7 @@ import { logout } from './actions'
 import { AdminLogo } from './logo'
 import { InviteForm } from './invite-form'
 import { InviteButton } from './invite-button'
+import { tableHead, th, rowHover } from '@/lib/ui'
 
 const focus =
   'focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#2E9E6B]'
@@ -84,18 +85,18 @@ export default async function AdminDashboard() {
           ) : (
             <div className="overflow-x-auto">
               <table className="w-full text-sm">
-                <thead className="bg-[#F4F8F5] text-left text-[#0E2F27]/60">
+                <thead className={tableHead}>
                   <tr>
-                    <th className="px-5 py-3 font-medium">Email</th>
-                    <th className="px-5 py-3 font-medium">Name</th>
-                    <th className="px-5 py-3 font-medium">Profession</th>
-                    <th className="px-5 py-3 font-medium">Signed up</th>
-                    <th className="px-5 py-3 font-medium">Invite</th>
+                    <th className={th}>Email</th>
+                    <th className={th}>Name</th>
+                    <th className={th}>Profession</th>
+                    <th className={th}>Signed up</th>
+                    <th className={th}>Invite</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-[#0E2F27]/10">
                   {signups.map((s) => (
-                    <tr key={s.id}>
+                    <tr key={s.id} className={rowHover}>
                       <td className="px-5 py-3.5 font-medium">
                         <span className="flex items-center gap-2">
                           {s.email ?? '—'}

@@ -148,6 +148,7 @@ export async function setTaskStatus(id: string, status: string): Promise<void> {
 
   revalidatePath('/projects')
   revalidatePath('/time')
+  revalidatePath('/focus')
 }
 
 export async function deleteTask(_prev: FormState, formData: FormData): Promise<FormState> {

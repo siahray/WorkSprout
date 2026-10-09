@@ -4,6 +4,7 @@ import { useActionState, useState } from 'react'
 import Link from 'next/link'
 import { login } from './actions'
 import { Logo } from '@/components/logo'
+import { LogoMark } from '@/components/logo-mark'
 import { display } from '@/lib/fonts'
 
 const focus =
@@ -17,15 +18,7 @@ const input =
 const delay = (n: number) => ({ animationDelay: `${150 + n * 90}ms` })
 
 function SproutLoader() {
-  return (
-    <svg width="18" height="18" viewBox="0 0 32 32" aria-hidden="true">
-      <g className="ws-pulse">
-        <path d="M16 28V16" stroke="#F4B63F" strokeWidth="3" strokeLinecap="round" />
-        <path d="M16 17c0-5-3.5-8-9-8 0 5 3.5 8 9 8z" fill="#2E9E6B" />
-        <path d="M16 14c0-4.5 3-7.5 9-7.5 0 4.5-3 7.5-9 7.5z" fill="#F4B63F" />
-      </g>
-    </svg>
-  )
+  return <LogoMark size={18} className="ws-pulse" />
 }
 
 export function LoginForm() {

@@ -7,8 +7,10 @@ import { PageHeader } from '@/components/ui/page-header'
 import { btnSecondary, card, focus } from '@/lib/ui'
 import { display } from '@/lib/fonts'
 import { Calendar, type CalendarCell } from './calendar'
+import { FocusTabs } from './focus-tabs'
 import { TodoForm } from './todo-form'
 import { TodoItem, type TodoItemData } from './todo-item'
+import { TaskStatusSelect } from '../projects/task-controls'
 import { createTodo, deleteTodo, toggleTodo } from './actions'
 
 export const metadata: Metadata = {
@@ -17,6 +19,12 @@ export const metadata: Metadata = {
 
 const MONTH_RE = /^(\d{4})-(\d{2})$/
 const DAY_RE = /^\d{4}-\d{2}-\d{2}$/
+
+const PHASES = [
+  { key: 'todo', title: 'To do' },
+  { key: 'in_progress', title: 'In progress' },
+  { key: 'done', title: 'Done' },
+] as const
 
 function pad(n: number): string {
   return String(n).padStart(2, '0')
@@ -72,6 +80,17 @@ function summarize(rows: { due_date: string; completed_at: string | null }[]): M
   return stats
 }
 
+function FocusStat({ label, value, hint, accent }: { label: string; value: string; hint?: string; accent: string }) {
+  return (
+    <div className={`${card} relative overflow-hidden p-5`}>
+      <span className={`absolute inset-x-0 top-0 h-1 ${accent}`} aria-hidden="true" />
+      <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-[#0E2F27]/50">{label}</p>
+      <p className={`${display.className} mt-2 text-[1.75rem] font-extrabold leading-none tabular-nums`}>{value}</p>
+      {hint && <p className="text-xs text-[#0E2F27]/50">{hint}</p>}
+    </div>
+  )
+}
+
 export default async function FocusPage({
   searchParams,
 }: {
@@ -103,7 +122,7 @@ export default async function FocusPage({
   const monthEndIso = `${monthIso}-${pad(daysInMonth(y, m))}`
   const historyStartIso = addDaysIso(todayIso, -366)
 
-  const [monthRes, dayRes, historyRes, projectsRes] = await Promise.all([
+  const [monthRes, dayRes, historyRes, projectsRes, tasksRes] = await Promise.all([
     supabase
       .from('todos')
       .select('due_date, completed_at')
@@ -123,6 +142,7 @@ export default async function FocusPage({
       .gte('due_date', historyStartIso)
       .lte('due_date', todayIso),
     supabase.from('projects').select('id, name').order('name', { ascending: true }),
+    supabase.from('tasks').select('id, title, status, project_id').order('created_at', { ascending: true }),
   ])
 
   // --- Calendar grid (Sunday-first) with per-day achievement dots.
@@ -174,6 +194,9 @@ export default async function FocusPage({
   const donePercent = dayTotal > 0 ? Math.round((dayDone / dayTotal) * 100) : 0
 
   const projects = projectsRes.data ?? []
+  const tasks = tasksRes.data ?? []
+  const projectName = new Map(projects.map((project) => [project.id, project.name]))
+  const deliverableCount = tasks.length
   const dayParam = params.day && DAY_RE.test(params.day) ? `&day=${params.day}` : ''
   const prevHref = `/focus?month=${shiftMonth(monthIso, -1)}${dayParam}`
   const nextHref = `/focus?month=${shiftMonth(monthIso, 1)}${dayParam}`
@@ -187,72 +210,114 @@ export default async function FocusPage({
         </Link>
       </PageHeader>
 
-      <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(360px,440px)]">
-        <div className="space-y-6">
+      <FocusTabs
+        dayTotal={dayTotal}
+        deliverableCount={deliverableCount}
+        stats={
           <div className="grid gap-4 sm:grid-cols-3">
-            <div className={`${card} p-5`}>
-              <p className="text-xs font-medium uppercase tracking-wide text-[#0E2F27]/50">Current streak</p>
-              <p className={`${display.className} mt-1 text-2xl font-bold tabular-nums`}>
-                {currentStreak > 0 ? `${currentStreak} day${currentStreak === 1 ? '' : 's'}` : '—'}
-              </p>
-            </div>
-            <div className={`${card} p-5`}>
-              <p className="text-xs font-medium uppercase tracking-wide text-[#0E2F27]/50">Best streak</p>
-              <p className={`${display.className} mt-1 text-2xl font-bold tabular-nums`}>
-                {bestStreak > 0 ? `${bestStreak} day${bestStreak === 1 ? '' : 's'}` : '—'}
-              </p>
-            </div>
-            <div className={`${card} p-5`}>
-              <p className="text-xs font-medium uppercase tracking-wide text-[#0E2F27]/50">Days won</p>
-              <p className={`${display.className} mt-1 text-2xl font-bold tabular-nums`}>{wonThisMonth}</p>
-              <p className="text-xs text-[#0E2F27]/50">this month</p>
-            </div>
+            <FocusStat
+              label="Current streak"
+              value={currentStreak > 0 ? `${currentStreak} day${currentStreak === 1 ? '' : 's'}` : '—'}
+              accent="bg-[#2E9E6B]"
+            />
+            <FocusStat
+              label="Best streak"
+              value={bestStreak > 0 ? `${bestStreak} day${bestStreak === 1 ? '' : 's'}` : '—'}
+              accent="bg-[#F4B63F]"
+            />
+            <FocusStat label="Days won" value={String(wonThisMonth)} hint="this month" accent="bg-[#0E2F27]/25" />
           </div>
-
-          <Calendar label={monthLabel(y, m)} prevHref={prevHref} nextHref={nextHref} cells={cells} />
-        </div>
-
-        <section className={`${card} self-start p-5`}>
-          <div className="flex items-center justify-between gap-3">
-            <div>
-              <h2 className={`${display.className} text-base font-bold tracking-tight`}>{formatDate(dayIso)}</h2>
-              {relative && <p className="text-xs font-medium text-[#2E9E6B]">{relative}</p>}
-            </div>
-            {dayWon && (
-              <span className="rounded-full bg-[#2E9E6B]/12 px-2.5 py-1 text-xs font-semibold text-[#1F6B52]">
-                Day won
-              </span>
-            )}
-          </div>
-
-          {dayTotal > 0 && (
-            <div className="mt-3">
-              <div className="h-1.5 overflow-hidden rounded-full bg-[#0E2F27]/10">
-                <div className="h-full rounded-full bg-[#2E9E6B] transition-all" style={{ width: `${donePercent}%` }} />
+        }
+        calendar={<Calendar label={monthLabel(y, m)} prevHref={prevHref} nextHref={nextHref} cells={cells} />}
+        todoSidebar={
+          <section className={`${card} self-start p-5`}>
+            <div className="flex items-center justify-between gap-3">
+              <div>
+                <h2 className={`${display.className} text-base font-bold tracking-tight`}>{formatDate(dayIso)}</h2>
+                {relative && <p className="text-xs font-medium text-[#2E9E6B]">{relative}</p>}
               </div>
-              <p className="mt-1.5 text-xs text-[#0E2F27]/55">
-                {dayDone} of {dayTotal} done{dayWon ? ' — keep it up!' : ''}
-              </p>
+              {dayWon && (
+                <span className="rounded-full bg-[#2E9E6B]/12 px-2.5 py-1 text-xs font-semibold text-[#1F6B52]">
+                  Day won
+                </span>
+              )}
             </div>
-          )}
 
-          <div className="mt-4">
-            <TodoForm key={`${dayIso}:${dayTotal}`} action={createTodo} projects={projects} defaultDate={dayIso} />
-          </div>
+            {dayTotal > 0 && (
+              <div className="mt-3">
+                <div className="h-1.5 overflow-hidden rounded-full bg-[#0E2F27]/10">
+                  <div className="h-full rounded-full bg-[#2E9E6B] transition-all" style={{ width: `${donePercent}%` }} />
+                </div>
+                <p className="mt-1.5 text-xs text-[#0E2F27]/55">
+                  {dayDone} of {dayTotal} done{dayWon ? ' — keep it up!' : ''}
+                </p>
+              </div>
+            )}
 
-          {dayRows.length === 0 ? (
-            <p className="mt-4 rounded-xl bg-[#F4F8F5] px-4 py-6 text-center text-sm text-[#0E2F27]/55">
-              Nothing scheduled for this day. Add your first to-do above.
+            <div className="mt-4">
+              <TodoForm key={`${dayIso}:${dayTotal}`} action={createTodo} projects={projects} defaultDate={dayIso} />
+            </div>
+          </section>
+        }
+        todoList={
+          dayRows.length === 0 ? (
+            <p className="rounded-xl bg-[#F4F8F5] px-4 py-6 text-center text-sm text-[#0E2F27]/55">
+              Nothing scheduled for this day. Add your first to-do beside the calendar.
             </p>
           ) : (
-            <ul className="mt-4 divide-y divide-[#0E2F27]/10">
+            <ul className={`${card} divide-y divide-[#0E2F27]/10 px-5`}>
               {dayRows.map((todo) => (
                 <TodoItem key={todo.id} todo={todo} toggleAction={toggleTodo} deleteAction={deleteTodo} />
               ))}
             </ul>
-          )}
-        </section>
-      </div>
+          )
+        }
+        deliverablesList={
+          deliverableCount === 0 ? (
+            <p className={`${card} px-4 py-10 text-center text-sm text-[#0E2F27]/55`}>
+              No project deliverables yet. Add tasks inside a project and they will show up here.
+            </p>
+          ) : (
+            <section className={`${card} p-5`}>
+              <div className="space-y-6">
+                {PHASES.map((phase) => {
+                  const phaseTasks = tasks.filter((task) => (task.status ?? 'todo') === phase.key)
+                  if (phaseTasks.length === 0) return null
+                  return (
+                    <div key={phase.key}>
+                      <h3 className="flex items-center gap-2 text-sm font-semibold text-[#0E2F27]">
+                        {phase.title}
+                        <span className="rounded-full bg-[#F4F8F5] px-2 py-0.5 text-xs font-medium text-[#0E2F27]/55">
+                          {phaseTasks.length}
+                        </span>
+                      </h3>
+                      <ul className="mt-2 divide-y divide-[#0E2F27]/10 overflow-hidden rounded-xl border border-[#0E2F27]/10">
+                        {phaseTasks.map((task) => (
+                          <li key={task.id} className="flex items-center justify-between gap-3 px-4 py-2.5">
+                            <span className="min-w-0 flex-1">
+                              <span
+                                className={`block truncate text-sm ${
+                                  task.status === 'done' ? 'text-[#0E2F27]/45 line-through' : 'text-[#0E2F27]'
+                                }`}
+                              >
+                                {task.title}
+                              </span>
+                              <span className="block text-xs text-[#0E2F27]/50">
+                                {projectName.get(task.project_id) ?? ''}
+                              </span>
+                            </span>
+                            <TaskStatusSelect id={task.id} status={task.status ?? 'todo'} />
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  )
+                })}
+              </div>
+            </section>
+          )
+        }
+      />
     </>
   )
 }

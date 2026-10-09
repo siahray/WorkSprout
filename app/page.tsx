@@ -1,5 +1,7 @@
 import Link from 'next/link';
+import type { ReactNode } from 'react';
 import { Bricolage_Grotesque, Figtree } from 'next/font/google';
+import { LogoMark } from '@/components/logo-mark';
 
 const display = Bricolage_Grotesque({ subsets: ['latin'], weight: ['600', '800'] });
 const body = Figtree({ subsets: ['latin'], weight: ['400', '500', '600'] });
@@ -52,19 +54,29 @@ const faqs = [
   { q: 'Who sees my client data?', a: 'Your clients, projects, and invoices are private to your account.' },
 ];
 
-function Logo({ light = false }: { light?: boolean }) {
+function Logo({ light = false, size = 34 }: { light?: boolean; size?: number }) {
   return (
     <span className="flex items-center gap-2.5">
-      <svg width="34" height="34" viewBox="0 0 32 32" aria-hidden="true">
-        <rect width="32" height="32" rx="9" fill="#0E2F27" />
-        <path d="M16 25V15" stroke="#F4B63F" strokeWidth="2.5" strokeLinecap="round" />
-        <path d="M16 16c0-4.5-3-7-7.5-7 0 4.5 3 7 7.5 7z" fill="#2E9E6B" />
-        <path d="M16 14c0-4 2.5-6.5 7.5-6.5 0 4-2.5 6.5-7.5 6.5z" fill="#F4B63F" />
-      </svg>
-      <span className={`${display.className} text-2xl font-extrabold tracking-tight ${light ? 'text-white' : ''}`}>
+      <LogoMark size={size} />
+      <span
+        className={`${display.className} font-extrabold tracking-tight ${light ? 'text-white' : ''}`}
+        style={{ fontSize: size * 0.7, lineHeight: 1 }}
+      >
         WorkSprout
       </span>
     </span>
+  );
+}
+
+function Eyebrow({ children, dark = false }: { children: ReactNode; dark?: boolean }) {
+  return (
+    <p
+      className={`mb-3 text-xs font-semibold uppercase tracking-[0.18em] ${
+        dark ? 'text-[#F4B63F]' : 'text-[#1F6B52]'
+      }`}
+    >
+      {children}
+    </p>
   );
 }
 
@@ -127,7 +139,7 @@ export default function Home() {
       {/* Navigation */}
       <nav className="mx-auto flex max-w-6xl items-center justify-between px-6 py-5">
         <div className="flex items-center gap-3">
-          <Logo />
+          <Logo size={48} />
           <span className="rounded-full bg-[#F4B63F] px-2.5 py-0.5 text-xs font-semibold">Beta</span>
         </div>
         <div className="flex items-center gap-5">
@@ -147,8 +159,19 @@ export default function Home() {
             Free beta for freelancers
           </p>
           <h1 className={`${display.className} text-5xl font-extrabold leading-[1.04] tracking-tight md:text-6xl`}>
-  Track the work. Send the invoice. Get paid.
-            </h1>
+            Track the work. Send the invoice.{" "}
+            <span className="relative whitespace-nowrap">
+              Get paid.
+              <svg
+                className="absolute -bottom-1 left-0 h-2.5 w-full"
+                viewBox="0 0 200 10"
+                preserveAspectRatio="none"
+                aria-hidden="true"
+              >
+                <path d="M2 7c40-5 120-6 196-2" stroke="#F4B63F" strokeWidth="5" fill="none" strokeLinecap="round" />
+              </svg>
+            </span>
+          </h1>
           <p className="mt-6 max-w-xl text-lg leading-relaxed text-[#0E2F27]/75">
             Clients, tasks, hours, invoices, and payments in one workspace built for virtual assistants,
             developers, and artists.
@@ -159,7 +182,7 @@ export default function Home() {
         </div>
 
         <div className="relative mx-auto w-full max-w-md" aria-label="Sample invoice produced by WorkSprout">
-          <div className="rounded-lg border border-[#0E2F27]/15 bg-white p-7 shadow-[0_18px_40px_-20px_rgba(14,47,39,0.4)]">
+          <div className="rounded-2xl border border-[#0E2F27]/12 bg-white p-7 shadow-[0_24px_50px_-24px_rgba(14,47,39,0.45)]">
             <div className="flex items-start justify-between">
               <div>
                 <p className={`${display.className} text-xl font-extrabold`}>Invoice #0012</p>
@@ -211,6 +234,7 @@ export default function Home() {
       {/* Problem */}
       <section className="bg-white px-6 py-20">
         <div className="mx-auto max-w-6xl">
+          <Eyebrow>The problem</Eyebrow>
           <h2 className={`${display.className} max-w-2xl text-3xl font-extrabold tracking-tight md:text-4xl`}>
             Freelancing is hard enough without the admin
           </h2>
@@ -227,6 +251,7 @@ export default function Home() {
       {/* The loop */}
       <section className="px-6 py-24">
         <div className="mx-auto max-w-6xl">
+          <Eyebrow>How it works</Eyebrow>
           <h2 className={`${display.className} max-w-2xl text-3xl font-extrabold tracking-tight md:text-4xl`}>
             One flow, from first task to payment
           </h2>
@@ -249,6 +274,7 @@ export default function Home() {
       {/* Niches */}
       <section className="bg-white px-6 py-24">
         <div className="mx-auto max-w-6xl">
+          <Eyebrow>Built for you</Eyebrow>
           <h2 className={`${display.className} max-w-2xl text-3xl font-extrabold tracking-tight md:text-4xl`}>
             Made for how you actually work
           </h2>
@@ -267,6 +293,7 @@ export default function Home() {
       <section className="px-6 py-24 text-white" style={{ backgroundColor: '#0E2F27', ...weave }}>
         <div className="mx-auto grid max-w-6xl gap-14 lg:grid-cols-2">
           <div>
+            <Eyebrow dark>Open beta</Eyebrow>
             <h2 className={`${display.className} text-3xl font-extrabold tracking-tight md:text-4xl`}>
               Join now and shape what we build
             </h2>
@@ -291,6 +318,7 @@ export default function Home() {
       {/* FAQ */}
       <section className="px-6 py-24">
         <div className="mx-auto max-w-3xl">
+          <Eyebrow>FAQ</Eyebrow>
           <h2 className={`${display.className} text-3xl font-extrabold tracking-tight md:text-4xl`}>Questions</h2>
           <div className="mt-8 divide-y divide-[#0E2F27]/15 border-y border-[#0E2F27]/15">
             {faqs.map((f) => (

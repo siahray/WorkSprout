@@ -8,7 +8,7 @@ import { ConfirmAction } from '@/components/ui/confirm-action'
 import { AddTaskForm, TaskStatusSelect } from '../task-controls'
 import { StartTimer, RunningTimerCard, type ActiveTimer, type ProjectOption } from '@/app/(app)/time/timer-controls'
 import { decimalHours, formatDate, hoursFromMinutes, peso } from '@/lib/format'
-import { btnPrimary, btnSecondary, btnDanger, card, focus } from '@/lib/ui'
+import { btnPrimary, btnSecondary, btnDanger, card, focus, tableHead, th, rowHover } from '@/lib/ui'
 import { deleteProject, deleteTask } from '../actions'
 import { display } from '@/lib/fonts'
 
@@ -264,17 +264,17 @@ export default async function ProjectDetailPage({ params }: { params: Promise<{ 
           <div className={`${card} overflow-hidden`}>
             <div className="overflow-x-auto">
               <table className="w-full text-sm">
-                <thead className="bg-[#F4F8F5] text-left text-[#0E2F27]/60">
+                <thead className={tableHead}>
                   <tr>
-                    <th className="px-5 py-3 font-medium">Date</th>
-                    <th className="px-5 py-3 font-medium">Task</th>
-                    <th className="px-5 py-3 font-medium">Duration</th>
-                    <th className="px-5 py-3 font-medium">Invoice</th>
+                    <th className={th}>Date</th>
+                    <th className={th}>Task</th>
+                    <th className={th}>Duration</th>
+                    <th className={th}>Invoice</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-[#0E2F27]/10">
                   {entries.slice(0, 12).map((e) => (
-                    <tr key={e.id} className="hover:bg-[#F4F8F5]/60">
+                    <tr key={e.id} className={rowHover}>
                       <td className="px-5 py-3 text-[#0E2F27]/65">{formatDate(e.start_time)}</td>
                       <td className="px-5 py-3">{taskTitle.get(e.task_id) ?? '—'}</td>
                       <td className="px-5 py-3 tabular-nums">

@@ -5,7 +5,7 @@ import { createClient } from '@/lib/supabase/server'
 import { PageHeader } from '@/components/ui/page-header'
 import { EmptyState } from '@/components/ui/empty-state'
 import { peso } from '@/lib/format'
-import { btnPrimary, card, focus } from '@/lib/ui'
+import { btnPrimary, card, focus, tableHead, th, rowHover } from '@/lib/ui'
 
 export const metadata: Metadata = {
   title: 'Clients · WorkSprout',
@@ -65,17 +65,17 @@ export default async function ClientsPage() {
       <div className={`${card} overflow-hidden`}>
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
-            <thead className="bg-[#F4F8F5] text-left text-[#0E2F27]/60">
+            <thead className={tableHead}>
               <tr>
-                <th className="px-5 py-3 font-medium">Client</th>
-                <th className="px-5 py-3 font-medium">Email</th>
-                <th className="px-5 py-3 text-right font-medium">Projects</th>
-                <th className="px-5 py-3 text-right font-medium">Outstanding</th>
+                <th className={th}>Client</th>
+                <th className={th}>Email</th>
+                <th className={`${th} text-right`}>Projects</th>
+                <th className={`${th} text-right`}>Outstanding</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-[#0E2F27]/10">
               {clients.map((c) => (
-                <tr key={c.id} className="hover:bg-[#F4F8F5]/60">
+                <tr key={c.id} className={rowHover}>
                   <td className="px-5 py-3.5">
                     <Link href={`/clients/${c.id}`} className={`font-semibold text-[#1F6B52] hover:underline ${focus}`}>
                       {c.name}

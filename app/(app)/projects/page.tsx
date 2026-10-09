@@ -6,7 +6,7 @@ import { PageHeader } from '@/components/ui/page-header'
 import { StatusBadge } from '@/components/ui/status-badge'
 import { EmptyState } from '@/components/ui/empty-state'
 import { peso } from '@/lib/format'
-import { btnPrimary, card, focus } from '@/lib/ui'
+import { btnPrimary, card, focus, tableHead, th, rowHover } from '@/lib/ui'
 
 export const metadata: Metadata = {
   title: 'Projects · WorkSprout',
@@ -69,17 +69,17 @@ export default async function ProjectsPage() {
       <div className={`${card} overflow-hidden`}>
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
-            <thead className="bg-[#F4F8F5] text-left text-[#0E2F27]/60">
+            <thead className={tableHead}>
               <tr>
-                <th className="px-5 py-3 font-medium">Project</th>
-                <th className="px-5 py-3 font-medium">Client</th>
-                <th className="px-5 py-3 font-medium">Rate</th>
-                <th className="px-5 py-3 font-medium">Status</th>
+                <th className={th}>Project</th>
+                <th className={th}>Client</th>
+                <th className={th}>Rate</th>
+                <th className={th}>Status</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-[#0E2F27]/10">
               {projects.map((p) => (
-                <tr key={p.id} className="hover:bg-[#F4F8F5]/60">
+                <tr key={p.id} className={rowHover}>
                   <td className="px-5 py-3.5">
                     <Link href={`/projects/${p.id}`} className={`font-semibold text-[#1F6B52] hover:underline ${focus}`}>
                       {p.name}

@@ -3,13 +3,14 @@ import Link from 'next/link'
 import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import { PageHeader } from '@/components/ui/page-header'
+import { EmptyState } from '@/components/ui/empty-state'
 import { ConfirmAction } from '@/components/ui/confirm-action'
-import { StartTimer, RunningTimerCard, type ActiveTimer } from './timer-controls'
-import { TimeEntryForm } from './entry-form'
+import { RunningTimerCard, type ActiveTimer } from './timer-controls'
+import { TrackPanel } from './track-panel'
 import { loadProjectOptions } from './data'
 import { addManualEntry, deleteTimeEntry } from './actions'
 import { formatDate, hoursFromMinutes } from '@/lib/format'
-import { btnGhost, btnSecondary, card, focus } from '@/lib/ui'
+import { btnGhost, btnSecondary, card, focus, tableHead, th, rowHover } from '@/lib/ui'
 import { display } from '@/lib/fonts'
 
 export const metadata: Metadata = {
@@ -25,12 +26,13 @@ type EntryRow = {
   invoice_id: string | null
 }
 
-function Stat({ label, value, hint }: { label: string; value: string; hint?: string }) {
+function Stat({ label, value, hint, accent }: { label: string; value: string; hint?: string; accent: string }) {
   return (
-    <div className={`${card} p-5`}>
-      <p className="text-sm text-[#0E2F27]/60">{label}</p>
-      <p className={`${display.className} mt-1 text-2xl font-extrabold tabular-nums`}>{value}</p>
-      {hint && <p className="mt-1 text-xs text-[#0E2F27]/55">{hint}</p>}
+    <div className={`${card} relative overflow-hidden p-5`}>
+      <span className={`absolute inset-x-0 top-0 h-1 ${accent}`} aria-hidden="true" />
+      <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-[#0E2F27]/50">{label}</p>
+      <p className={`${display.className} mt-2 text-[1.75rem] font-extrabold leading-none tabular-nums`}>{value}</p>
+      {hint && <p className="mt-2 text-xs text-[#0E2F27]/55">{hint}</p>}
     </div>
   )
 }
@@ -110,26 +112,35 @@ export default async function TimePage({
         </div>
       )}
 
-      <div className="grid gap-4 sm:grid-cols-2">
-        <Stat label="Unbilled" value={hoursFromMinutes(unbilledMinutes)} hint="Billable, not yet invoiced" />
-        <Stat label="Logged" value={hoursFromMinutes(totalMinutes)} hint={filterName ? `For ${filterName}` : 'All time'} />
+      <div className="grid gap-4 sm:grid-cols-3">
+        <Stat
+          label="Unbilled"
+          value={hoursFromMinutes(unbilledMinutes)}
+          hint="Billable, not yet invoiced"
+          accent="bg-[#F4B63F]"
+        />
+        <Stat
+          label="Logged"
+          value={hoursFromMinutes(totalMinutes)}
+          hint={filterName ? `For ${filterName}` : 'All time'}
+          accent="bg-[#2E9E6B]"
+        />
+        <Stat
+          label="Entries"
+          value={String(filtered.length)}
+          hint={filterName ? `For ${filterName}` : 'Total time entries'}
+          accent="bg-[#0E2F27]/10"
+        />
       </div>
 
       <div className="mt-8 grid gap-6 lg:grid-cols-[minmax(0,22rem)_minmax(0,1fr)]">
         <div className="space-y-6">
-          <section className={`${card} p-5`}>
-            <h2 className={`${display.className} text-lg font-bold tracking-tight`}>Start a timer</h2>
-            <div className="mt-4">
-              <StartTimer projects={options} initialProjectId={projectFilter} hasRunning={Boolean(active)} />
-            </div>
-          </section>
-
-          <section className={`${card} p-5`}>
-            <h2 className={`${display.className} text-lg font-bold tracking-tight`}>Log time manually</h2>
-            <div className="mt-4">
-              <TimeEntryForm action={addManualEntry} projects={options} cancelHref="/time" />
-            </div>
-          </section>
+          <TrackPanel
+            projects={options}
+            initialProjectId={projectFilter}
+            hasRunning={Boolean(active)}
+            manualAction={addManualEntry}
+          />
         </div>
 
         <section>
@@ -137,25 +148,28 @@ export default async function TimePage({
             {filterName ? `Time for ${filterName}` : 'Recent time'}
           </h2>
           {filtered.length === 0 ? (
-            <div className={`${card} p-6 text-sm text-[#0E2F27]/65`}>No time logged yet.</div>
+            <EmptyState
+              title={filterName ? `No time logged for ${filterName}` : 'No time logged yet'}
+              description="Start the timer or log an entry by hand and it will show up here."
+            />
           ) : (
             <div className={`${card} overflow-hidden`}>
               <div className="overflow-x-auto">
                 <table className="w-full text-sm">
-                  <thead className="bg-[#F4F8F5] text-left text-[#0E2F27]/60">
+                  <thead className={tableHead}>
                     <tr>
-                      <th className="px-5 py-3 font-medium">Date</th>
-                      <th className="px-5 py-3 font-medium">Task</th>
-                      <th className="px-5 py-3 font-medium">Duration</th>
-                      <th className="px-5 py-3 font-medium">Status</th>
-                      <th className="px-5 py-3" />
+                      <th className={th}>Date</th>
+                      <th className={th}>Task</th>
+                      <th className={th}>Duration</th>
+                      <th className={th}>Status</th>
+                      <th className={th} />
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-[#0E2F27]/10">
                     {filtered.slice(0, 50).map((entry) => {
                       const info = taskInfo.get(entry.task_id)
                       return (
-                        <tr key={entry.id} className="hover:bg-[#F4F8F5]/60">
+                        <tr key={entry.id} className={rowHover}>
                           <td className="px-5 py-3 whitespace-nowrap text-[#0E2F27]/65">{formatDate(entry.start_time)}</td>
                           <td className="px-5 py-3">
                             <span className="font-medium">{info?.title ?? '—'}</span>
