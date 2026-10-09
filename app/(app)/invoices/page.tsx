@@ -6,7 +6,7 @@ import { PageHeader } from '@/components/ui/page-header'
 import { StatusBadge } from '@/components/ui/status-badge'
 import { EmptyState } from '@/components/ui/empty-state'
 import { formatDate, peso } from '@/lib/format'
-import { btnPrimary, card, focus } from '@/lib/ui'
+import { btnPrimary, card, focus, tableHead, th, rowHover } from '@/lib/ui'
 
 export const metadata: Metadata = {
   title: 'Invoices · WorkSprout',
@@ -60,20 +60,20 @@ export default async function InvoicesPage() {
         <div className={`${card} overflow-hidden`}>
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
-              <thead className="bg-[#F4F8F5] text-left text-[#0E2F27]/60">
+              <thead className={tableHead}>
                 <tr>
-                  <th className="px-5 py-3 font-medium">Invoice</th>
-                  <th className="px-5 py-3 font-medium">Client</th>
-                  <th className="px-5 py-3 font-medium">Issued</th>
-                  <th className="px-5 py-3 font-medium">Due</th>
-                  <th className="px-5 py-3 font-medium">Status</th>
-                  <th className="px-5 py-3 text-right font-medium">Total</th>
-                  <th className="px-5 py-3 text-right font-medium">Balance</th>
+                  <th className={th}>Invoice</th>
+                  <th className={th}>Client</th>
+                  <th className={th}>Issued</th>
+                  <th className={th}>Due</th>
+                  <th className={th}>Status</th>
+                  <th className={`${th} text-right`}>Total</th>
+                  <th className={`${th} text-right`}>Balance</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-[#0E2F27]/10">
                 {invoices.map((inv) => (
-                  <tr key={inv.id} className="hover:bg-[#F4F8F5]/60">
+                  <tr key={inv.id} className={rowHover}>
                     <td className="px-5 py-3.5 font-semibold">
                       <Link href={`/invoices/${inv.id}`} className={`text-[#1F6B52] hover:underline ${focus}`}>
                         {inv.number}
