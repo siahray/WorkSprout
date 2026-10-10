@@ -119,15 +119,74 @@ export async function deleteProject(_prev: FormState, formData: FormData): Promi
   redirect('/projects')
 }
 
-export async function addTask(_prev: FormState, formData: FormData): Promise<FormState> {
+export async function addPhase(_prev: FormState, formData: FormData): Promise<FormState> {
   const projectId = text(formData, 'project_id')
   const title = text(formData, 'title')
 
   if (!isUuid(projectId)) return { error: 'That project could not be found.' }
-  if (!title) return { error: 'Enter a task title.' }
+  if (!title) return { error: 'Enter a phase name.' }
+  if (title.length > 200) return { error: 'Keep the phase name under 200 characters.' }
 
   const supabase = await createClient()
-  const { error } = await supabase.from('tasks').insert({ project_id: projectId, title })
+
+  const { data: last } = await supabase
+    .from('phases')
+    .select('position')
+    .eq('project_id', projectId)
+    .order('position', { ascending: false })
+    .limit(1)
+    .maybeSingle()
+
+  const { error } = await supabase.from('phases').insert({
+    project_id: projectId,
+    title,
+    position: (last?.position ?? -1) + 1,
+  })
+
+  if (error) {
+    console.error('add phase failed:', error.message)
+    return { error: 'Could not add the phase. Please try again.' }
+  }
+
+  revalidatePath(`/projects/${projectId}`)
+  revalidatePath('/focus')
+  return { ok: 'Phase added.' }
+}
+
+export async function deletePhase(_prev: FormState, formData: FormData): Promise<FormState> {
+  const id = text(formData, 'id')
+  const projectId = optionalText(formData, 'project_id')
+
+  if (!isUuid(id)) return { error: 'That phase could not be found.' }
+
+  const supabase = await createClient()
+  const { error } = await supabase.from('phases').delete().eq('id', id)
+
+  if (error) {
+    console.error('delete phase failed:', error.message)
+    return { error: 'Could not delete the phase. Please try again.' }
+  }
+
+  if (projectId && isUuid(projectId)) revalidatePath(`/projects/${projectId}`)
+  revalidatePath('/focus')
+  return { ok: 'Phase removed.' }
+}
+
+export async function addTask(_prev: FormState, formData: FormData): Promise<FormState> {
+  const projectId = text(formData, 'project_id')
+  const title = text(formData, 'title')
+  const phaseId = optionalText(formData, 'phase_id')
+
+  if (!isUuid(projectId)) return { error: 'That project could not be found.' }
+  if (!title) return { error: 'Enter a task title.' }
+  if (phaseId && !isUuid(phaseId)) return { error: 'That phase could not be found.' }
+
+  const supabase = await createClient()
+  const { error } = await supabase.from('tasks').insert({
+    project_id: projectId,
+    phase_id: phaseId ?? null,
+    title,
+  })
 
   if (error) {
     console.error('add task failed:', error.message)

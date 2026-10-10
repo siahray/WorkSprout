@@ -2,30 +2,79 @@
 
 import { useActionState, useTransition } from 'react'
 import { SubmitButton } from '@/components/ui/submit-button'
-import { addSubtask, addTask, setSubtaskStatus, setTaskStatus } from './actions'
+import { addPhase, addSubtask, addTask, setSubtaskStatus, setTaskStatus } from './actions'
 import { alertError, alertOk, btnSecondary, input } from '@/lib/ui'
 
-export function AddTaskForm({ projectId }: { projectId: string }) {
-  const [state, formAction, pending] = useActionState(addTask, {})
+export function AddPhaseForm({ projectId }: { projectId: string }) {
+  const [state, formAction, pending] = useActionState(addPhase, {})
 
   return (
     <form action={formAction} aria-busy={pending} className="space-y-2">
       <input type="hidden" name="project_id" value={projectId} />
       <div className="flex gap-2">
-        <label htmlFor="task-title" className="sr-only">
-          Task title
+        <label htmlFor="phase-title" className="sr-only">
+          Phase name
         </label>
         <input
-          id="task-title"
+          id="phase-title"
           name="title"
           required
-          placeholder="Add a task…"
+          placeholder="Add a phase (e.g. Phase 1)…"
           className={`${input} flex-1`}
         />
+        <SubmitButton pendingText="Adding…" className={btnSecondary}>
+          Add phase
+        </SubmitButton>
+      </div>
+      {state.error && (
+        <p role="alert" className={alertError}>
+          {state.error}
+        </p>
+      )}
+      {state.ok && <p className={alertOk}>{state.ok}</p>}
+    </form>
+  )
+}
+
+export function AddTaskForm({
+  projectId,
+  phaseId,
+  phases = [],
+}: {
+  projectId: string
+  phaseId?: string
+  phases?: { id: string; title: string }[]
+}) {
+  const [state, formAction, pending] = useActionState(addTask, {})
+  const showPhaseSelect = !phaseId && phases.length > 0
+  const inputId = phaseId ? `task-title-${phaseId}` : 'task-title'
+
+  return (
+    <form action={formAction} aria-busy={pending} className="space-y-2">
+      <input type="hidden" name="project_id" value={projectId} />
+      {phaseId && <input type="hidden" name="phase_id" value={phaseId} />}
+      <div className="flex gap-2">
+        <label htmlFor={inputId} className="sr-only">
+          Task title
+        </label>
+        <input id={inputId} name="title" required placeholder="Add a task…" className={`${input} flex-1`} />
         <SubmitButton pendingText="Adding…" className={btnSecondary}>
           Add
         </SubmitButton>
       </div>
+      {showPhaseSelect && (
+        <label className="block">
+          <span className="sr-only">Phase</span>
+          <select name="phase_id" defaultValue="" className={input} aria-label="Phase">
+            <option value="">No phase</option>
+            {phases.map((phase) => (
+              <option key={phase.id} value={phase.id}>
+                {phase.title}
+              </option>
+            ))}
+          </select>
+        </label>
+      )}
       {state.error && (
         <p role="alert" className={alertError}>
           {state.error}
