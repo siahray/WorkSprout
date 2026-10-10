@@ -5,11 +5,11 @@ import { createClient } from '@/lib/supabase/server'
 import { PageHeader } from '@/components/ui/page-header'
 import { StatusBadge } from '@/components/ui/status-badge'
 import { ConfirmAction } from '@/components/ui/confirm-action'
-import { AddTaskForm, TaskStatusSelect } from '../task-controls'
+import { AddSubtaskForm, AddTaskForm, SubtaskStatusSelect, TaskStatusSelect } from '../task-controls'
 import { StartTimer, RunningTimerCard, type ActiveTimer, type ProjectOption } from '@/app/(app)/time/timer-controls'
 import { decimalHours, formatDate, hoursFromMinutes, peso } from '@/lib/format'
 import { btnPrimary, btnSecondary, btnDanger, card, focus, tableHead, th, rowHover } from '@/lib/ui'
-import { deleteProject, deleteTask } from '../actions'
+import { deleteProject, deleteSubtask, deleteTask } from '../actions'
 import { display } from '@/lib/fonts'
 
 export const metadata: Metadata = {
@@ -17,6 +17,7 @@ export const metadata: Metadata = {
 }
 
 type TaskRow = { id: string; title: string; status: string | null }
+type SubtaskRow = { id: string; title: string; status: string | null; parent_task_id: string }
 type TimeRow = {
   id: string
   task_id: string
@@ -64,8 +65,13 @@ export default async function ProjectDetailPage({ params }: { params: Promise<{ 
 
   if (!project) notFound()
 
-  const [tasksRes, invoicesRes, activeRes] = await Promise.all([
+  const [tasksRes, subtasksRes, invoicesRes, activeRes] = await Promise.all([
     supabase.from('tasks').select('id, title, status').eq('project_id', id).order('created_at', { ascending: true }),
+    supabase
+      .from('subtasks')
+      .select('id, title, status, parent_task_id')
+      .eq('project_id', id)
+      .order('created_at', { ascending: true }),
     supabase
       .from('invoice_balances')
       .select('id, number, status, total, balance, issue_date')
@@ -81,8 +87,15 @@ export default async function ProjectDetailPage({ params }: { params: Promise<{ 
   ])
 
   const tasks = (tasksRes.data ?? []) as TaskRow[]
+  const subtasks = (subtasksRes.data ?? []) as SubtaskRow[]
   const invoices = invoicesRes.data ?? []
   const taskIds = tasks.map((t) => t.id)
+  const subtasksByTask = new Map<string, SubtaskRow[]>()
+  for (const subtask of subtasks) {
+    const list = subtasksByTask.get(subtask.parent_task_id) ?? []
+    list.push(subtask)
+    subtasksByTask.set(subtask.parent_task_id, list)
+  }
 
   const timerOptions: ProjectOption[] = [
     {
@@ -208,24 +221,64 @@ export default async function ProjectDetailPage({ params }: { params: Promise<{ 
               </div>
             ) : (
               <ul className={`${card} divide-y divide-[#0E2F27]/10`}>
-                {tasks.map((t) => (
-                  <li key={t.id} className="flex items-center justify-between gap-3 px-4 py-3">
-                    <span className={`text-sm font-medium ${t.status === 'done' ? 'text-[#0E2F27]/45 line-through' : ''}`}>
-                      {t.title}
-                    </span>
-                    <span className="flex items-center gap-2">
-                      <TaskStatusSelect id={t.id} status={t.status ?? 'todo'} />
-                      <ConfirmAction
-                        action={deleteTask}
-                        id={t.id}
-                        message="Delete this task and all of its tracked time?"
-                        className={`${btnDanger} px-2.5 py-1.5 text-xs`}
-                      >
-                        Delete
-                      </ConfirmAction>
-                    </span>
-                  </li>
-                ))}
+                {tasks.map((t) => {
+                  const taskSubtasks = subtasksByTask.get(t.id) ?? []
+                  return (
+                    <li key={t.id} className="px-4 py-3">
+                      <div className="flex items-center justify-between gap-3">
+                        <span className={`text-sm font-medium ${t.status === 'done' ? 'text-[#0E2F27]/45 line-through' : ''}`}>
+                          {t.title}
+                        </span>
+                        <span className="flex items-center gap-2">
+                          <TaskStatusSelect id={t.id} status={t.status ?? 'todo'} />
+                          <ConfirmAction
+                            action={deleteTask}
+                            id={t.id}
+                            message="Delete this task and all of its tracked time?"
+                            className={`${btnDanger} px-2.5 py-1.5 text-xs`}
+                          >
+                            Delete
+                          </ConfirmAction>
+                        </span>
+                      </div>
+
+                      {taskSubtasks.length > 0 && (
+                        <ul className="mt-2 space-y-1.5 border-l-2 border-[#0E2F27]/10 pl-4">
+                          {taskSubtasks.map((subtask) => (
+                            <li key={subtask.id} className="flex items-center justify-between gap-3">
+                              <span
+                                className={`min-w-0 flex-1 truncate text-sm ${
+                                  subtask.status === 'done' ? 'text-[#0E2F27]/45 line-through' : 'text-[#0E2F27]/80'
+                                }`}
+                              >
+                                {subtask.title}
+                              </span>
+                              <span className="flex items-center gap-1.5">
+                                <SubtaskStatusSelect id={subtask.id} status={subtask.status ?? 'todo'} />
+                                <ConfirmAction
+                                  action={deleteSubtask}
+                                  id={subtask.id}
+                                  message="Delete this subtask?"
+                                  extra={{ project_id: id }}
+                                  className={`${btnDanger} px-2 py-1 text-xs`}
+                                >
+                                  Delete
+                                </ConfirmAction>
+                              </span>
+                            </li>
+                          ))}
+                        </ul>
+                      )}
+
+                      <details className="mt-2">
+                        <summary className="cursor-pointer text-xs font-semibold text-[#1F6B52]">Add subtask</summary>
+                        <div className="mt-2">
+                          <AddSubtaskForm parentTaskId={t.id} projectId={id} />
+                        </div>
+                      </details>
+                    </li>
+                  )
+                })}
               </ul>
             )}
           </div>
