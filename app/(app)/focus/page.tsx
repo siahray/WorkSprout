@@ -10,7 +10,8 @@ import { Calendar, type CalendarCell } from './calendar'
 import { FocusTabs } from './focus-tabs'
 import { TodoForm } from './todo-form'
 import { TodoItem, type TodoItemData } from './todo-item'
-import { TaskStatusSelect } from '../projects/task-controls'
+import { SubtaskStatusSelect, TaskStatusSelect } from '../projects/task-controls'
+import { AddToTodayButton } from './add-to-today'
 import { createTodo, deleteTodo, toggleTodo } from './actions'
 
 export const metadata: Metadata = {
@@ -122,7 +123,7 @@ export default async function FocusPage({
   const monthEndIso = `${monthIso}-${pad(daysInMonth(y, m))}`
   const historyStartIso = addDaysIso(todayIso, -366)
 
-  const [monthRes, dayRes, historyRes, projectsRes, tasksRes] = await Promise.all([
+  const [monthRes, dayRes, historyRes, projectsRes, tasksRes, subtasksRes] = await Promise.all([
     supabase
       .from('todos')
       .select('due_date, completed_at')
@@ -143,6 +144,10 @@ export default async function FocusPage({
       .lte('due_date', todayIso),
     supabase.from('projects').select('id, name').order('name', { ascending: true }),
     supabase.from('tasks').select('id, title, status, project_id').order('created_at', { ascending: true }),
+    supabase
+      .from('subtasks')
+      .select('id, title, status, project_id, parent_task_id')
+      .order('created_at', { ascending: true }),
   ])
 
   // --- Calendar grid (Sunday-first) with per-day achievement dots.
@@ -195,8 +200,15 @@ export default async function FocusPage({
 
   const projects = projectsRes.data ?? []
   const tasks = tasksRes.data ?? []
+  const subtasks = subtasksRes.data ?? []
   const projectName = new Map(projects.map((project) => [project.id, project.name]))
-  const deliverableCount = tasks.length
+  const subtasksByTask = new Map<string, typeof subtasks>()
+  for (const subtask of subtasks) {
+    const list = subtasksByTask.get(subtask.parent_task_id) ?? []
+    list.push(subtask)
+    subtasksByTask.set(subtask.parent_task_id, list)
+  }
+  const deliverableCount = tasks.length + subtasks.length
   const dayParam = params.day && DAY_RE.test(params.day) ? `&day=${params.day}` : ''
   const prevHref = `/focus?month=${shiftMonth(monthIso, -1)}${dayParam}`
   const nextHref = `/focus?month=${shiftMonth(monthIso, 1)}${dayParam}`
@@ -292,23 +304,57 @@ export default async function FocusPage({
                         </span>
                       </h3>
                       <ul className="mt-2 divide-y divide-[#0E2F27]/10 overflow-hidden rounded-xl border border-[#0E2F27]/10">
-                        {phaseTasks.map((task) => (
-                          <li key={task.id} className="flex items-center justify-between gap-3 px-4 py-2.5">
-                            <span className="min-w-0 flex-1">
-                              <span
-                                className={`block truncate text-sm ${
-                                  task.status === 'done' ? 'text-[#0E2F27]/45 line-through' : 'text-[#0E2F27]'
-                                }`}
-                              >
-                                {task.title}
-                              </span>
-                              <span className="block text-xs text-[#0E2F27]/50">
-                                {projectName.get(task.project_id) ?? ''}
-                              </span>
-                            </span>
-                            <TaskStatusSelect id={task.id} status={task.status ?? 'todo'} />
-                          </li>
-                        ))}
+                        {phaseTasks.map((task) => {
+                          const taskSubtasks = subtasksByTask.get(task.id) ?? []
+                          return (
+                            <li key={task.id} className="px-4 py-2.5">
+                              <div className="flex items-center justify-between gap-3">
+                                <span className="min-w-0 flex-1">
+                                  <span
+                                    className={`block truncate text-sm ${
+                                      task.status === 'done' ? 'text-[#0E2F27]/45 line-through' : 'text-[#0E2F27]'
+                                    }`}
+                                  >
+                                    {task.title}
+                                  </span>
+                                  <span className="block text-xs text-[#0E2F27]/50">
+                                    {projectName.get(task.project_id) ?? ''}
+                                  </span>
+                                </span>
+                                <span className="flex shrink-0 items-center gap-2">
+                                  <AddToTodayButton title={task.title} projectId={task.project_id} dueDate={todayIso} />
+                                  <TaskStatusSelect id={task.id} status={task.status ?? 'todo'} />
+                                </span>
+                              </div>
+
+                              {taskSubtasks.length > 0 && (
+                                <ul className="mt-2 space-y-1.5 border-l-2 border-[#0E2F27]/10 pl-4">
+                                  {taskSubtasks.map((subtask) => (
+                                    <li key={subtask.id} className="flex items-center justify-between gap-3">
+                                      <span
+                                        className={`min-w-0 flex-1 truncate text-sm ${
+                                          subtask.status === 'done'
+                                            ? 'text-[#0E2F27]/45 line-through'
+                                            : 'text-[#0E2F27]/80'
+                                        }`}
+                                      >
+                                        {subtask.title}
+                                      </span>
+                                      <span className="flex shrink-0 items-center gap-2">
+                                        <AddToTodayButton
+                                          title={subtask.title}
+                                          projectId={subtask.project_id}
+                                          dueDate={todayIso}
+                                        />
+                                        <SubtaskStatusSelect id={subtask.id} status={subtask.status ?? 'todo'} />
+                                      </span>
+                                    </li>
+                                  ))}
+                                </ul>
+                              )}
+                            </li>
+                          )
+                        })}
                       </ul>
                     </div>
                   )

@@ -136,6 +136,7 @@ export async function addTask(_prev: FormState, formData: FormData): Promise<For
 
   revalidatePath(`/projects/${projectId}`)
   revalidatePath('/time')
+  revalidatePath('/focus')
   return { ok: 'Task added.' }
 }
 
@@ -165,5 +166,68 @@ export async function deleteTask(_prev: FormState, formData: FormData): Promise<
 
   revalidatePath('/projects')
   revalidatePath('/time')
+  revalidatePath('/focus')
   return { ok: 'Task deleted.' }
+}
+
+export async function addSubtask(_prev: FormState, formData: FormData): Promise<FormState> {
+  const parentTaskId = text(formData, 'parent_task_id')
+  const projectId = text(formData, 'project_id')
+  const title = text(formData, 'title')
+
+  if (!isUuid(parentTaskId) || !isUuid(projectId)) return { error: 'Invalid request.' }
+  if (!title) return { error: 'Enter a subtask title.' }
+
+  const supabase = await createClient()
+  const { error } = await supabase.from('subtasks').insert({
+    parent_task_id: parentTaskId,
+    project_id: projectId,
+    title,
+  })
+
+  if (error) {
+    console.error('add subtask failed:', error.message)
+    return { error: 'Could not add the subtask - please try again.' }
+  }
+
+  revalidatePath(`/projects/${projectId}`)
+  revalidatePath('/focus')
+  return { ok: 'Subtask added.' }
+}
+
+export async function setSubtaskStatus(id: string, status: string): Promise<void> {
+  if (!isUuid(id) || !TASK_STATUSES.includes(status)) return
+
+  const supabase = await createClient()
+  const { data } = await supabase.from('subtasks').select('project_id').eq('id', id).maybeSingle()
+  const { error } = await supabase.from('subtasks').update({ status }).eq('id', id)
+  if (error) console.error('set subtask status failed:', error.message)
+
+  if (data?.project_id) {
+    revalidatePath(`/projects/${data.project_id}`)
+  }
+  revalidatePath('/projects')
+  revalidatePath('/focus')
+}
+
+export async function deleteSubtask(_prev: FormState, formData: FormData): Promise<FormState> {
+  const id = text(formData, 'id')
+  const projectId = optionalText(formData, 'project_id')
+
+  if (!isUuid(id)) return { error: 'That subtask could not be found.' }
+
+  const supabase = await createClient()
+  const { error } = await supabase.from('subtasks').delete().eq('id', id)
+
+  if (error) {
+    console.error('delete subtask failed:', error.message)
+    return { error: 'Could not delete the subtask - please try again.' }
+  }
+
+  if (projectId && isUuid(projectId)) {
+    revalidatePath(`/projects/${projectId}`)
+  }
+  revalidatePath('/projects')
+  revalidatePath('/focus')
+  return { ok: 'Subtask deleted.' }
 }
