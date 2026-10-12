@@ -4,6 +4,7 @@ import { headers } from 'next/headers'
 import { revalidatePath } from 'next/cache'
 import { redirect } from 'next/navigation'
 import { createAuthClient, createClient } from '@/lib/supabase/server'
+import { recordAdminAction } from './audit'
 
 export type InviteState = { error?: string; ok?: string; email?: string }
 
@@ -60,6 +61,8 @@ export async function sendInvite(_prevState: InviteState, formData: FormData): P
     console.error('invite email failed:', error.message)
     return { error: 'Could not send the invite email — please try again.', email }
   }
+
+  await recordAdminAction(supabase, { id: claims.sub, email: claims.email }, 'invite.send', email)
 
   revalidatePath('/admin')
   return { ok: `Invite sent to ${email}.`, email }
