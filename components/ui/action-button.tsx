@@ -12,6 +12,7 @@ export function ActionButton({
   pendingText,
   className,
   errorClassName,
+  okClassName,
 }: {
   action: (state: FormState, formData: FormData) => Promise<FormState>
   id: string
@@ -19,6 +20,7 @@ export function ActionButton({
   pendingText?: string
   className?: string
   errorClassName?: string
+  okClassName?: string
 }) {
   const [state, formAction] = useActionState(action, {})
 
@@ -31,6 +33,11 @@ export function ActionButton({
       {state.error && (
         <span role="alert" className={errorClassName ?? 'text-xs font-medium text-red-700'}>
           {state.error}
+        </span>
+      )}
+      {state.ok && okClassName && (
+        <span role="status" className={okClassName}>
+          {state.ok}
         </span>
       )}
     </form>
