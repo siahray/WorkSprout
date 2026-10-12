@@ -6,32 +6,46 @@ import { focus } from '@/lib/ui'
 const TABS = [
   { key: 'todos', label: 'To-dos' },
   { key: 'deliverables', label: 'Deliverables' },
+  { key: 'calls', label: 'Calls' },
 ] as const
+
+type TabKey = (typeof TABS)[number]['key']
 
 export function FocusTabs({
   dayTotal,
   deliverableCount,
+  callCount,
   stats,
   calendar,
   todoSidebar,
   todoList,
   deliverablesList,
+  callSidebar,
+  callList,
 }: {
   dayTotal: number
   deliverableCount: number
+  callCount: number
   stats: ReactNode
   calendar: ReactNode
   todoSidebar: ReactNode
   todoList: ReactNode
   deliverablesList: ReactNode
+  callSidebar: ReactNode
+  callList: ReactNode
 }) {
-  const [view, setView] = useState<'todos' | 'deliverables'>('todos')
+  const [view, setView] = useState<TabKey>('todos')
+
+  const counts: Record<TabKey, number> = {
+    todos: dayTotal,
+    deliverables: deliverableCount,
+    calls: callCount,
+  }
 
   return (
     <div className="space-y-6">
       <div className="inline-flex rounded-full bg-[#F4F8F5] p-1">
         {TABS.map((tab) => {
-          const count = tab.key === 'todos' ? dayTotal : deliverableCount
           const active = view === tab.key
           return (
             <button
@@ -45,14 +59,14 @@ export function FocusTabs({
             >
               {tab.label}
               <span className={`ml-1.5 tabular-nums ${active ? 'text-[#1F6B52]' : 'text-[#0E2F27]/45'}`}>
-                {count}
+                {counts[tab.key]}
               </span>
             </button>
           )
         })}
       </div>
 
-      {view === 'todos' ? (
+      {view === 'todos' && (
         <div className="space-y-6">
           {stats}
           <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(300px,360px)]">
@@ -61,10 +75,24 @@ export function FocusTabs({
           </div>
           {todoList}
         </div>
-      ) : (
+      )}
+
+      {view === 'deliverables' && (
         <div className="space-y-6">
           {calendar}
           {deliverablesList}
+        </div>
+      )}
+
+      {view === 'calls' && (
+        <div className="space-y-6">
+          <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(300px,360px)]">
+            <div className="space-y-6">
+              {calendar}
+              {callList}
+            </div>
+            {callSidebar}
+          </div>
         </div>
       )}
     </div>

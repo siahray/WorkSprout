@@ -5,6 +5,7 @@ import { createClient } from '@/lib/supabase/server'
 import { PageHeader } from '@/components/ui/page-header'
 import { StatusBadge } from '@/components/ui/status-badge'
 import { EmptyState } from '@/components/ui/empty-state'
+import { ProgressBar } from '@/components/ui/progress-bar'
 import { peso } from '@/lib/format'
 import { btnPrimary, card, focus, tableHead, th, rowHover } from '@/lib/ui'
 
@@ -19,6 +20,11 @@ type ProjectRow = {
   hourly_rate: number | string | null
   fixed_rate: number | string | null
   client: { name: string } | null
+}
+
+type TaskCountRow = {
+  project_id: string
+  status: string | null
 }
 
 function rateLabel(p: ProjectRow): string {
@@ -39,6 +45,15 @@ export default async function ProjectsPage() {
     .order('created_at', { ascending: false })
 
   const projects = (data ?? []) as unknown as ProjectRow[]
+
+  const { data: tasksData } = await supabase.from('tasks').select('project_id, status')
+  const tasksByProject = new Map<string, { total: number; done: number }>()
+  for (const task of (tasksData ?? []) as TaskCountRow[]) {
+    const stats = tasksByProject.get(task.project_id) ?? { total: 0, done: 0 }
+    stats.total += 1
+    if (task.status === 'done') stats.done += 1
+    tasksByProject.set(task.project_id, stats)
+  }
 
   if (projects.length === 0) {
     return (
@@ -73,6 +88,7 @@ export default async function ProjectsPage() {
               <tr>
                 <th className={th}>Project</th>
                 <th className={th}>Client</th>
+                <th className={th}>Progress</th>
                 <th className={th}>Rate</th>
                 <th className={th}>Status</th>
               </tr>
@@ -86,6 +102,13 @@ export default async function ProjectsPage() {
                     </Link>
                   </td>
                   <td className="px-5 py-3.5 text-[#0E2F27]/75">{p.client?.name ?? '—'}</td>
+                  <td className="px-5 py-3.5">
+                    <ProgressBar
+                      done={tasksByProject.get(p.id)?.done ?? 0}
+                      total={tasksByProject.get(p.id)?.total ?? 0}
+                      className="w-36"
+                    />
+                  </td>
                   <td className="px-5 py-3.5 tabular-nums text-[#0E2F27]/75">{rateLabel(p)}</td>
                   <td className="px-5 py-3.5">
                     <StatusBadge status={p.status ?? 'active'} />

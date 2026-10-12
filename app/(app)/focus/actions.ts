@@ -3,9 +3,14 @@
 import { revalidatePath } from 'next/cache'
 import { createClient } from '@/lib/supabase/server'
 import { nowDateInput } from '@/lib/format'
-import { isUuid, optionalText, text, type FormState } from '@/lib/validation'
+import { callIcs, fetchCallSnapshot, isCallStatus, manilaToIso } from '@/lib/call'
+import { renderCallEmail } from '@/lib/call-email'
+import { emailConfigured, sendEmail } from '@/lib/email'
+import { siteUrl } from '@/lib/site'
+import { isEmail, isUuid, optionalText, text, type FormState } from '@/lib/validation'
 
 const DATE_RE = /^\d{4}-\d{2}-\d{2}$/
+const TIME_RE = /^\d{2}:\d{2}$/
 
 export async function createTodo(_prev: FormState, formData: FormData): Promise<FormState> {
   const title = text(formData, 'title')
@@ -116,4 +121,136 @@ export async function deleteTodo(_prev: FormState, formData: FormData): Promise<
 
   revalidatePath('/focus')
   return { ok: 'To-do removed.' }
+}
+
+// --- Calls -------------------------------------------------------------------
+
+export async function createCall(_prev: FormState, formData: FormData): Promise<FormState> {
+  const title = text(formData, 'title')
+  const clientId = optionalText(formData, 'client_id')
+  const date = text(formData, 'call_date')
+  const time = text(formData, 'call_time')
+  const location = optionalText(formData, 'location')
+  const notes = optionalText(formData, 'notes')
+
+  if (!title) return { error: 'Give the call a title.' }
+  if (title.length > 200) return { error: 'Keep the title under 200 characters.' }
+  if (!TIME_RE.test(time)) return { error: 'Pick a start time.' }
+
+  const scheduledAt = manilaToIso(date, time)
+  if (!scheduledAt) return { error: 'Pick a valid date and time.' }
+
+  const duration = Number(text(formData, 'duration_minutes'))
+  if (!Number.isFinite(duration) || duration < 1 || duration > 1440) {
+    return { error: 'Pick a duration between 1 minute and 24 hours.' }
+  }
+
+  if (clientId && !isUuid(clientId)) return { error: 'That client could not be found.' }
+
+  const supabase = await createClient()
+  const { data } = await supabase.auth.getClaims()
+  if (!data?.claims) return { error: 'Your session expired — sign in again.' }
+
+  if (clientId) {
+    const { data: client } = await supabase.from('clients').select('id').eq('id', clientId).maybeSingle()
+    if (!client) return { error: 'That client could not be found.' }
+  }
+
+  const { error } = await supabase.from('calls').insert({
+    user_id: data.claims.sub,
+    client_id: clientId ?? null,
+    title,
+    scheduled_at: scheduledAt,
+    duration_minutes: Math.round(duration),
+    location,
+    notes,
+  })
+  if (error) {
+    console.error('create call failed:', error.message)
+    return { error: 'Could not schedule the call — please try again.' }
+  }
+
+  revalidatePath('/focus')
+  return { ok: 'Call scheduled.' }
+}
+
+export async function deleteCall(_prev: FormState, formData: FormData): Promise<FormState> {
+  const id = text(formData, 'id')
+  if (!isUuid(id)) return { error: 'That call could not be found.' }
+
+  const supabase = await createClient()
+  const { data } = await supabase.auth.getClaims()
+  if (!data?.claims) return { error: 'Your session expired — sign in again.' }
+
+  const { error } = await supabase.from('calls').delete().eq('id', id).eq('user_id', data.claims.sub)
+  if (error) {
+    console.error('delete call failed:', error.message)
+    return { error: 'Could not delete the call — please try again.' }
+  }
+
+  revalidatePath('/focus')
+  return { ok: 'Call removed.' }
+}
+
+export async function setCallStatus(id: string, status: string): Promise<void> {
+  if (!isUuid(id) || !isCallStatus(status)) return
+
+  const supabase = await createClient()
+  const { data } = await supabase.auth.getClaims()
+  if (!data?.claims) return
+
+  const { error } = await supabase
+    .from('calls')
+    .update({ status })
+    .eq('id', id)
+    .eq('user_id', data.claims.sub)
+  if (error) console.error('set call status failed:', error.message)
+
+  revalidatePath('/focus')
+}
+
+export async function sendCallInvite(_prev: FormState, formData: FormData): Promise<FormState> {
+  const id = text(formData, 'id')
+  if (!isUuid(id)) return { error: 'That call could not be found.' }
+
+  const supabase = await createClient()
+  const { data: claimsData } = await supabase.auth.getClaims()
+  const userId = claimsData?.claims?.sub
+  if (!userId) return { error: 'Your session expired — sign in again.' }
+
+  if (!emailConfigured()) {
+    return { error: 'Email is not set up yet — add RESEND_API_KEY and EMAIL_FROM to enable sending.' }
+  }
+
+  const call = await fetchCallSnapshot(supabase, id, userId)
+  if (!call) return { error: 'That call could not be found.' }
+
+  const to = call.client?.email?.trim()
+  if (!to || !isEmail(to)) {
+    return { error: 'Add a valid email address to this client before sending.' }
+  }
+
+  const base = await siteUrl()
+  const link = base ? `${base}/c/${call.publicToken}` : null
+
+  const { subject, html, text: body } = renderCallEmail(call, link, true)
+  const ics = await callIcs(call, link)
+  const result = await sendEmail({
+    to,
+    subject,
+    html,
+    text: body,
+    replyTo: call.business.email ?? undefined,
+    attachments: [{ filename: 'call.ics', content: Buffer.from(ics, 'utf8').toString('base64') }],
+  })
+  if (!result.ok) return { error: result.error }
+
+  const { error: updateError } = await supabase
+    .from('calls')
+    .update({ invited_at: new Date().toISOString(), invited_to: to })
+    .eq('id', id)
+  if (updateError) console.error('record call invite failed:', updateError.message)
+
+  revalidatePath('/focus')
+  return { ok: `Invite emailed to ${to}.` }
 }

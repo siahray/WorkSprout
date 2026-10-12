@@ -12,6 +12,9 @@ import { TodoForm } from './todo-form'
 import { TodoItem, type TodoItemData } from './todo-item'
 import { SubtaskStatusSelect, TaskStatusSelect } from '../projects/task-controls'
 import { AddToTodayButton } from './add-to-today'
+import { CallForm } from './call-form'
+import { CallItem } from './call-item'
+import { callManilaDate, mapCallRow, type CallRow } from '@/lib/call'
 import { createTodo, deleteTodo, toggleTodo } from './actions'
 
 export const metadata: Metadata = {
@@ -167,40 +170,48 @@ export default async function FocusPage({
   const monthEndIso = `${monthIso}-${pad(daysInMonth(y, m))}`
   const historyStartIso = addDaysIso(todayIso, -366)
 
-  const [monthRes, dayRes, historyRes, projectsRes, phasesRes, tasksRes, subtasksRes] = await Promise.all([
-    supabase
-      .from('todos')
-      .select('due_date, completed_at')
-      .eq('user_id', userId)
-      .gte('due_date', monthStartIso)
-      .lte('due_date', monthEndIso),
-    supabase
-      .from('todos')
-      .select('id, title, completed_at, project:projects(id, name)')
-      .eq('user_id', userId)
-      .eq('due_date', dayIso)
-      .order('created_at', { ascending: true }),
-    supabase
-      .from('todos')
-      .select('due_date, completed_at')
-      .eq('user_id', userId)
-      .gte('due_date', historyStartIso)
-      .lte('due_date', todayIso),
-    supabase.from('projects').select('id, name').order('name', { ascending: true }),
-    supabase
-      .from('phases')
-      .select('id, title, position, project_id')
-      .order('position', { ascending: true })
-      .order('created_at', { ascending: true }),
-    supabase
-      .from('tasks')
-      .select('id, title, status, project_id, phase_id')
-      .order('created_at', { ascending: true }),
-    supabase
-      .from('subtasks')
-      .select('id, title, status, project_id, parent_task_id')
-      .order('created_at', { ascending: true }),
-  ])
+  const [monthRes, dayRes, historyRes, projectsRes, phasesRes, tasksRes, subtasksRes, clientsRes, callsRes] =
+    await Promise.all([
+      supabase
+        .from('todos')
+        .select('due_date, completed_at')
+        .eq('user_id', userId)
+        .gte('due_date', monthStartIso)
+        .lte('due_date', monthEndIso),
+      supabase
+        .from('todos')
+        .select('id, title, completed_at, project:projects(id, name)')
+        .eq('user_id', userId)
+        .eq('due_date', dayIso)
+        .order('created_at', { ascending: true }),
+      supabase
+        .from('todos')
+        .select('due_date, completed_at')
+        .eq('user_id', userId)
+        .gte('due_date', historyStartIso)
+        .lte('due_date', todayIso),
+      supabase.from('projects').select('id, name').order('name', { ascending: true }),
+      supabase
+        .from('phases')
+        .select('id, title, position, project_id')
+        .order('position', { ascending: true })
+        .order('created_at', { ascending: true }),
+      supabase
+        .from('tasks')
+        .select('id, title, status, project_id, phase_id')
+        .order('created_at', { ascending: true }),
+      supabase
+        .from('subtasks')
+        .select('id, title, status, project_id, parent_task_id')
+        .order('created_at', { ascending: true }),
+      supabase.from('clients').select('id, name').order('name', { ascending: true }),
+      supabase
+        .from('calls')
+        .select(
+          'id, title, scheduled_at, duration_minutes, location, notes, status, client_id, invited_at, invited_to, public_token, client:clients(name, email)',
+        )
+        .order('scheduled_at', { ascending: true }),
+    ])
 
   // --- Calendar grid (Sunday-first) with per-day achievement dots.
   const cells: (CalendarCell | null)[] = []
@@ -278,6 +289,59 @@ export default async function FocusPage({
   const nextHref = `/focus?month=${shiftMonth(monthIso, 1)}${dayParam}`
   const relative = relativeDay(dayIso, todayIso)
 
+  const clients = (clientsRes.data ?? []) as { id: string; name: string }[]
+  const calls = ((callsRes.data ?? []) as unknown as CallRow[]).map(mapCallRow)
+  const dayCalls = calls.filter((call) => callManilaDate(call.scheduledAt) === dayIso)
+  const upcomingCalls = calls
+    .filter(
+      (call) =>
+        call.status === 'scheduled' &&
+        callManilaDate(call.scheduledAt) >= todayIso &&
+        callManilaDate(call.scheduledAt) !== dayIso,
+    )
+    .slice(0, 8)
+
+  const callSidebar = (
+    <section className={`${card} self-start p-5`}>
+      <h2 className={`${display.className} text-base font-bold tracking-tight`}>Schedule a call</h2>
+      <div className="mt-4">
+        <CallForm clients={clients} defaultDate={dayIso} />
+      </div>
+    </section>
+  )
+
+  const callList = (
+    <div className="space-y-6">
+      <section>
+        <h2 className={`${display.className} text-base font-bold tracking-tight`}>
+          Calls on {formatDate(dayIso)}
+        </h2>
+        {dayCalls.length === 0 ? (
+          <p className="mt-3 rounded-xl bg-[#F4F8F5] px-4 py-6 text-center text-sm text-[#0E2F27]/55">
+            No calls this day. Schedule one beside the calendar.
+          </p>
+        ) : (
+          <ul className={`${card} mt-3 divide-y divide-[#0E2F27]/10 px-5`}>
+            {dayCalls.map((call) => (
+              <CallItem key={call.id} call={call} />
+            ))}
+          </ul>
+        )}
+      </section>
+
+      {upcomingCalls.length > 0 && (
+        <section>
+          <h2 className={`${display.className} text-base font-bold tracking-tight`}>Upcoming</h2>
+          <ul className={`${card} mt-3 divide-y divide-[#0E2F27]/10 px-5`}>
+            {upcomingCalls.map((call) => (
+              <CallItem key={call.id} call={call} />
+            ))}
+          </ul>
+        </section>
+      )}
+    </div>
+  )
+
   return (
     <>
       <PageHeader title="Focus" description="Plan your day, check off your to-dos, and keep your streak alive.">
@@ -289,6 +353,7 @@ export default async function FocusPage({
       <FocusTabs
         dayTotal={dayTotal}
         deliverableCount={deliverableCount}
+        callCount={dayCalls.length}
         stats={
           <div className="grid gap-4 sm:grid-cols-3">
             <FocusStat
@@ -420,6 +485,8 @@ export default async function FocusPage({
             </section>
           )
         }
+        callSidebar={callSidebar}
+        callList={callList}
       />
     </>
   )
