@@ -7,8 +7,11 @@ import { StatusBadge } from '@/components/ui/status-badge'
 import { ConfirmAction } from '@/components/ui/confirm-action'
 import { AddPhaseForm, AddSubtaskForm, AddTaskForm, SubtaskStatusSelect, TaskStatusSelect } from '../task-controls'
 import { StartTimer, RunningTimerCard, type ActiveTimer, type ProjectOption } from '@/app/(app)/time/timer-controls'
+import { AttachmentSection } from '@/components/attachments/attachment-section'
+import { Collapsible } from '@/components/ui/collapsible'
 import { decimalHours, formatDate, hoursFromMinutes, peso } from '@/lib/format'
 import { btnPrimary, btnSecondary, btnDanger, card, focus, tableHead, th, rowHover } from '@/lib/ui'
+import type { Attachment } from '@/lib/attachments'
 import { deletePhase, deleteProject, deleteSubtask, deleteTask } from '../actions'
 import { display } from '@/lib/fonts'
 
@@ -124,7 +127,7 @@ export default async function ProjectDetailPage({ params }: { params: Promise<{ 
 
   if (!project) notFound()
 
-  const [phasesRes, tasksRes, subtasksRes, invoicesRes, activeRes] = await Promise.all([
+  const [phasesRes, tasksRes, subtasksRes, invoicesRes, attachmentsRes, activeRes] = await Promise.all([
     supabase
       .from('phases')
       .select('id, title, position')
@@ -147,6 +150,11 @@ export default async function ProjectDetailPage({ params }: { params: Promise<{ 
       .eq('project_id', id)
       .order('created_at', { ascending: false }),
     supabase
+      .from('attachments')
+      .select('id, name, path, mime_type, size_bytes, created_at')
+      .eq('project_id', id)
+      .order('created_at', { ascending: false }),
+    supabase
       .from('time_entries')
       .select(
         'id, start_time, paused_at, paused_seconds, task:tasks(id, project_id, title, project:projects(name, client:clients(name)))'
@@ -159,6 +167,7 @@ export default async function ProjectDetailPage({ params }: { params: Promise<{ 
   const tasks = (tasksRes.data ?? []) as TaskRow[]
   const subtasks = (subtasksRes.data ?? []) as SubtaskRow[]
   const invoices = invoicesRes.data ?? []
+  const attachments = (attachmentsRes.data ?? []) as Attachment[]
   const taskIds = tasks.map((t) => t.id)
   const subtasksByTask = new Map<string, SubtaskRow[]>()
   for (const subtask of subtasks) {
@@ -290,9 +299,9 @@ export default async function ProjectDetailPage({ params }: { params: Promise<{ 
 
       <div className="mt-8 grid gap-6 lg:grid-cols-2">
         <section>
-          <h2 className={`${display.className} mb-3 text-xl font-extrabold tracking-tight`}>Phases &amp; tasks</h2>
-          <div className="space-y-4">
-            <AddPhaseForm projectId={id} />
+          <Collapsible title="Phases & tasks" count={tasks.length}>
+            <div className="space-y-4">
+              <AddPhaseForm projectId={id} />
 
             {phases.map((phase) => {
               const phaseTasks = tasksByPhase.get(phase.id) ?? []
@@ -341,12 +350,13 @@ export default async function ProjectDetailPage({ params }: { params: Promise<{ 
                 <AddTaskForm projectId={id} phases={phases} />
               </div>
             </div>
-          </div>
+            </div>
+          </Collapsible>
         </section>
 
         <section>
-          <h2 className={`${display.className} mb-3 text-xl font-extrabold tracking-tight`}>Invoices</h2>
-          {invoices.length === 0 ? (
+          <Collapsible title="Invoices" count={invoices.length}>
+            {invoices.length === 0 ? (
             <div className={`${card} p-6 text-sm text-[#0E2F27]/65`}>No invoices for this project yet.</div>
           ) : (
             <div className={`${card} divide-y divide-[#0E2F27]/10`}>
@@ -366,7 +376,19 @@ export default async function ProjectDetailPage({ params }: { params: Promise<{ 
               ))}
             </div>
           )}
+          </Collapsible>
         </section>
+      </div>
+
+      <div className="mt-8">
+        <AttachmentSection
+          title="Files"
+          description="Attach briefs, reference images, and finished deliverables to this project."
+          parentType="project"
+          parentId={id}
+          attachments={attachments}
+          emptyText="No files attached yet."
+        />
       </div>
 
       <section className="mt-8">

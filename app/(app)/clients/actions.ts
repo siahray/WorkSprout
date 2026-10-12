@@ -3,6 +3,7 @@
 import { revalidatePath } from 'next/cache'
 import { redirect } from 'next/navigation'
 import { createClient as createSupabaseClient } from '@/lib/supabase/server'
+import { attachmentPathsForProjectIds, removeAttachmentObjects } from '@/lib/attachments-server'
 import { isEmail, isUuid, optionalText, text, type FormState } from '@/lib/validation'
 
 function readClient(formData: FormData) {
@@ -71,6 +72,15 @@ export async function deleteClient(_prev: FormState, formData: FormData): Promis
   if (!isUuid(id)) return { error: 'That client could not be found.' }
 
   const supabase = await createSupabaseClient()
+
+  // Deleting the client cascades its projects (and attachment rows), so remove
+  // the underlying Storage objects first.
+  const { data: projects } = await supabase.from('projects').select('id').eq('client_id', id)
+  await removeAttachmentObjects(
+    supabase,
+    await attachmentPathsForProjectIds(supabase, (projects ?? []).map((p) => p.id)),
+  )
+
   const { error } = await supabase.from('clients').delete().eq('id', id)
 
   if (error) {

@@ -3,6 +3,7 @@
 import { revalidatePath } from 'next/cache'
 import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
+import { attachmentPathsForParent, removeAttachmentObjects } from '@/lib/attachments-server'
 import { isUuid, money, optionalText, text, type FormState } from '@/lib/validation'
 
 const PROJECT_STATUSES = ['active', 'completed', 'on_hold', 'archived']
@@ -107,6 +108,10 @@ export async function deleteProject(_prev: FormState, formData: FormData): Promi
   if (!isUuid(id)) return { error: 'That project could not be found.' }
 
   const supabase = await createClient()
+
+  // Remove Storage objects before the cascading delete drops their metadata rows.
+  await removeAttachmentObjects(supabase, await attachmentPathsForParent(supabase, { project_id: id }))
+
   const { error } = await supabase.from('projects').delete().eq('id', id)
 
   if (error) {
