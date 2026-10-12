@@ -4,7 +4,7 @@ import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import { PageHeader } from '@/components/ui/page-header'
 import { EmptyState } from '@/components/ui/empty-state'
-import { peso } from '@/lib/format'
+import { formatDate, peso } from '@/lib/format'
 import { btnPrimary, card, focus, tableHead, th, rowHover } from '@/lib/ui'
 
 export const metadata: Metadata = {
@@ -17,7 +17,7 @@ export default async function ClientsPage() {
   if (!claimsData?.claims) redirect('/login')
 
   const [clientsRes, projectsRes, balancesRes] = await Promise.all([
-    supabase.from('clients').select('id, name, company, email').order('name', { ascending: true }),
+    supabase.from('clients').select('id, name, company, email, created_at').order('name', { ascending: true }),
     supabase.from('projects').select('id, client_id'),
     supabase.from('invoice_balances').select('client_id, balance').in('status', ['sent', 'partial']),
   ])
@@ -69,6 +69,7 @@ export default async function ClientsPage() {
               <tr>
                 <th className={th}>Client</th>
                 <th className={th}>Email</th>
+                <th className={th}>Client since</th>
                 <th className={`${th} text-right`}>Projects</th>
                 <th className={`${th} text-right`}>Outstanding</th>
               </tr>
@@ -83,6 +84,7 @@ export default async function ClientsPage() {
                     {c.company && <p className="text-xs text-[#0E2F27]/55">{c.company}</p>}
                   </td>
                   <td className="px-5 py-3.5 text-[#0E2F27]/75">{c.email ?? '—'}</td>
+                  <td className="px-5 py-3.5 text-[#0E2F27]/70">{formatDate(c.created_at)}</td>
                   <td className="px-5 py-3.5 text-right tabular-nums text-[#0E2F27]/75">
                     {projectCount.get(c.id) ?? 0}
                   </td>
