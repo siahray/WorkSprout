@@ -47,7 +47,13 @@ export function AppShell({
           <div className="border-t border-white/10 p-4">
             <p className="truncate text-sm font-semibold text-white">{name || email}</p>
             <p className="truncate text-xs text-white/50">{email}</p>
-            <form action={logout} className="mt-3">
+            <Link
+              href="/feedback"
+              className={`mt-3 inline-flex w-full items-center justify-center gap-2 rounded-lg px-3 py-2 text-sm font-medium text-white/70 transition-colors hover:bg-white/5 hover:text-white ${focus}`}
+            >
+              Send feedback
+            </Link>
+            <form action={logout} className="mt-1">
               <button
                 className={`inline-flex w-full items-center justify-center gap-2 rounded-lg px-3 py-2 text-sm font-medium text-white/70 transition-colors hover:bg-white/5 hover:text-white ${focus}`}
               >
