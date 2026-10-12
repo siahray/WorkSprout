@@ -9,6 +9,7 @@ import { ConfirmAction } from '@/components/ui/confirm-action'
 import { PrintButton } from './print-button'
 import { PaymentForm } from './payment-form'
 import { formatDate, formatPercent, peso } from '@/lib/format'
+import { coerceTaxes, taxLines } from '@/lib/tax'
 import { btnPrimary, btnSecondary, btnDanger, card, focus } from '@/lib/ui'
 import { deleteInvoice, deletePayment, markInvoiceSent, voidInvoice } from '../actions'
 import { display } from '@/lib/fonts'
@@ -26,8 +27,7 @@ type InvoiceView = {
   project_name: string | null
   issue_date: string
   due_date: string | null
-  tax_rate: number | string
-  tax_label: string
+  taxes: unknown
   subtotal: number | string
   tax_amount: number | string
   total: number | string
@@ -68,6 +68,7 @@ export default async function InvoiceDetailPage({ params }: { params: Promise<{ 
   const profile = profileRes.data
 
   const businessName = profile?.business_name || profile?.full_name || 'Your business'
+  const taxBreakdown = taxLines(Number(invoice.subtotal), coerceTaxes(invoice.taxes))
   const canVoid = invoice.base_status !== 'void' && invoice.status !== 'paid'
 
   return (
@@ -161,12 +162,14 @@ export default async function InvoiceDetailPage({ params }: { params: Promise<{ 
               <span className="text-[#0E2F27]/65">Subtotal</span>
               <span className="tabular-nums">{peso(invoice.subtotal)}</span>
             </div>
-            <div className="flex justify-between">
-              <span className="text-[#0E2F27]/65">
-                {invoice.tax_label} ({formatPercent(invoice.tax_rate)})
-              </span>
-              <span className="tabular-nums">{peso(invoice.tax_amount)}</span>
-            </div>
+            {taxBreakdown.map((tax) => (
+              <div key={tax.label} className="flex justify-between">
+                <span className="text-[#0E2F27]/65">
+                  {tax.label} ({formatPercent(tax.rate)})
+                </span>
+                <span className="tabular-nums">{peso(tax.amount)}</span>
+              </div>
+            ))}
             <div className="flex justify-between border-t border-[#0E2F27]/10 pt-2 font-bold">
               <span>Total</span>
               <span className={`${display.className} tabular-nums`}>{peso(invoice.total)}</span>

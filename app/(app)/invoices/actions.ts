@@ -4,6 +4,7 @@ import { revalidatePath } from 'next/cache'
 import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import { decimalHours } from '@/lib/format'
+import { coerceTaxes, round2, taxTotal } from '@/lib/tax'
 import { isUuid, optionalText, text, type FormState } from '@/lib/validation'
 
 const DATE_RE = /^\d{4}-\d{2}-\d{2}$/
@@ -22,10 +23,6 @@ type EntryRateRow = {
         project: { id: string; name: string; hourly_rate: number | string | null; fixed_rate: number | string | null } | null
       }
     | null
-}
-
-function round2(n: number): number {
-  return Math.round(n * 100) / 100
 }
 
 export async function createInvoice(_prev: FormState, formData: FormData): Promise<FormState> {
@@ -56,9 +53,8 @@ export async function createInvoice(_prev: FormState, formData: FormData): Promi
   const { data: client } = await supabase.from('clients').select('id').eq('id', clientId).maybeSingle()
   if (!client) return { error: 'That client could not be found.' }
 
-  const { data: profile } = await supabase.from('profiles').select('tax_rate, tax_label').eq('id', userId).maybeSingle()
-  const taxRate = Number(profile?.tax_rate ?? 0)
-  const taxLabel = profile?.tax_label ?? 'VAT'
+  const { data: profile } = await supabase.from('profiles').select('taxes').eq('id', userId).maybeSingle()
+  const taxes = coerceTaxes(profile?.taxes)
 
   // --- Time lines: recompute from the real entries so amounts cannot be spoofed.
   const timeLines = lines.filter((l): l is TimeLine => l.kind === 'time')
@@ -160,7 +156,7 @@ export async function createInvoice(_prev: FormState, formData: FormData): Promi
   if (items.length === 0) return { error: 'Add at least one line with an amount before saving.' }
 
   const subtotal = round2(items.reduce((sum, i) => sum + round2(i.quantity * i.unit_rate), 0))
-  const taxAmount = round2((subtotal * taxRate) / 100)
+  const taxAmount = taxTotal(subtotal, taxes)
   const total = round2(subtotal + taxAmount)
 
   // --- Number: INV-0001, retrying if two people collide.
@@ -181,8 +177,7 @@ export async function createInvoice(_prev: FormState, formData: FormData): Promi
         issue_date: issueDate,
         due_date: dueDate || null,
         currency: 'PHP',
-        tax_rate: taxRate,
-        tax_label: taxLabel,
+        taxes,
         subtotal,
         tax_amount: taxAmount,
         total,

@@ -5,6 +5,7 @@ import { useActionState, useState } from 'react'
 import { Field } from '@/components/ui/field'
 import { SubmitButton } from '@/components/ui/submit-button'
 import type { FormState } from '@/lib/validation'
+import { taxLines, type Tax } from '@/lib/tax'
 import { alertError, btnSecondary, card, focus, input } from '@/lib/ui'
 import { decimalHours, formatPercent, nowDateInput, peso } from '@/lib/format'
 import { display } from '@/lib/fonts'
@@ -32,8 +33,7 @@ export function InvoiceBuilder({
   clients,
   projects,
   unbilled,
-  taxRate,
-  taxLabel,
+  taxes,
   initialClientId,
   initialProjectId,
 }: {
@@ -41,8 +41,7 @@ export function InvoiceBuilder({
   clients: { id: string; name: string }[]
   projects: { id: string; name: string; client_id: string }[]
   unbilled: UnbilledGroup[]
-  taxRate: number
-  taxLabel: string
+  taxes: Tax[]
   initialClientId?: string
   initialProjectId?: string
 }) {
@@ -74,7 +73,8 @@ export function InvoiceBuilder({
   }, 0)
   const subtotal = round2(timeSum + manualSum)
 
-  const taxAmount = round2((subtotal * taxRate) / 100)
+  const taxBreakdown = taxLines(subtotal, taxes)
+  const taxAmount = round2(taxBreakdown.reduce((sum, line) => sum + line.amount, 0))
   const total = round2(subtotal + taxAmount)
 
   const payload = JSON.stringify([
@@ -166,15 +166,12 @@ export function InvoiceBuilder({
           </Field>
         </div>
 
-        <div className="grid gap-5 sm:grid-cols-3">
+        <div className="grid gap-5 sm:grid-cols-2">
           <Field label="Issue date" htmlFor="issue_date">
             <input id="issue_date" name="issue_date" type="date" required defaultValue={nowDateInput()} className={input} />
           </Field>
           <Field label="Due date" htmlFor="due_date" hint="Optional">
             <input id="due_date" name="due_date" type="date" className={input} />
-          </Field>
-          <Field label={`${taxLabel} rate`} htmlFor="tax_display">
-            <input id="tax_display" value={formatPercent(taxRate)} readOnly disabled className={input} />
           </Field>
         </div>
       </section>
@@ -297,12 +294,14 @@ export function InvoiceBuilder({
             <dt className="text-[#0E2F27]/65">Subtotal</dt>
             <dd className="tabular-nums">{peso(subtotal)}</dd>
           </div>
-          <div className="flex justify-between">
-            <dt className="text-[#0E2F27]/65">
-              {taxLabel} ({formatPercent(taxRate)})
-            </dt>
-            <dd className="tabular-nums">{peso(taxAmount)}</dd>
-          </div>
+          {taxBreakdown.map((tax) => (
+            <div key={tax.label} className="flex justify-between">
+              <dt className="text-[#0E2F27]/65">
+                {tax.label} ({formatPercent(tax.rate)})
+              </dt>
+              <dd className="tabular-nums">{peso(tax.amount)}</dd>
+            </div>
+          ))}
           <div className="flex justify-between border-t border-[#0E2F27]/10 pt-2 text-base font-bold">
             <dt>Total</dt>
             <dd className={`${display.className} tabular-nums`}>{peso(total)}</dd>

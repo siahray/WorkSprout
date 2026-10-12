@@ -4,6 +4,7 @@ import { createClient } from '@/lib/supabase/server'
 import { PageHeader } from '@/components/ui/page-header'
 import { EmptyState } from '@/components/ui/empty-state'
 import { InvoiceBuilder, type UnbilledGroup } from '../invoice-builder'
+import { coerceTaxes } from '@/lib/tax'
 import { createInvoice } from '../actions'
 
 export const metadata: Metadata = {
@@ -50,7 +51,7 @@ export default async function NewInvoicePage({
       .eq('billable', true)
       .is('invoice_id', null)
       .not('end_time', 'is', null),
-    supabase.from('profiles').select('tax_rate, tax_label').eq('id', claimsData.claims.sub).maybeSingle(),
+    supabase.from('profiles').select('taxes').eq('id', claimsData.claims.sub).maybeSingle(),
   ])
 
   const clients = clientsRes.data ?? []
@@ -97,8 +98,7 @@ const groups = new Map<string, UnbilledGroup>()
     }
   }
 
-  const taxRate = Number(profileRes.data?.tax_rate ?? 0)
-  const taxLabel = profileRes.data?.tax_label ?? 'VAT'
+  const taxes = coerceTaxes(profileRes.data?.taxes)
 
   return (
     <>
@@ -108,8 +108,7 @@ const groups = new Map<string, UnbilledGroup>()
         clients={clients}
         projects={projects}
         unbilled={[...groups.values()]}
-        taxRate={taxRate}
-        taxLabel={taxLabel}
+        taxes={taxes}
         initialClientId={typeof client_id === 'string' ? client_id : undefined}
         initialProjectId={typeof project_id === 'string' ? project_id : undefined}
       />
