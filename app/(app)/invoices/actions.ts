@@ -3,9 +3,15 @@
 import { revalidatePath } from 'next/cache'
 import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
+import { attachmentPathsForParent, removeAttachmentObjects } from '@/lib/attachments-server'
 import { decimalHours } from '@/lib/format'
 import { coerceTaxes, round2, taxTotal } from '@/lib/tax'
-import { isUuid, optionalText, text, type FormState } from '@/lib/validation'
+import { emailConfigured, sendEmail } from '@/lib/email'
+import { fetchInvoiceSnapshot } from '@/lib/invoice'
+import { renderInvoiceEmail } from '@/lib/invoice-email'
+import { buildInvoicePdf } from '@/lib/invoice-pdf'
+import { siteUrl } from '@/lib/site'
+import { isEmail, isUuid, optionalText, text, type FormState } from '@/lib/validation'
 
 const DATE_RE = /^\d{4}-\d{2}-\d{2}$/
 
@@ -220,6 +226,73 @@ export async function createInvoice(_prev: FormState, formData: FormData): Promi
   redirect(`/invoices/${invoiceId}`)
 }
 
+export async function sendInvoice(_prev: FormState, formData: FormData): Promise<FormState> {
+  const id = text(formData, 'id')
+  if (!isUuid(id)) return { error: 'That invoice could not be found.' }
+
+  const supabase = await createClient()
+  const { data: claimsData } = await supabase.auth.getClaims()
+  const userId = claimsData?.claims?.sub
+  if (!userId) return { error: 'Your session expired — sign in again.' }
+
+  if (!emailConfigured()) {
+    return { error: 'Email is not set up yet — add RESEND_API_KEY and EMAIL_FROM to enable sending.' }
+  }
+
+  const { data: row } = await supabase
+    .from('invoices')
+    .select('public_token, status')
+    .eq('id', id)
+    .maybeSingle()
+  if (!row) return { error: 'That invoice could not be found.' }
+  if (row.status === 'void') return { error: 'Voided invoices cannot be sent.' }
+
+  const snapshot = await fetchInvoiceSnapshot(supabase, id, userId)
+  if (!snapshot) return { error: 'That invoice could not be found.' }
+
+  const to = snapshot.client?.email?.trim()
+  if (!to || !isEmail(to)) {
+    return { error: 'Add a valid email address to this client before sending.' }
+  }
+
+  const base = await siteUrl()
+  const link = base ? `${base}/i/${row.public_token}` : null
+
+  let pdfBase64: string
+  try {
+    const bytes = await buildInvoicePdf(snapshot)
+    pdfBase64 = Buffer.from(bytes).toString('base64')
+  } catch (error) {
+    console.error('render invoice pdf failed:', error)
+    return { error: 'Could not prepare the PDF — please try again.' }
+  }
+
+  const { subject, html, text: body } = renderInvoiceEmail(snapshot, link, true)
+  const result = await sendEmail({
+    to,
+    subject,
+    html,
+    text: body,
+    replyTo: snapshot.business.email ?? undefined,
+    attachments: [{ filename: `${snapshot.number}.pdf`, content: pdfBase64 }],
+  })
+  if (!result.ok) return { error: result.error }
+
+  const { error: updateError } = await supabase
+    .from('invoices')
+    .update({
+      sent_at: new Date().toISOString(),
+      sent_to: to,
+      ...(row.status === 'draft' ? { status: 'sent' as const } : {}),
+    })
+    .eq('id', id)
+  if (updateError) console.error('record invoice send failed:', updateError.message)
+
+  revalidatePath(`/invoices/${id}`)
+  revalidatePath('/invoices')
+  return { ok: `Invoice emailed to ${to}.` }
+}
+
 export async function markInvoiceSent(_prev: FormState, formData: FormData): Promise<FormState> {
   const id = text(formData, 'id')
   if (!isUuid(id)) return { error: 'That invoice could not be found.' }
@@ -266,6 +339,9 @@ export async function deleteInvoice(_prev: FormState, formData: FormData): Promi
   if (invoice.status !== 'draft') {
     return { error: 'Only draft invoices can be deleted. Void a sent invoice instead.' }
   }
+
+  // Remove Storage objects before the cascading delete drops their metadata rows.
+  await removeAttachmentObjects(supabase, await attachmentPathsForParent(supabase, { invoice_id: id }))
 
   const { error } = await supabase.from('invoices').delete().eq('id', id).eq('status', 'draft')
   if (error) {
