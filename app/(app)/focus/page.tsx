@@ -21,11 +21,55 @@ export const metadata: Metadata = {
 const MONTH_RE = /^(\d{4})-(\d{2})$/
 const DAY_RE = /^\d{4}-\d{2}-\d{2}$/
 
-const PHASES = [
-  { key: 'todo', title: 'To do' },
-  { key: 'in_progress', title: 'In progress' },
-  { key: 'done', title: 'Done' },
-] as const
+type DeliverableTask = { id: string; title: string; status: string | null; project_id: string; phase_id: string | null }
+type DeliverableSubtask = { id: string; title: string; status: string | null; project_id: string; parent_task_id: string }
+
+function DeliverableTaskItem({
+  task,
+  subtasks,
+  todayIso,
+}: {
+  task: DeliverableTask
+  subtasks: DeliverableSubtask[]
+  todayIso: string
+}) {
+  return (
+    <li className="px-4 py-2.5">
+      <div className="flex items-center justify-between gap-3">
+        <span
+          className={`min-w-0 flex-1 truncate text-sm ${
+            task.status === 'done' ? 'text-[#0E2F27]/45 line-through' : 'text-[#0E2F27]'
+          }`}
+        >
+          {task.title}
+        </span>
+        <span className="flex shrink-0 items-center gap-2">
+          <TaskStatusSelect id={task.id} status={task.status ?? 'todo'} />
+        </span>
+      </div>
+
+      {subtasks.length > 0 && (
+        <ul className="mt-2 space-y-1.5 border-l-2 border-[#0E2F27]/10 pl-4">
+          {subtasks.map((subtask) => (
+            <li key={subtask.id} className="flex items-center justify-between gap-3">
+              <span
+                className={`min-w-0 flex-1 truncate text-sm ${
+                  subtask.status === 'done' ? 'text-[#0E2F27]/45 line-through' : 'text-[#0E2F27]/80'
+                }`}
+              >
+                {subtask.title}
+              </span>
+              <span className="flex shrink-0 items-center gap-2">
+                <AddToTodayButton title={subtask.title} projectId={subtask.project_id} dueDate={todayIso} />
+                <SubtaskStatusSelect id={subtask.id} status={subtask.status ?? 'todo'} />
+              </span>
+            </li>
+          ))}
+        </ul>
+      )}
+    </li>
+  )
+}
 
 function pad(n: number): string {
   return String(n).padStart(2, '0')
@@ -123,7 +167,7 @@ export default async function FocusPage({
   const monthEndIso = `${monthIso}-${pad(daysInMonth(y, m))}`
   const historyStartIso = addDaysIso(todayIso, -366)
 
-  const [monthRes, dayRes, historyRes, projectsRes, tasksRes, subtasksRes] = await Promise.all([
+  const [monthRes, dayRes, historyRes, projectsRes, phasesRes, tasksRes, subtasksRes] = await Promise.all([
     supabase
       .from('todos')
       .select('due_date, completed_at')
@@ -143,7 +187,15 @@ export default async function FocusPage({
       .gte('due_date', historyStartIso)
       .lte('due_date', todayIso),
     supabase.from('projects').select('id, name').order('name', { ascending: true }),
-    supabase.from('tasks').select('id, title, status, project_id').order('created_at', { ascending: true }),
+    supabase
+      .from('phases')
+      .select('id, title, position, project_id')
+      .order('position', { ascending: true })
+      .order('created_at', { ascending: true }),
+    supabase
+      .from('tasks')
+      .select('id, title, status, project_id, phase_id')
+      .order('created_at', { ascending: true }),
     supabase
       .from('subtasks')
       .select('id, title, status, project_id, parent_task_id')
@@ -199,14 +251,26 @@ export default async function FocusPage({
   const donePercent = dayTotal > 0 ? Math.round((dayDone / dayTotal) * 100) : 0
 
   const projects = projectsRes.data ?? []
-  const tasks = tasksRes.data ?? []
-  const subtasks = subtasksRes.data ?? []
-  const projectName = new Map(projects.map((project) => [project.id, project.name]))
-  const subtasksByTask = new Map<string, typeof subtasks>()
+  const phases = phasesRes.data ?? []
+  const tasks = (tasksRes.data ?? []) as DeliverableTask[]
+  const subtasks = (subtasksRes.data ?? []) as DeliverableSubtask[]
+  const subtasksByTask = new Map<string, DeliverableSubtask[]>()
   for (const subtask of subtasks) {
     const list = subtasksByTask.get(subtask.parent_task_id) ?? []
     list.push(subtask)
     subtasksByTask.set(subtask.parent_task_id, list)
+  }
+  const phasesByProject = new Map<string, typeof phases>()
+  for (const phase of phases) {
+    const list = phasesByProject.get(phase.project_id) ?? []
+    list.push(phase)
+    phasesByProject.set(phase.project_id, list)
+  }
+  const tasksByProject = new Map<string, DeliverableTask[]>()
+  for (const task of tasks) {
+    const list = tasksByProject.get(task.project_id) ?? []
+    list.push(task)
+    tasksByProject.set(task.project_id, list)
   }
   const deliverableCount = tasks.length + subtasks.length
   const dayParam = params.day && DAY_RE.test(params.day) ? `&day=${params.day}` : ''
@@ -292,70 +356,63 @@ export default async function FocusPage({
           ) : (
             <section className={`${card} p-5`}>
               <div className="space-y-6">
-                {PHASES.map((phase) => {
-                  const phaseTasks = tasks.filter((task) => (task.status ?? 'todo') === phase.key)
-                  if (phaseTasks.length === 0) return null
+                {projects.map((project) => {
+                  const projectTasks = tasksByProject.get(project.id)
+                  if (!projectTasks || projectTasks.length === 0) return null
+                  const projectPhases = phasesByProject.get(project.id) ?? []
+                  const unassigned = projectTasks.filter((task) => !task.phase_id)
                   return (
-                    <div key={phase.key}>
-                      <h3 className="flex items-center gap-2 text-sm font-semibold text-[#0E2F27]">
-                        {phase.title}
-                        <span className="rounded-full bg-[#F4F8F5] px-2 py-0.5 text-xs font-medium text-[#0E2F27]/55">
-                          {phaseTasks.length}
-                        </span>
-                      </h3>
-                      <ul className="mt-2 divide-y divide-[#0E2F27]/10 overflow-hidden rounded-xl border border-[#0E2F27]/10">
-                        {phaseTasks.map((task) => {
-                          const taskSubtasks = subtasksByTask.get(task.id) ?? []
+                    <div key={project.id}>
+                      <h2 className={`${display.className} text-base font-bold tracking-tight text-[#0E2F27]`}>
+                        {project.name}
+                      </h2>
+                      <div className="mt-3 space-y-4">
+                        {projectPhases.map((phase) => {
+                          const phaseTasks = projectTasks.filter((task) => task.phase_id === phase.id)
+                          if (phaseTasks.length === 0) return null
                           return (
-                            <li key={task.id} className="px-4 py-2.5">
-                              <div className="flex items-center justify-between gap-3">
-                                <span className="min-w-0 flex-1">
-                                  <span
-                                    className={`block truncate text-sm ${
-                                      task.status === 'done' ? 'text-[#0E2F27]/45 line-through' : 'text-[#0E2F27]'
-                                    }`}
-                                  >
-                                    {task.title}
-                                  </span>
-                                  <span className="block text-xs text-[#0E2F27]/50">
-                                    {projectName.get(task.project_id) ?? ''}
-                                  </span>
+                            <div key={phase.id}>
+                              <h3 className="flex items-center gap-2 text-sm font-semibold text-[#0E2F27]">
+                                {phase.title}
+                                <span className="rounded-full bg-[#F4F8F5] px-2 py-0.5 text-xs font-medium text-[#0E2F27]/55">
+                                  {phaseTasks.length}
                                 </span>
-                                <span className="flex shrink-0 items-center gap-2">
-                                  <AddToTodayButton title={task.title} projectId={task.project_id} dueDate={todayIso} />
-                                  <TaskStatusSelect id={task.id} status={task.status ?? 'todo'} />
-                                </span>
-                              </div>
-
-                              {taskSubtasks.length > 0 && (
-                                <ul className="mt-2 space-y-1.5 border-l-2 border-[#0E2F27]/10 pl-4">
-                                  {taskSubtasks.map((subtask) => (
-                                    <li key={subtask.id} className="flex items-center justify-between gap-3">
-                                      <span
-                                        className={`min-w-0 flex-1 truncate text-sm ${
-                                          subtask.status === 'done'
-                                            ? 'text-[#0E2F27]/45 line-through'
-                                            : 'text-[#0E2F27]/80'
-                                        }`}
-                                      >
-                                        {subtask.title}
-                                      </span>
-                                      <span className="flex shrink-0 items-center gap-2">
-                                        <AddToTodayButton
-                                          title={subtask.title}
-                                          projectId={subtask.project_id}
-                                          dueDate={todayIso}
-                                        />
-                                        <SubtaskStatusSelect id={subtask.id} status={subtask.status ?? 'todo'} />
-                                      </span>
-                                    </li>
-                                  ))}
-                                </ul>
-                              )}
-                            </li>
+                              </h3>
+                              <ul className="mt-2 divide-y divide-[#0E2F27]/10 overflow-hidden rounded-xl border border-[#0E2F27]/10">
+                                {phaseTasks.map((task) => (
+                                  <DeliverableTaskItem
+                                    key={task.id}
+                                    task={task}
+                                    subtasks={subtasksByTask.get(task.id) ?? []}
+                                    todayIso={todayIso}
+                                  />
+                                ))}
+                              </ul>
+                            </div>
                           )
                         })}
-                      </ul>
+
+                        {unassigned.length > 0 && (
+                          <div>
+                            <h3 className="flex items-center gap-2 text-sm font-semibold text-[#0E2F27]/70">
+                              Unassigned
+                              <span className="rounded-full bg-[#F4F8F5] px-2 py-0.5 text-xs font-medium text-[#0E2F27]/55">
+                                {unassigned.length}
+                              </span>
+                            </h3>
+                            <ul className="mt-2 divide-y divide-[#0E2F27]/10 overflow-hidden rounded-xl border border-[#0E2F27]/10">
+                              {unassigned.map((task) => (
+                                <DeliverableTaskItem
+                                  key={task.id}
+                                  task={task}
+                                  subtasks={subtasksByTask.get(task.id) ?? []}
+                                  todayIso={todayIso}
+                                />
+                              ))}
+                            </ul>
+                          </div>
+                        )}
+                      </div>
                     </div>
                   )
                 })}

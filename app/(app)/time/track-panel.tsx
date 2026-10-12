@@ -26,8 +26,8 @@ export function TrackPanel({
   const [tab, setTab] = useState<'timer' | 'manual'>('timer')
 
   return (
-    <section className={`${card} p-5`}>
-      <div className="flex items-center justify-between gap-3">
+    <section className={`${card} p-6`}>
+      <div className="flex flex-wrap items-center justify-between gap-3">
         <h2 className={`${display.className} text-lg font-bold tracking-tight`}>Track time</h2>
         <div className="inline-flex rounded-full bg-[#F4F8F5] p-1">
           {TABS.map((item) => {
@@ -49,7 +49,7 @@ export function TrackPanel({
         </div>
       </div>
 
-      <div className="mt-5">
+      <div className="mt-5 max-w-2xl">
         {tab === 'timer' ? (
           <StartTimer
             projects={projects}

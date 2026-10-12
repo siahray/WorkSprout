@@ -133,85 +133,83 @@ export default async function TimePage({
         />
       </div>
 
-      <div className="mt-8 grid gap-6 lg:grid-cols-[minmax(0,22rem)_minmax(0,1fr)]">
-        <div className="space-y-6">
-          <TrackPanel
-            projects={options}
-            initialProjectId={projectFilter}
-            hasRunning={Boolean(active)}
-            manualAction={addManualEntry}
-          />
-        </div>
-
-        <section>
-          <h2 className={`${display.className} mb-3 text-xl font-extrabold tracking-tight`}>
-            {filterName ? `Time for ${filterName}` : 'Recent time'}
-          </h2>
-          {filtered.length === 0 ? (
-            <EmptyState
-              title={filterName ? `No time logged for ${filterName}` : 'No time logged yet'}
-              description="Start the timer or log an entry by hand and it will show up here."
-            />
-          ) : (
-            <div className={`${card} overflow-hidden`}>
-              <div className="overflow-x-auto">
-                <table className="w-full text-sm">
-                  <thead className={tableHead}>
-                    <tr>
-                      <th className={th}>Date</th>
-                      <th className={th}>Task</th>
-                      <th className={th}>Duration</th>
-                      <th className={th}>Status</th>
-                      <th className={th} />
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-[#0E2F27]/10">
-                    {filtered.slice(0, 50).map((entry) => {
-                      const info = taskInfo.get(entry.task_id)
-                      return (
-                        <tr key={entry.id} className={rowHover}>
-                          <td className="px-5 py-3 whitespace-nowrap text-[#0E2F27]/65">{formatDate(entry.start_time)}</td>
-                          <td className="px-5 py-3">
-                            <span className="font-medium">{info?.title ?? '—'}</span>
-                            {info && <p className="text-xs text-[#0E2F27]/55">{info.projectName}</p>}
-                          </td>
-                          <td className="px-5 py-3 tabular-nums">{hoursFromMinutes(entry.duration_minutes)}</td>
-                          <td className="px-5 py-3">
-                            {entry.invoice_id ? (
-                              <span className="text-[#1F6B52]">Invoiced</span>
-                            ) : entry.billable ? (
-                              <span className="text-[#8a6412]">Unbilled</span>
-                            ) : (
-                              <span className="text-[#0E2F27]/55">Not billable</span>
-                            )}
-                          </td>
-                          <td className="px-5 py-3">
-                            {entry.invoice_id === null && (
-                              <span className="flex items-center justify-end gap-1">
-                                <Link href={`/time/${entry.id}/edit`} className={`${btnGhost} !px-2 !py-1 text-xs`}>
-                                  Edit
-                                </Link>
-                                <ConfirmAction
-                                  action={deleteTimeEntry}
-                                  id={entry.id}
-                                  message="Delete this time entry?"
-                                  className={`${btnGhost} !px-2 !py-1 text-xs text-red-700 hover:text-red-800`}
-                                >
-                                  Delete
-                                </ConfirmAction>
-                              </span>
-                            )}
-                          </td>
-                        </tr>
-                      )
-                    })}
-                  </tbody>
-                </table>
-              </div>
-            </div>
-          )}
-        </section>
+      <div className="mt-6">
+        <TrackPanel
+          projects={options}
+          initialProjectId={projectFilter}
+          hasRunning={Boolean(active)}
+          manualAction={addManualEntry}
+        />
       </div>
+
+      <section className="mt-8">
+        <h2 className={`${display.className} mb-3 text-xl font-extrabold tracking-tight`}>
+          {filterName ? `Time for ${filterName}` : 'Recent time'}
+        </h2>
+        {filtered.length === 0 ? (
+          <EmptyState
+            title={filterName ? `No time logged for ${filterName}` : 'No time logged yet'}
+            description="Start the timer or log an entry by hand and it will show up here."
+          />
+        ) : (
+          <div className={`${card} overflow-hidden`}>
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead className={tableHead}>
+                  <tr>
+                    <th className={th}>Date</th>
+                    <th className={th}>Task</th>
+                    <th className={th}>Duration</th>
+                    <th className={th}>Status</th>
+                    <th className={th} />
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-[#0E2F27]/10">
+                  {filtered.slice(0, 50).map((entry) => {
+                    const info = taskInfo.get(entry.task_id)
+                    return (
+                      <tr key={entry.id} className={rowHover}>
+                        <td className="px-5 py-3 whitespace-nowrap text-[#0E2F27]/65">{formatDate(entry.start_time)}</td>
+                        <td className="px-5 py-3">
+                          <span className="font-medium">{info?.title ?? '—'}</span>
+                          {info && <p className="text-xs text-[#0E2F27]/55">{info.projectName}</p>}
+                        </td>
+                        <td className="px-5 py-3 tabular-nums">{hoursFromMinutes(entry.duration_minutes)}</td>
+                        <td className="px-5 py-3">
+                          {entry.invoice_id ? (
+                            <span className="text-[#1F6B52]">Invoiced</span>
+                          ) : entry.billable ? (
+                            <span className="text-[#8a6412]">Unbilled</span>
+                          ) : (
+                            <span className="text-[#0E2F27]/55">Not billable</span>
+                          )}
+                        </td>
+                        <td className="px-5 py-3">
+                          {entry.invoice_id === null && (
+                            <span className="flex items-center justify-end gap-1">
+                              <Link href={`/time/${entry.id}/edit`} className={`${btnGhost} !px-2 !py-1 text-xs`}>
+                                Edit
+                              </Link>
+                              <ConfirmAction
+                                action={deleteTimeEntry}
+                                id={entry.id}
+                                message="Delete this time entry?"
+                                className={`${btnGhost} !px-2 !py-1 text-xs text-red-700 hover:text-red-800`}
+                              >
+                                Delete
+                              </ConfirmAction>
+                            </span>
+                          )}
+                        </td>
+                      </tr>
+                    )
+                  })}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        )}
+      </section>
     </>
   )
 }
