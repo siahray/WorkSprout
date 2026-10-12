@@ -3,7 +3,7 @@ import type { ReactNode } from 'react'
 import Link from 'next/link'
 import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
-import { formatDate, hoursFromMinutes, nowDateInput, peso } from '@/lib/format'
+import { formatDate, formatPercent, hoursFromMinutes, nowDateInput, peso } from '@/lib/format'
 import { PageHeader } from '@/components/ui/page-header'
 import { StatusBadge } from '@/components/ui/status-badge'
 import { EmptyState } from '@/components/ui/empty-state'
@@ -17,6 +17,15 @@ export const metadata: Metadata = {
 type TodoRow = { id: string; title: string; completed_at: string | null }
 type ProjectRow = { id: string; name: string; status: string | null; client: { name: string } | null }
 type ClientRow = { id: string; name: string; company: string | null }
+type ExpenseRow = { amount: number | string; project_id: string | null; spent_on: string }
+type MarginProject = {
+  id: string
+  name: string
+  invoiced: number
+  projectExpenses: number
+  net: number
+  pct: number
+}
 
 function Stat({ label, value, hint, accent }: { label: string; value: string; hint?: string; accent: string }) {
   return (
@@ -24,6 +33,28 @@ function Stat({ label, value, hint, accent }: { label: string; value: string; hi
       <span className={`absolute inset-x-0 top-0 h-1 ${accent}`} aria-hidden="true" />
       <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-[#0E2F27]/50">{label}</p>
       <p className={`${display.className} mt-2 text-[1.75rem] font-extrabold leading-none tabular-nums`}>{value}</p>
+      {hint && <p className="mt-2 text-xs text-[#0E2F27]/55">{hint}</p>}
+    </div>
+  )
+}
+
+function HealthStat({
+  label,
+  value,
+  hint,
+  tone,
+}: {
+  label: string
+  value: string
+  hint?: string
+  tone: 'ink' | 'warn' | 'sprout'
+}) {
+  const bar = { ink: 'bg-[#0E2F27]/25', warn: 'bg-[#F4B63F]', sprout: 'bg-[#2E9E6B]' }[tone]
+  return (
+    <div className={`${card} relative overflow-hidden p-5`}>
+      <span className={`absolute inset-x-0 top-0 h-1 ${bar}`} aria-hidden="true" />
+      <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-[#0E2F27]/50">{label}</p>
+      <p className={`${display.className} mt-2 text-2xl font-extrabold leading-none tabular-nums`}>{value}</p>
       {hint && <p className="mt-2 text-xs text-[#0E2F27]/55">{hint}</p>}
     </div>
   )
@@ -65,10 +96,12 @@ export default async function DashboardPage() {
     todayTodosRes,
     topProjectsRes,
     clientsListRes,
+    expensesRes,
+    marginProjectsRes,
   ] = await Promise.all([
     supabase
       .from('invoice_balances')
-      .select('id, number, status, total, balance, issue_date, client_name')
+      .select('id, number, status, total, balance, issue_date, client_name, project_id')
       .order('created_at', { ascending: false }),
     supabase.from('payments').select('amount').gte('paid_at', monthStartIso),
     supabase.from('clients').select('id', { count: 'exact', head: true }),
@@ -93,6 +126,8 @@ export default async function DashboardPage() {
       .order('created_at', { ascending: false })
       .limit(3),
     supabase.from('clients').select('id, name, company').order('name', { ascending: true }),
+    supabase.from('expenses').select('amount, project_id, spent_on'),
+    supabase.from('projects').select('id, name').order('name', { ascending: true }),
   ])
 
   const invoices = invoicesRes.data ?? []
@@ -110,12 +145,43 @@ export default async function DashboardPage() {
     (sum: number, e: { duration_minutes: number | null }) => sum + (e.duration_minutes ?? 0),
     0
   )
-  const clientsCount = clientsRes.count ?? 0
-  const activeProjects = projectsRes.count ?? 0
-  const recent = invoices.slice(0, 5)
-  const todayTodos = (todayTodosRes.data ?? []) as TodoRow[]
-  const topProjects = (topProjectsRes.data ?? []) as unknown as ProjectRow[]
-  const clientsList = (clientsListRes.data ?? []) as ClientRow[]
+const clientsCount = clientsRes.count ?? 0
+const activeProjects = projectsRes.count ?? 0
+const recent = invoices.slice(0, 5)
+const todayTodos = (todayTodosRes.data ?? []) as TodoRow[]
+const topProjects = (topProjectsRes.data ?? []) as unknown as ProjectRow[]
+const clientsList = (clientsListRes.data ?? []) as ClientRow[]
+
+const expensesAll = (expensesRes.data ?? []) as ExpenseRow[]
+const expensesThisMonth = expensesAll
+  .filter((e) => e.spent_on >= monthStartIso)
+  .reduce((sum, e) => sum + Number(e.amount), 0)
+const netThisMonth = collectedThisMonth - expensesThisMonth
+const marginPercent =
+  collectedThisMonth > 0 ? formatPercent((netThisMonth / collectedThisMonth) * 100) : '—'
+
+const invoicedByProject = new Map<string, number>()
+for (const inv of invoices) {
+  const row = inv as { project_id: string | null; status: string }
+  if (row.status === 'draft' || row.status === 'void' || !row.project_id) continue
+  invoicedByProject.set(row.project_id, (invoicedByProject.get(row.project_id) ?? 0) + Number(inv.total))
+}
+const expensesByProject = new Map<string, number>()
+for (const expense of expensesAll) {
+  if (!expense.project_id) continue
+  expensesByProject.set(expense.project_id, (expensesByProject.get(expense.project_id) ?? 0) + Number(expense.amount))
+}
+const marginProjects = ((marginProjectsRes.data ?? []) as { id: string; name: string }[])
+  .map((project) => {
+    const invoiced = invoicedByProject.get(project.id) ?? 0
+    const projectExpenses = expensesByProject.get(project.id) ?? 0
+    if (invoiced <= 0 && projectExpenses <= 0) return null
+    const net = invoiced - projectExpenses
+    const pct = invoiced > 0 ? Math.min(100, Math.max(0, Math.round((net / invoiced) * 1000) / 10)) : 0
+    return { id: project.id, name: project.name, invoiced, projectExpenses, net, pct }
+  })
+  .filter((row): row is MarginProject => row !== null)
+  .sort((a, b) => b.invoiced - a.invoiced)
 
   if (clientsCount === 0 && invoices.length === 0) {
     return (
@@ -179,6 +245,93 @@ export default async function DashboardPage() {
           accent="bg-[#0E2F27]/10"
         />
       </div>
+
+      <section className="mt-10">
+        <div className="mb-4 flex items-end justify-between gap-4">
+          <div>
+            <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-[#1F6B52]">Profitability</p>
+            <h2 className={`${display.className} mt-1 text-xl font-extrabold tracking-tight`}>Business health</h2>
+          </div>
+          <Link href="/expenses" className={`text-sm font-semibold text-[#1F6B52] hover:underline ${focus}`}>
+            View expenses
+          </Link>
+        </div>
+
+        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+          <HealthStat label="Collected this month" value={peso(collectedThisMonth)} tone="sprout" />
+          <HealthStat label="Expenses this month" value={peso(expensesThisMonth)} tone="warn" />
+          <HealthStat
+            label="Net this month"
+            value={peso(netThisMonth)}
+            tone={netThisMonth >= 0 ? 'ink' : 'warn'}
+            hint={netThisMonth < 0 ? 'Spending more than you collect' : undefined}
+          />
+          <HealthStat
+            label="Margin"
+            value={marginPercent}
+            tone="ink"
+            hint={collectedThisMonth > 0 ? 'Net against collected' : undefined}
+          />
+        </div>
+
+        {marginProjects.length > 0 && (
+          <div className={`${card} mt-4 overflow-hidden`}>
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead className={tableHead}>
+                  <tr>
+                    <th className={th}>Project</th>
+                    <th className={`${th} text-right`}>Invoiced</th>
+                    <th className={`${th} text-right`}>Expenses</th>
+                    <th className={`${th} text-right`}>Net</th>
+                    <th className={th}>Margin</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-[#0E2F27]/10">
+                  {marginProjects.map((project) => (
+                    <tr key={project.id} className={rowHover}>
+                      <td className="px-5 py-3.5 font-medium">
+                        <Link
+                          href={`/projects/${project.id}`}
+                          className={`text-[#1F6B52] hover:underline ${focus}`}
+                        >
+                          {project.name}
+                        </Link>
+                      </td>
+                      <td className="px-5 py-3.5 text-right tabular-nums">{peso(project.invoiced)}</td>
+                      <td className="px-5 py-3.5 text-right tabular-nums">{peso(project.projectExpenses)}</td>
+                      <td
+                        className={`px-5 py-3.5 text-right tabular-nums ${
+                          project.net < 0 ? 'font-medium text-red-700' : 'font-medium'
+                        }`}
+                      >
+                        {peso(project.net)}
+                      </td>
+                      <td className="px-5 py-3.5">
+                        {project.invoiced > 0 ? (
+                          <div className="flex items-center gap-2">
+                            <div className="h-1.5 w-24 overflow-hidden rounded-full bg-[#0E2F27]/10">
+                              <div
+                                className={`h-full rounded-full ${
+                                  project.net < 0 ? 'bg-[#F4B63F]' : 'bg-[#2E9E6B]'
+                                }`}
+                                style={{ width: `${project.pct}%` }}
+                              />
+                            </div>
+                            <span className="text-xs tabular-nums text-[#0E2F27]/55">{project.pct}%</span>
+                          </div>
+                        ) : (
+                          <span className="text-xs text-[#0E2F27]/45">No billings</span>
+                        )}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        )}
+      </section>
 
       <section className={`${card} mt-10 overflow-hidden`}>
         <div className="grid divide-y divide-[#0E2F27]/10 md:grid-cols-3 md:divide-x md:divide-y-0">
