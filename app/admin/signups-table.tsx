@@ -4,6 +4,7 @@ import { useActionState, useState } from 'react'
 import { bulkDeleteSignups, deleteSignup } from '@/app/admin/admin-actions'
 import { InviteButton } from '@/app/admin/invite-button'
 import { ConfirmAction } from '@/components/ui/confirm-action'
+import { ConfirmDialog } from '@/components/ui/confirm-dialog'
 import { btnDanger, focus, rowHover, tableHead, th } from '@/lib/ui'
 import type { SignupRow } from '@/app/admin/types'
 
@@ -18,8 +19,10 @@ export function SignupsTable({
 }) {
   const [state, action, pending] = useActionState(bulkDeleteSignups, {})
   const [selected, setSelected] = useState<string[]>([])
+  const [confirmOpen, setConfirmOpen] = useState(false)
 
   const allSelected = signups.length > 0 && selected.length === signups.length
+  const count = selected.length
 
   function toggle(id: string) {
     setSelected((prev) => (prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]))
@@ -30,23 +33,15 @@ export function SignupsTable({
       <form
         id={BULK_FORM}
         action={action}
-        onSubmit={(event) => {
-          const count = selected.length
-          if (
-            count > 0 &&
-            !window.confirm(`Delete ${count} signup${count === 1 ? '' : 's'}? This cannot be undone.`)
-          ) {
-            event.preventDefault()
-          }
-        }}
         className="flex flex-wrap items-center gap-3 border-b border-[#0E2F27]/10 bg-[#F4F8F5] px-5 py-3"
       >
         <button
-          type="submit"
-          disabled={pending || selected.length === 0}
+          type="button"
+          disabled={pending || count === 0}
+          onClick={() => setConfirmOpen(true)}
           className={`${btnDanger} px-3 py-1.5 text-xs`}
         >
-          {pending ? 'Deleting…' : `Delete selected${selected.length ? ` (${selected.length})` : ''}`}
+          {pending ? 'Deleting…' : `Delete selected${count ? ` (${count})` : ''}`}
         </button>
         {state.error && (
           <span role="alert" className="text-xs font-medium text-red-700">
@@ -54,6 +49,14 @@ export function SignupsTable({
           </span>
         )}
         {state.ok && <span className="text-xs font-medium text-[#1F6B52]">{state.ok}</span>}
+        <ConfirmDialog
+          open={confirmOpen}
+          onOpenChange={setConfirmOpen}
+          title="Delete signups?"
+          message={`Delete ${count} signup${count === 1 ? '' : 's'}? This cannot be undone.`}
+          confirmLabel="Delete"
+          onConfirm={() => setConfirmOpen(false)}
+        />
       </form>
 
       {signups.length === 0 ? (

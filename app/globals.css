@@ -27,6 +27,39 @@ body {
   color: #0e2f27;
 }
 
+dialog::backdrop {
+  background: rgba(14, 47, 39, 0.45);
+  backdrop-filter: blur(2px);
+}
+
+dialog[open] {
+  animation: dialog-in 160ms ease-out;
+}
+
+dialog[open]::backdrop {
+  animation: backdrop-in 160ms ease-out;
+}
+
+@keyframes dialog-in {
+  from {
+    opacity: 0;
+    transform: translateY(8px) scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@keyframes backdrop-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
 @media print {
   @page {
     margin: 1.5cm;
