@@ -8,6 +8,9 @@ export type RunningTimer = {
   pausedSeconds: number
 }
 
+// Elapsed = wall-clock since start minus everything spent paused:
+// completed pauses (`pausedSeconds`) plus the still-running one (`pausedAt`).
+// `now` is passed in so callers can share one timestamp across a render pass.
 export function timerElapsedSeconds(timer: RunningTimer, now: number): number {
   const pausedMs =
     timer.pausedSeconds * 1000 +
