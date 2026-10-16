@@ -193,6 +193,9 @@ export function snapshotFromPublic(payload: unknown): InvoiceSnapshot | null {
   const base = invoice.base_status as string
   const total = num(invoice.total)
   const amountPaid = (p.payments ?? []).reduce((sum, payment) => sum + num(payment.amount), 0)
+  // The RPC only returns the base status, so the public view derives the
+  // payment state here: paid = fully settled, partial = some payment, else sent.
+  // Draft and void are terminal and never re-derived.
   const status =
     base === 'void' || base === 'draft'
       ? base
