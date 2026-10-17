@@ -116,21 +116,88 @@ unknown keys rather than rejecting them. `public_token` is stripped on purpose:
 it grants anonymous access to an invoice and has no business in a feed that may
 be relayed onward.
 
+## Writing
+
+Two endpoints create records, both returning `201` with the new `id`:
+
+| Endpoint | Creates |
+| --- | --- |
+| `POST /api/v1/clients` | a client |
+| `POST /api/v1/calls` | an appointment (a "call") |
+
+**Always send `Idempotency-Key`** — any unique string, a UUID per logical
+operation:
+
+```bash
+curl -X POST http://localhost:3000/api/v1/calls \
+  -H "Authorization: Bearer wsp_live_…" \
+  -H "Idempotency-Key: 8f2b0f9c-6d1e-4b3a-9c77-2f5a1d0e7c34" \
+  -H "Content-Type: application/json" \
+  -d '{
+        "title": "Discovery call",
+        "scheduled_at": "2026-10-20T06:00:00.000Z",
+        "duration_minutes": 45
+      }'
+```
+
+Retrying is unavoidable — a tool that times out will try again — and without the
+header a retry books a second appointment. With it:
+
+- a new key runs the request and records the response;
+- the same key with the **same** body returns the recorded response, without
+  acting again;
+- the same key with a **different** body returns `409 idempotency_conflict`;
+- a key still running returns `409 request_in_progress`.
+
+After a `409`, retry with a **new** key. Keys are scoped per account, so two
+tools cannot collide.
+
+`scheduled_at` is an ISO 8601 instant, stored in UTC; the app renders it in
+Asia/Manila. `duration_minutes` defaults to 30. A `client_id` must belong to the
+same account or the request is rejected.
+
+Created records still emit events (`client.created`, `call.created`), so a write
+is visible on the feed — which is how you would trigger a confirmation email.
+
+Validation lives in `lib/api-mutations.ts` and is shared with the app's own forms,
+so a rule cannot apply to one path and not the other.
+
 ## What is not built yet
 
-This is phase one of the integration API — reads. There are **no write
-endpoints**: a tool cannot yet create a client, book an appointment, or raise an
-invoice. Until those exist, keep the flow outward (WorkSprout → tool) and do not
-point a form at the database directly.
+Writes cover **clients and appointments only**. A tool cannot create a project,
+log time, or raise an invoice, and nothing can be updated or deleted — creates
+only.
 
-Events are recorded by database triggers on `invoices`, `payments`, `calls`,
-`clients` and `expenses`, so they capture every write path. The trigger runs in
-the same transaction as the change it records, and is wrapped so a fault in
-event recording can never fail your actual work.
+Adding an endpoint means adding a function to `lib/api-mutations.ts` and a thin
+route under `app/api/v1/`; the auth, idempotency, body-parsing and error layers
+are already generic.
+
+Also still absent: **push webhooks** (the feed is pull-only, so delivery latency
+is your poll interval), rate limiting, and pagination.
+
+Events, by contrast, are complete for the tables that exist: recorded by database
+triggers on `invoices`, `payments`, `calls`, `clients` and `expenses`, so they
+capture every write path. The trigger runs in the same transaction as the change
+it records, and is wrapped so a fault in event recording can never fail your
+actual work.
 
 ## Retention
 
-`events` grows forever and is never pruned by the app. At this scale that is
-negligible, but if it ever matters, set a scheduled `delete from public.events
-where created_at < now() - interval '90 days'` — after checking that every
-consumer's cursor has moved past the point being deleted.
+Neither table is pruned by the app.
+
+`events` grows forever. At this scale that is negligible, but if it ever matters,
+set a scheduled `delete from public.events where created_at < now() - interval
+'90 days'` — after checking that every consumer's cursor has moved past the point
+being deleted.
+
+`idempotency_keys` grows one row per write. A request that dies mid-flight leaves
+its key marked `in_progress` forever, so that specific key can never be reused —
+a new key works fine, so this is a leak rather than a failure. Prune the same
+way, and more aggressively than events:
+
+```sql
+delete from public.idempotency_keys where created_at < now() - interval '30 days';
+```
+
+Prune only keys older than your longest plausible retry window, since deleting a
+row forgets that a request already ran.

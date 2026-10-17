@@ -4,6 +4,7 @@ import { revalidatePath } from 'next/cache'
 import { createClient } from '@/lib/supabase/server'
 import { nowDateInput } from '@/lib/format'
 import { callIcs, fetchCallSnapshot, isCallStatus, manilaToIso } from '@/lib/call'
+import { scheduleCall } from '@/lib/api-mutations'
 import { renderCallEmail } from '@/lib/call-email'
 import { emailConfigured, sendEmail } from '@/lib/email'
 import { siteUrl } from '@/lib/site'
@@ -126,49 +127,29 @@ export async function deleteTodo(_prev: FormState, formData: FormData): Promise<
 // --- Calls -------------------------------------------------------------------
 
 export async function createCall(_prev: FormState, formData: FormData): Promise<FormState> {
-  const title = text(formData, 'title')
-  const clientId = optionalText(formData, 'client_id')
   const date = text(formData, 'call_date')
   const time = text(formData, 'call_time')
-  const location = optionalText(formData, 'location')
-  const notes = optionalText(formData, 'notes')
 
-  if (!title) return { error: 'Give the call a title.' }
-  if (title.length > 200) return { error: 'Keep the title under 200 characters.' }
   if (!TIME_RE.test(time)) return { error: 'Pick a start time.' }
 
   const scheduledAt = manilaToIso(date, time)
   if (!scheduledAt) return { error: 'Pick a valid date and time.' }
 
-  const duration = Number(text(formData, 'duration_minutes'))
-  if (!Number.isFinite(duration) || duration < 1 || duration > 1440) {
-    return { error: 'Pick a duration between 1 minute and 24 hours.' }
-  }
-
-  if (clientId && !isUuid(clientId)) return { error: 'That client could not be found.' }
-
   const supabase = await createClient()
   const { data } = await supabase.auth.getClaims()
-  if (!data?.claims) return { error: 'Your session expired — sign in again.' }
+  const userId = data?.claims?.sub
+  if (!userId) return { error: 'Your session expired — sign in again.' }
 
-  if (clientId) {
-    const { data: client } = await supabase.from('clients').select('id').eq('id', clientId).maybeSingle()
-    if (!client) return { error: 'That client could not be found.' }
-  }
-
-  const { error } = await supabase.from('calls').insert({
-    user_id: data.claims.sub,
-    client_id: clientId ?? null,
-    title,
+  // Shared with the integration API, so the form and the API cannot drift.
+  const result = await scheduleCall(supabase, userId, {
+    title: text(formData, 'title'),
+    client_id: optionalText(formData, 'client_id'),
     scheduled_at: scheduledAt,
-    duration_minutes: Math.round(duration),
-    location,
-    notes,
+    duration_minutes: text(formData, 'duration_minutes'),
+    location: optionalText(formData, 'location'),
+    notes: optionalText(formData, 'notes'),
   })
-  if (error) {
-    console.error('create call failed:', error.message)
-    return { error: 'Could not schedule the call — please try again.' }
-  }
+  if (!result.ok) return { error: result.error }
 
   revalidatePath('/focus')
   return { ok: 'Call scheduled.' }
