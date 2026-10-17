@@ -9,10 +9,11 @@ import { PrintButton } from '@/components/ui/print-button'
 import { InvoiceDocument } from '@/components/invoice-document'
 import { AttachmentSection } from '@/components/attachments/attachment-section'
 import { PaymentForm } from './payment-form'
+import { PaymentEditDialog } from './payment-edit-dialog'
 import { formatDate, formatDateTime, peso } from '@/lib/format'
 import { fetchInvoiceSnapshot } from '@/lib/invoice'
 import type { Attachment } from '@/lib/attachments'
-import { btnPrimary, btnSecondary, btnDanger, card, focus } from '@/lib/ui'
+import { btnPrimary, btnSecondary, btnDanger, btnGhost, card, focus } from '@/lib/ui'
 import { deleteInvoice, deletePayment, markInvoiceSent, sendInvoice, voidInvoice } from '../actions'
 import { display } from '@/lib/fonts'
 
@@ -118,15 +119,21 @@ export default async function InvoiceDetailPage({ params }: { params: Promise<{ 
                       </p>
                       {p.note && <p className="text-xs text-[#0E2F27]/55">{p.note}</p>}
                     </div>
-                    <ConfirmAction
-                      action={deletePayment}
-                      id={p.id}
-                      extra={{ invoice_id: id }}
-                      message="Remove this payment?"
-                      className={`${btnDanger} !px-2.5 !py-1.5 text-xs`}
-                    >
-                      Remove
-                    </ConfirmAction>
+                    <div className="flex flex-col items-end gap-1">
+                      <PaymentEditDialog
+                        invoiceId={id}
+                        payment={{ id: p.id, amount: p.amount, paid_at: p.paid_at, method: p.method, note: p.note }}
+                      />
+                      <ConfirmAction
+                        action={deletePayment}
+                        id={p.id}
+                        extra={{ invoice_id: id }}
+                        message="Remove this payment?"
+                        className={`${btnGhost} !px-2.5 !py-1.5 text-xs text-red-700 hover:text-red-800`}
+                      >
+                        Remove
+                      </ConfirmAction>
+                    </div>
                   </li>
                 ))}
               </ul>

@@ -1,44 +1,101 @@
 'use client'
 
+import { useEffect, useId } from 'react'
 import { useActionState } from 'react'
 import { Field } from '@/components/ui/field'
 import { SubmitButton } from '@/components/ui/submit-button'
-import { addPayment } from '../actions'
-import { alertError, alertOk, btnAccent, input } from '@/lib/ui'
+import { addPayment, updatePayment } from '../actions'
+import { alertError, alertOk, btnAccent, btnSecondary, input } from '@/lib/ui'
 import { nowDateInput } from '@/lib/format'
+import type { FormState } from '@/lib/validation'
 
-export function PaymentForm({ invoiceId, balance }: { invoiceId: string; balance: number }) {
-  const [state, formAction, pending] = useActionState(addPayment, {})
+// The stored values an existing payment prefills the form with. `paid_at` is a
+// date column, so it already arrives as YYYY-MM-DD for <input type="date">.
+export type PaymentDefaults = {
+  id: string
+  amount: number | string
+  paid_at: string
+  method: string | null
+  note: string | null
+}
+
+// Backs both flows: record a payment, and correct one that was recorded wrong.
+export function PaymentForm({
+  invoiceId,
+  balance,
+  payment,
+  onSuccess,
+  onCancel,
+}: {
+  invoiceId: string
+  balance?: number
+  payment?: PaymentDefaults
+  onSuccess?: () => void
+  onCancel?: () => void
+}) {
+  const [state, formAction, pending] = useActionState(payment ? updatePayment : addPayment, {} as FormState)
+  const uid = useId()
+  const fieldId = (name: string) => `${uid}-${name}`
+
+  useEffect(() => {
+    if (state.ok) onSuccess?.()
+  }, [state, onSuccess])
+
+  const defaultAmount = payment
+    ? Number(payment.amount).toFixed(2)
+    : balance && balance > 0
+      ? balance.toFixed(2)
+      : ''
 
   return (
     <form action={formAction} aria-busy={pending} className="space-y-4">
       <input type="hidden" name="invoice_id" value={invoiceId} />
+      {payment && <input type="hidden" name="id" value={payment.id} />}
 
       <div className="grid gap-4 sm:grid-cols-2">
-        <Field label="Amount received (₱)" htmlFor="amount">
+        <Field label="Amount received (₱)" htmlFor={fieldId('amount')}>
           <input
-            id="amount"
+            id={fieldId('amount')}
             name="amount"
             type="number"
             min="0"
             step="0.01"
             required
-            defaultValue={balance > 0 ? balance.toFixed(2) : ''}
+            defaultValue={defaultAmount}
             placeholder="0.00"
             className={input}
           />
         </Field>
-        <Field label="Date received" htmlFor="paid_at">
-          <input id="paid_at" name="paid_at" type="date" required defaultValue={nowDateInput()} className={input} />
+        <Field label="Date received" htmlFor={fieldId('paid_at')}>
+          <input
+            id={fieldId('paid_at')}
+            name="paid_at"
+            type="date"
+            required
+            defaultValue={payment?.paid_at ?? nowDateInput()}
+            className={input}
+          />
         </Field>
       </div>
 
       <div className="grid gap-4 sm:grid-cols-2">
-        <Field label="Method" htmlFor="method" hint="e.g. GCash, bank transfer">
-          <input id="method" name="method" placeholder="Bank transfer" className={input} />
+        <Field label="Method" htmlFor={fieldId('method')} hint="e.g. GCash, bank transfer">
+          <input
+            id={fieldId('method')}
+            name="method"
+            placeholder="Bank transfer"
+            defaultValue={payment?.method ?? ''}
+            className={input}
+          />
         </Field>
-        <Field label="Reference / note" htmlFor="note" hint="Optional">
-          <input id="note" name="note" placeholder="Ref no. 12345" className={input} />
+        <Field label="Reference / note" htmlFor={fieldId('note')} hint="Optional">
+          <input
+            id={fieldId('note')}
+            name="note"
+            placeholder="Ref no. 12345"
+            defaultValue={payment?.note ?? ''}
+            className={input}
+          />
         </Field>
       </div>
 
@@ -49,9 +106,20 @@ export function PaymentForm({ invoiceId, balance }: { invoiceId: string; balance
       )}
       {state.ok && <p className={alertOk}>{state.ok}</p>}
 
-      <SubmitButton pendingText="Recording…" className={btnAccent}>
-        Record payment
-      </SubmitButton>
+      {onCancel ? (
+        <div className="flex items-center gap-3">
+          <button type="button" onClick={onCancel} className={btnSecondary}>
+            Cancel
+          </button>
+          <SubmitButton pendingText="Saving…" className={btnAccent}>
+            Save changes
+          </SubmitButton>
+        </div>
+      ) : (
+        <SubmitButton pendingText="Recording…" className={btnAccent}>
+          Record payment
+        </SubmitButton>
+      )}
     </form>
   )
 }

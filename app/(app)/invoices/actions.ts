@@ -11,7 +11,7 @@ import { fetchInvoiceSnapshot } from '@/lib/invoice'
 import { renderInvoiceEmail } from '@/lib/invoice-email'
 import { buildInvoicePdf } from '@/lib/invoice-pdf'
 import { siteUrl } from '@/lib/site'
-import { isEmail, isUuid, optionalText, text, type FormState } from '@/lib/validation'
+import { isEmail, isUuid, money, optionalText, text, type FormState } from '@/lib/validation'
 
 const DATE_RE = /^\d{4}-\d{2}-\d{2}$/
 
@@ -394,6 +394,48 @@ export async function addPayment(_prev: FormState, formData: FormData): Promise<
   revalidatePath('/invoices')
   revalidatePath('/dashboard')
   return { ok: 'Payment recorded.' }
+}
+
+export async function updatePayment(_prev: FormState, formData: FormData): Promise<FormState> {
+  const id = text(formData, 'id')
+  const invoiceId = text(formData, 'invoice_id')
+  const paidAt = text(formData, 'paid_at')
+  const method = optionalText(formData, 'method')
+  const note = optionalText(formData, 'note')
+  const amount = money(formData, 'amount')
+
+  if (!isUuid(id)) return { error: 'That payment could not be found.' }
+  if (!DATE_RE.test(paidAt)) return { error: 'Enter a valid payment date.' }
+  if (amount === null || amount <= 0) return { error: 'Enter a payment amount greater than zero.' }
+
+  const supabase = await createClient()
+  const { data: claimsData } = await supabase.auth.getClaims()
+  const userId = claimsData?.claims?.sub
+  if (!userId) return { error: 'Your session expired — sign in again.' }
+
+  if (isUuid(invoiceId)) {
+    const { data: invoice } = await supabase.from('invoices').select('status').eq('id', invoiceId).maybeSingle()
+    if (invoice?.status === 'void') return { error: 'You cannot change a payment on a void invoice.' }
+  }
+
+  // `.select()` so a missing row reports an error rather than a false success.
+  const { data: updated, error } = await supabase
+    .from('payments')
+    .update({ amount: round2(amount), paid_at: paidAt, method, note })
+    .eq('id', id)
+    .select('id')
+    .maybeSingle()
+
+  if (error) {
+    console.error('update payment failed:', error.message)
+    return { error: 'Could not save the payment — please try again.' }
+  }
+  if (!updated) return { error: 'That payment could not be found.' }
+
+  if (isUuid(invoiceId)) revalidatePath(`/invoices/${invoiceId}`)
+  revalidatePath('/invoices')
+  revalidatePath('/dashboard')
+  return { ok: 'Payment updated.' }
 }
 
 export async function deletePayment(_prev: FormState, formData: FormData): Promise<FormState> {
