@@ -10,6 +10,9 @@ const TIME_RE = /^\d{2}:\d{2}$/
 function timerError(message: string): string {
   if (/invalid time range/i.test(message)) return 'The end time must be after the start time.'
   if (/task not found/i.test(message)) return 'That task could not be found.'
+  if (/time entry not found/i.test(message)) {
+    return 'That time entry could not be saved — it may already be invoiced or deleted.'
+  }
   if (/not authenticated/i.test(message)) return 'Your session expired — sign in again.'
   return 'Something went wrong — please try again.'
 }

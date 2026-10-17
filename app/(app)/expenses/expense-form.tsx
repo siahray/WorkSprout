@@ -1,70 +1,97 @@
 'use client'
 
-import { useEffect } from 'react'
+import { useEffect, useId } from 'react'
 import { useActionState } from 'react'
 import { Field } from '@/components/ui/field'
 import { SubmitButton } from '@/components/ui/submit-button'
-import { createExpense } from './actions'
+import { createExpense, updateExpense } from './actions'
 import { EXPENSE_CATEGORIES } from '@/lib/expenses'
 import { nowDateInput } from '@/lib/format'
 import { alertError, alertOk, btnAccent, btnSecondary, input } from '@/lib/ui'
 import type { FormState } from '@/lib/validation'
 
+// The values an existing expense prefills the form with. Amount is passed as
+// stored (number or numeric string) and rendered with two decimals below.
+export type ExpenseDefaults = {
+  id: string
+  description: string
+  category: string
+  amount: number | string
+  spent_on: string
+  note: string | null
+  project_id: string | null
+}
+
+// Shared by the add and edit modals: same fields, same validation, only the
+// server action and the default values differ.
 export function ExpenseForm({
   projects,
+  expense,
   onSuccess,
   onCancel,
 }: {
   projects: { id: string; name: string }[]
+  expense?: ExpenseDefaults
   onSuccess?: () => void
   onCancel?: () => void
 }) {
-  const [state, formAction, pending] = useActionState(createExpense, {} as FormState)
+  const [state, formAction, pending] = useActionState(expense ? updateExpense : createExpense, {} as FormState)
+  const uid = useId()
+  const fieldId = (name: string) => `${uid}-${name}`
 
-  // Close the modal once the server confirms the insert. Errors keep it open
-  // so the message stays visible next to the fields.
+  // Close the modal once the server confirms the write. Errors keep it open so
+  // the message stays visible next to the fields.
   useEffect(() => {
     if (state.ok) onSuccess?.()
   }, [state, onSuccess])
 
   return (
     <form action={formAction} aria-busy={pending} className="space-y-4">
+      {expense && <input type="hidden" name="id" value={expense.id} />}
+
       <div className="grid gap-4 sm:grid-cols-[minmax(0,1fr)_150px]">
-        <Field label="What was it?" htmlFor="expense_description">
+        <Field label="What was it?" htmlFor={fieldId('description')}>
           <input
-            id="expense_description"
+            id={fieldId('description')}
             name="description"
             required
             maxLength={200}
             placeholder="Design software subscription"
+            defaultValue={expense?.description ?? ''}
             className={input}
           />
         </Field>
-        <Field label="Amount (₱)" htmlFor="expense_amount">
+        <Field label="Amount (₱)" htmlFor={fieldId('amount')}>
           <input
-            id="expense_amount"
+            id={fieldId('amount')}
             name="amount"
             inputMode="decimal"
             required
             placeholder="0.00"
+            defaultValue={expense ? Number(expense.amount).toFixed(2) : ''}
             className={input}
           />
         </Field>
       </div>
 
       <div className="grid gap-4 sm:grid-cols-3">
-        <Field label="Date" htmlFor="expense_spent_on">
+        <Field label="Date" htmlFor={fieldId('spent_on')}>
           <input
-            id="expense_spent_on"
+            id={fieldId('spent_on')}
             name="spent_on"
             type="date"
             required
-            defaultValue={nowDateInput()}
+            defaultValue={expense?.spent_on ?? nowDateInput()}
             className={input}
           />
         </Field>
-        <Field label="Category" htmlFor="expense_category">
-          <select id="expense_category" name="category" defaultValue="Software" className={input}>
+        <Field label="Category" htmlFor={fieldId('category')}>
+          <select
+            id={fieldId('category')}
+            name="category"
+            defaultValue={expense?.category ?? 'Software'}
+            className={input}
+          >
             {EXPENSE_CATEGORIES.map((category) => (
               <option key={category} value={category}>
                 {category}
@@ -74,10 +101,15 @@ export function ExpenseForm({
         </Field>
         <Field
           label="Project"
-          htmlFor="expense_project"
+          htmlFor={fieldId('project_id')}
           hint={projects.length === 0 ? 'Add a project to see project profit' : undefined}
         >
-          <select id="expense_project" name="project_id" defaultValue="" className={input}>
+          <select
+            id={fieldId('project_id')}
+            name="project_id"
+            defaultValue={expense?.project_id ?? ''}
+            className={input}
+          >
             <option value="">Overhead</option>
             {projects.map((project) => (
               <option key={project.id} value={project.id}>
@@ -88,8 +120,14 @@ export function ExpenseForm({
         </Field>
       </div>
 
-      <Field label="Note" htmlFor="expense_note" hint="Optional — receipt reference or what it's for">
-        <input id="expense_note" name="note" maxLength={200} className={input} />
+      <Field label="Note" htmlFor={fieldId('note')} hint="Optional — receipt reference or what it's for">
+        <input
+          id={fieldId('note')}
+          name="note"
+          maxLength={200}
+          defaultValue={expense?.note ?? ''}
+          className={input}
+        />
       </Field>
 
       {state.error && (
@@ -104,13 +142,13 @@ export function ExpenseForm({
           <button type="button" onClick={onCancel} className={btnSecondary}>
             Cancel
           </button>
-          <SubmitButton pendingText="Adding…" className={btnAccent}>
-            Add expense
+          <SubmitButton pendingText={expense ? 'Saving…' : 'Adding…'} className={btnAccent}>
+            {expense ? 'Save changes' : 'Add expense'}
           </SubmitButton>
         </div>
       ) : (
-        <SubmitButton pendingText="Adding…" className={btnAccent}>
-          Add expense
+        <SubmitButton pendingText={expense ? 'Saving…' : 'Adding…'} className={btnAccent}>
+          {expense ? 'Save changes' : 'Add expense'}
         </SubmitButton>
       )}
     </form>

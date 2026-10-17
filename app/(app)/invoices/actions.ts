@@ -11,7 +11,7 @@ import { fetchInvoiceSnapshot } from '@/lib/invoice'
 import { renderInvoiceEmail } from '@/lib/invoice-email'
 import { buildInvoicePdf } from '@/lib/invoice-pdf'
 import { siteUrl } from '@/lib/site'
-import { isEmail, isUuid, optionalText, text, type FormState } from '@/lib/validation'
+import { isEmail, isUuid, money, optionalText, text, type FormState } from '@/lib/validation'
 
 const DATE_RE = /^\d{4}-\d{2}-\d{2}$/
 
@@ -226,6 +226,169 @@ export async function createInvoice(_prev: FormState, formData: FormData): Promi
   redirect(`/invoices/${invoiceId}`)
 }
 
+type EditLine = { description?: unknown; quantity?: unknown; unit_rate?: unknown }
+
+// Correcting a draft. Line items are replaced wholesale rather than diffed:
+// nothing references invoice_items rows, so the identity of a line carries no
+// meaning, and comparing old to new would add failure modes for no gain.
+export async function updateInvoice(_prev: FormState, formData: FormData): Promise<FormState> {
+  const id = text(formData, 'id')
+  const clientId = text(formData, 'client_id')
+  const projectId = text(formData, 'project_id')
+  const issueDate = text(formData, 'issue_date')
+  const dueDate = text(formData, 'due_date')
+  const notes = optionalText(formData, 'notes')
+
+  if (!isUuid(id)) return { error: 'That invoice could not be found.' }
+  if (!isUuid(clientId)) return { error: 'Choose a client.' }
+  if (!DATE_RE.test(issueDate)) return { error: 'Enter a valid issue date.' }
+  if (dueDate && !DATE_RE.test(dueDate)) return { error: 'Enter a valid due date, or leave it blank.' }
+
+  let parsed: unknown
+  try {
+    parsed = JSON.parse(text(formData, 'lines'))
+  } catch {
+    return { error: 'The invoice lines could not be read — reload the page and try again.' }
+  }
+  if (!Array.isArray(parsed)) {
+    return { error: 'The invoice lines could not be read — reload the page and try again.' }
+  }
+
+  // Same manual-line validation as createInvoice, so the two paths agree on
+  // what counts as a usable line.
+  const items: { description: string; quantity: number; unit_rate: number }[] = []
+  for (const entry of parsed) {
+    const line = entry as EditLine
+    const description = typeof line.description === 'string' ? line.description.trim().slice(0, 200) : ''
+    const quantity = Number(line.quantity)
+    const unitRate = Number(line.unit_rate)
+    if (!description && !quantity) continue
+    if (!Number.isFinite(quantity) || quantity < 0) return { error: 'A line has an invalid quantity.' }
+    if (!Number.isFinite(unitRate) || unitRate < 0) return { error: 'A line has an invalid rate.' }
+    if (quantity <= 0) continue
+    items.push({ description: description || 'Item', quantity: round2(quantity), unit_rate: round2(unitRate) })
+  }
+  if (items.length === 0) return { error: 'Add at least one line with an amount before saving.' }
+
+  const supabase = await createClient()
+  const { data: claimsData } = await supabase.auth.getClaims()
+  const userId = claimsData?.claims?.sub
+  if (!userId) return { error: 'Your session expired — sign in again.' }
+
+  // Draft-only: once sent, the client holds a copy and a public link, so
+  // editing would silently rewrite what they were given. Void and reissue.
+  const { data: current } = await supabase
+    .from('invoices')
+    .select('status, client_id, project_id, issue_date, due_date, notes, subtotal, tax_amount, total, taxes')
+    .eq('id', id)
+    .maybeSingle()
+  if (!current) return { error: 'That invoice could not be found.' }
+  if (current.status !== 'draft') {
+    return { error: 'Only draft invoices can be edited. Void this one and raise a new invoice instead.' }
+  }
+
+  const { data: client } = await supabase.from('clients').select('id').eq('id', clientId).maybeSingle()
+  if (!client) return { error: 'That client could not be found.' }
+
+  // The invoice's own tax snapshot is reused, so correcting an amount never
+  // silently applies a tax change the user has since made on their profile.
+  const taxes = coerceTaxes(current.taxes)
+  const subtotal = round2(items.reduce((sum, i) => sum + round2(i.quantity * i.unit_rate), 0))
+  const taxAmount = taxTotal(subtotal, taxes)
+  const total = round2(subtotal + taxAmount)
+
+  const { data: oldItemsData } = await supabase
+    .from('invoice_items')
+    .select('id, description, quantity, unit_rate')
+    .eq('invoice_id', id)
+  const oldItems = (oldItemsData ?? []) as {
+    id: string
+    description: string
+    quantity: number | string
+    unit_rate: number | string
+  }[]
+
+  // supabase-js has no transaction, so capture the old state and undo by hand.
+  // Restoring the lines with fresh ids is equivalent — nothing references them.
+  async function rollback(insertedIds: string[], reason: string) {
+    if (insertedIds.length) await supabase.from('invoice_items').delete().in('id', insertedIds)
+    await supabase
+      .from('invoices')
+      .update({
+        client_id: current!.client_id,
+        project_id: current!.project_id,
+        issue_date: current!.issue_date,
+        due_date: current!.due_date,
+        notes: current!.notes,
+        subtotal: current!.subtotal,
+        tax_amount: current!.tax_amount,
+        total: current!.total,
+      })
+      .eq('id', id)
+    if (oldItems.length) {
+      await supabase.from('invoice_items').insert(
+        oldItems.map((item) => ({
+          invoice_id: id,
+          description: item.description,
+          quantity: Number(item.quantity),
+          unit_rate: Number(item.unit_rate),
+        })),
+      )
+    }
+    console.error('update invoice lines failed:', reason)
+  }
+
+  const { error: headerError } = await supabase
+    .from('invoices')
+    .update({
+      client_id: clientId,
+      project_id: projectId && isUuid(projectId) ? projectId : null,
+      issue_date: issueDate,
+      due_date: dueDate || null,
+      notes,
+      subtotal,
+      tax_amount: taxAmount,
+      total,
+    })
+    .eq('id', id)
+
+  if (headerError) {
+    console.error('update invoice failed:', headerError.message)
+    return { error: 'Could not save the invoice — please try again.' }
+  }
+
+  // Insert then delete, so a failure never leaves the invoice with no lines.
+  const { data: inserted, error: insertError } = await supabase
+    .from('invoice_items')
+    .insert(items.map((item) => ({ ...item, invoice_id: id })))
+    .select('id')
+
+  // The insert's generated types narrow to `never` when an error is present, so
+  // read the ids through one explicit helper rather than inline in each branch.
+  const insertedIds = ((inserted ?? []) as { id: string }[]).map((row) => row.id)
+
+  if (insertError) {
+    await rollback(insertedIds, insertError.message)
+    return { error: 'Could not save the invoice lines — please try again.' }
+  }
+
+  if (oldItems.length) {
+    const { error: deleteError } = await supabase
+      .from('invoice_items')
+      .delete()
+      .in('id', oldItems.map((item) => item.id))
+    if (deleteError) {
+      await rollback(insertedIds, deleteError.message)
+      return { error: 'Could not save the invoice lines — please try again.' }
+    }
+  }
+
+  revalidatePath(`/invoices/${id}`)
+  revalidatePath('/invoices')
+  revalidatePath('/dashboard')
+  redirect(`/invoices/${id}`)
+}
+
 export async function sendInvoice(_prev: FormState, formData: FormData): Promise<FormState> {
   const id = text(formData, 'id')
   if (!isUuid(id)) return { error: 'That invoice could not be found.' }
@@ -394,6 +557,48 @@ export async function addPayment(_prev: FormState, formData: FormData): Promise<
   revalidatePath('/invoices')
   revalidatePath('/dashboard')
   return { ok: 'Payment recorded.' }
+}
+
+export async function updatePayment(_prev: FormState, formData: FormData): Promise<FormState> {
+  const id = text(formData, 'id')
+  const invoiceId = text(formData, 'invoice_id')
+  const paidAt = text(formData, 'paid_at')
+  const method = optionalText(formData, 'method')
+  const note = optionalText(formData, 'note')
+  const amount = money(formData, 'amount')
+
+  if (!isUuid(id)) return { error: 'That payment could not be found.' }
+  if (!DATE_RE.test(paidAt)) return { error: 'Enter a valid payment date.' }
+  if (amount === null || amount <= 0) return { error: 'Enter a payment amount greater than zero.' }
+
+  const supabase = await createClient()
+  const { data: claimsData } = await supabase.auth.getClaims()
+  const userId = claimsData?.claims?.sub
+  if (!userId) return { error: 'Your session expired — sign in again.' }
+
+  if (isUuid(invoiceId)) {
+    const { data: invoice } = await supabase.from('invoices').select('status').eq('id', invoiceId).maybeSingle()
+    if (invoice?.status === 'void') return { error: 'You cannot change a payment on a void invoice.' }
+  }
+
+  // `.select()` so a missing row reports an error rather than a false success.
+  const { data: updated, error } = await supabase
+    .from('payments')
+    .update({ amount: round2(amount), paid_at: paidAt, method, note })
+    .eq('id', id)
+    .select('id')
+    .maybeSingle()
+
+  if (error) {
+    console.error('update payment failed:', error.message)
+    return { error: 'Could not save the payment — please try again.' }
+  }
+  if (!updated) return { error: 'That payment could not be found.' }
+
+  if (isUuid(invoiceId)) revalidatePath(`/invoices/${invoiceId}`)
+  revalidatePath('/invoices')
+  revalidatePath('/dashboard')
+  return { ok: 'Payment updated.' }
 }
 
 export async function deletePayment(_prev: FormState, formData: FormData): Promise<FormState> {
