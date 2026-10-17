@@ -5,10 +5,11 @@ import { createClient } from '@/lib/supabase/server'
 import { PageHeader } from '@/components/ui/page-header'
 import { ConfirmAction } from '@/components/ui/confirm-action'
 import { AddExpenseDialog } from './add-expense-dialog'
+import { EditExpenseDialog } from './edit-expense-dialog'
 import { deleteExpense } from './actions'
 import { categoryBadge } from '@/lib/expenses'
 import { formatDate, nowDateInput, peso } from '@/lib/format'
-import { btnAccent, btnDanger, card, focus, rowHover, tableHead, th } from '@/lib/ui'
+import { btnAccent, btnGhost, card, focus, rowHover, tableHead, th } from '@/lib/ui'
 import { display } from '@/lib/fonts'
 
 export const metadata: Metadata = {
@@ -22,6 +23,7 @@ type ExpenseRow = {
   amount: number | string
   spent_on: string
   note: string | null
+  project_id: string | null
   project: { name: string } | null
 }
 
@@ -43,7 +45,7 @@ export default async function ExpensesPage() {
   const [expensesRes, projectsRes] = await Promise.all([
     supabase
       .from('expenses')
-      .select('id, description, category, amount, spent_on, note, project:projects(name)')
+      .select('id, description, category, amount, spent_on, note, project_id, project:projects(name)')
       .order('spent_on', { ascending: false })
       .order('created_at', { ascending: false }),
     supabase.from('projects').select('id, name').order('name', { ascending: true }),
@@ -155,14 +157,28 @@ export default async function ExpensesPage() {
                             <td className="px-5 py-3.5 text-[#0E2F27]/75">{expense.project?.name ?? 'Overhead'}</td>
                             <td className="px-5 py-3.5 text-right tabular-nums">{peso(expense.amount)}</td>
                             <td className="px-5 py-3.5 text-right">
-                              <ConfirmAction
-                                action={deleteExpense}
-                                id={expense.id}
-                                message={`Delete "${expense.description}"? This cannot be undone.`}
-                                className={`${btnDanger} px-2.5 py-1.5 text-xs`}
-                              >
-                                Delete
-                              </ConfirmAction>
+                              <span className="flex items-center justify-end gap-1">
+                                <EditExpenseDialog
+                                  expense={{
+                                    id: expense.id,
+                                    description: expense.description,
+                                    category: expense.category,
+                                    amount: expense.amount,
+                                    spent_on: expense.spent_on,
+                                    note: expense.note,
+                                    project_id: expense.project_id,
+                                  }}
+                                  projects={projects}
+                                />
+                                <ConfirmAction
+                                  action={deleteExpense}
+                                  id={expense.id}
+                                  message={`Delete "${expense.description}"? This cannot be undone.`}
+                                  className={`${btnGhost} !px-2.5 !py-1.5 text-xs text-red-700 hover:text-red-800`}
+                                >
+                                  Delete
+                                </ConfirmAction>
+                              </span>
                             </td>
                           </tr>
                         ))}
