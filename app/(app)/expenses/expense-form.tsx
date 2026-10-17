@@ -1,16 +1,31 @@
 'use client'
 
+import { useEffect } from 'react'
 import { useActionState } from 'react'
 import { Field } from '@/components/ui/field'
 import { SubmitButton } from '@/components/ui/submit-button'
 import { createExpense } from './actions'
 import { EXPENSE_CATEGORIES } from '@/lib/expenses'
 import { nowDateInput } from '@/lib/format'
-import { alertError, alertOk, btnAccent, input } from '@/lib/ui'
+import { alertError, alertOk, btnAccent, btnSecondary, input } from '@/lib/ui'
 import type { FormState } from '@/lib/validation'
 
-export function ExpenseForm({ projects }: { projects: { id: string; name: string }[] }) {
+export function ExpenseForm({
+  projects,
+  onSuccess,
+  onCancel,
+}: {
+  projects: { id: string; name: string }[]
+  onSuccess?: () => void
+  onCancel?: () => void
+}) {
   const [state, formAction, pending] = useActionState(createExpense, {} as FormState)
+
+  // Close the modal once the server confirms the insert. Errors keep it open
+  // so the message stays visible next to the fields.
+  useEffect(() => {
+    if (state.ok) onSuccess?.()
+  }, [state, onSuccess])
 
   return (
     <form action={formAction} aria-busy={pending} className="space-y-4">
@@ -84,9 +99,20 @@ export function ExpenseForm({ projects }: { projects: { id: string; name: string
       )}
       {state.ok && <p className={alertOk}>{state.ok}</p>}
 
-      <SubmitButton pendingText="Adding…" className={btnAccent}>
-        Add expense
-      </SubmitButton>
+      {onCancel ? (
+        <div className="flex items-center gap-3 pt-1">
+          <button type="button" onClick={onCancel} className={btnSecondary}>
+            Cancel
+          </button>
+          <SubmitButton pendingText="Adding…" className={btnAccent}>
+            Add expense
+          </SubmitButton>
+        </div>
+      ) : (
+        <SubmitButton pendingText="Adding…" className={btnAccent}>
+          Add expense
+        </SubmitButton>
+      )}
     </form>
   )
 }

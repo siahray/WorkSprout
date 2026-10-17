@@ -1,15 +1,15 @@
+import { Fragment } from 'react'
 import type { Metadata } from 'next'
 import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import { PageHeader } from '@/components/ui/page-header'
 import { ConfirmAction } from '@/components/ui/confirm-action'
-import { ExpenseForm } from './expense-form'
+import { AddExpenseDialog } from './add-expense-dialog'
 import { deleteExpense } from './actions'
 import { categoryBadge } from '@/lib/expenses'
 import { formatDate, nowDateInput, peso } from '@/lib/format'
-import { btnDanger, card, focus, rowHover, tableHead, th, btnPrimary } from '@/lib/ui'
+import { btnAccent, btnDanger, card, focus, rowHover, tableHead, th } from '@/lib/ui'
 import { display } from '@/lib/fonts'
-import Link from 'next/link'
 
 export const metadata: Metadata = {
   title: 'Expenses · WorkSprout',
@@ -27,6 +27,12 @@ type ExpenseRow = {
 
 function monthKey(isoDate: string): string {
   return isoDate.slice(0, 7)
+}
+
+// "2026-10" -> "October 2026", built from local parts so no timezone can shift it.
+function monthLabel(key: string): string {
+  const [year, month] = key.split('-').map(Number)
+  return new Date(year, month - 1, 1).toLocaleDateString('en-PH', { month: 'long', year: 'numeric' })
 }
 
 export default async function ExpensesPage() {
@@ -50,12 +56,13 @@ export default async function ExpensesPage() {
   const thisMonth = expenses.filter((e) => monthKey(e.spent_on) === monthStart)
   const thisMonthTotal = thisMonth.reduce((sum, e) => sum + Number(e.amount), 0)
 
-  const groups = new Map<string, ExpenseRow[]>()
+  // Expenses arrive newest-first, so insertion order gives newest month first.
+  const months = new Map<string, ExpenseRow[]>()
   for (const expense of expenses) {
     const key = monthKey(expense.spent_on)
-    const list = groups.get(key) ?? []
+    const list = months.get(key) ?? []
     list.push(expense)
-    groups.set(key, list)
+    months.set(key, list)
   }
 
   return (
@@ -65,12 +72,10 @@ export default async function ExpensesPage() {
         title="Expenses"
         description="Subscriptions, internet, and hardware — the real cost of running your business."
       >
-        <Link href="#add-expense" className={`${btnPrimary} ${focus}`}>
-          Add expense
-        </Link>
+        <AddExpenseDialog projects={projects} />
       </PageHeader>
 
-      <div className={`${card} grid grid-cols-3 divide-x divide-[#0E2F27]/10`}>
+      <div className={`${card} grid grid-cols-1 divide-y divide-[#0E2F27]/10 sm:grid-cols-3 sm:divide-x sm:divide-y-0`}>
         <div className="p-5">
           <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-[#0E2F27]/50">This month</p>
           <p className={`${display.className} mt-2 text-2xl font-extrabold leading-none tabular-nums`}>
@@ -91,70 +96,84 @@ export default async function ExpensesPage() {
         </div>
       </div>
 
-      <div className="mt-8 grid gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(380px,480px)]">
-        <section>
-          {thisMonth.length === 0 && expenses.length === 0 ? (
-            <div className={`${card} p-8 text-center text-sm text-[#0E2F27]/65`}>
+      <div className="mt-8">
+        {expenses.length === 0 ? (
+          <div className={`${card} flex flex-col items-center gap-4 p-10 text-center`}>
+            <div className="text-sm text-[#0E2F27]/65">
               No expenses yet. Log your first subscription or purchase — it feeds the business health numbers on
               the dashboard.
             </div>
-          ) : (
-            <div className={`${card} overflow-hidden`}>
-              <div className="overflow-x-auto">
-                <table className="w-full text-sm">
-                  <thead className={tableHead}>
-                    <tr>
-                      <th className={th}>Date</th>
-                      <th className={th}>Description</th>
-                      <th className={th}>Category</th>
-                      <th className={th}>Project</th>
-                      <th className={`${th} text-right`}>Amount</th>
-                      <th className={`${th} text-right`}></th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-[#0E2F27]/10">
-                    {expenses.map((expense) => (
-                      <tr key={expense.id} className={rowHover}>
-                        <td className="px-5 py-3.5 whitespace-nowrap text-[#0E2F27]/65">{formatDate(expense.spent_on)}</td>
-                        <td className="px-5 py-3.5">
-                          <span className="font-medium text-[#0E2F27]">{expense.description}</span>
-                          {expense.note && <span className="block text-xs text-[#0E2F27]/50">{expense.note}</span>}
-                        </td>
-                        <td className="px-5 py-3.5">
-                          <span className={categoryBadge(expense.category)}>{expense.category}</span>
-                        </td>
-                        <td className="px-5 py-3.5 text-[#0E2F27]/75">{expense.project?.name ?? 'Overhead'}</td>
-                        <td className="px-5 py-3.5 text-right tabular-nums">{peso(expense.amount)}</td>
-                        <td className="px-5 py-3.5 text-right">
-                          <ConfirmAction
-                            action={deleteExpense}
-                            id={expense.id}
-                            message={`Delete "${expense.description}"? This cannot be undone.`}
-                            className={`${btnDanger} px-2.5 py-1.5 text-xs`}
-                          >
-                            Delete
-                          </ConfirmAction>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            </div>
-          )}
-        </section>
-
-        <section className="self-start">
-          <div id="add-expense" className={`${card} p-5`}>
-            <h2 className={`${display.className} text-lg font-extrabold tracking-tight`}>Add expense</h2>
-            <p className="mt-1 text-sm text-[#0E2F27]/55">
-              Link a project to track its real profit margin.
-            </p>
-            <div className="mt-4">
-              <ExpenseForm projects={projects} />
+            <AddExpenseDialog
+              projects={projects}
+              label="Add your first expense"
+              className={`${btnAccent} ${focus}`}
+            />
+          </div>
+        ) : (
+          <div className={`${card} overflow-hidden`}>
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead className={tableHead}>
+                  <tr>
+                    <th className={th}>Date</th>
+                    <th className={th}>Description</th>
+                    <th className={th}>Category</th>
+                    <th className={th}>Project</th>
+                    <th className={`${th} text-right`}>Amount</th>
+                    <th className={th}></th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-[#0E2F27]/10">
+                  {Array.from(months.entries()).map(([key, rows]) => {
+                    const subtotal = rows.reduce((sum, e) => sum + Number(e.amount), 0)
+                    return (
+                      <Fragment key={key}>
+                        <tr className="bg-[#F4F8F5]">
+                          <th colSpan={6} className="px-5 py-2.5 text-left">
+                            <span className="text-[11px] font-semibold uppercase tracking-[0.12em] text-[#0E2F27]/55">
+                              {monthLabel(key)}
+                            </span>
+                            <span className="ml-3 text-xs font-normal tabular-nums text-[#0E2F27]/55">
+                              {rows.length} {rows.length === 1 ? 'expense' : 'expenses'} · {peso(subtotal)}
+                            </span>
+                          </th>
+                        </tr>
+                        {rows.map((expense) => (
+                          <tr key={expense.id} className={rowHover}>
+                            <td className="px-5 py-3.5 whitespace-nowrap text-[#0E2F27]/65">
+                              {formatDate(expense.spent_on)}
+                            </td>
+                            <td className="px-5 py-3.5">
+                              <span className="font-medium text-[#0E2F27]">{expense.description}</span>
+                              {expense.note && (
+                                <span className="block text-xs text-[#0E2F27]/50">{expense.note}</span>
+                              )}
+                            </td>
+                            <td className="px-5 py-3.5">
+                              <span className={categoryBadge(expense.category)}>{expense.category}</span>
+                            </td>
+                            <td className="px-5 py-3.5 text-[#0E2F27]/75">{expense.project?.name ?? 'Overhead'}</td>
+                            <td className="px-5 py-3.5 text-right tabular-nums">{peso(expense.amount)}</td>
+                            <td className="px-5 py-3.5 text-right">
+                              <ConfirmAction
+                                action={deleteExpense}
+                                id={expense.id}
+                                message={`Delete "${expense.description}"? This cannot be undone.`}
+                                className={`${btnDanger} px-2.5 py-1.5 text-xs`}
+                              >
+                                Delete
+                              </ConfirmAction>
+                            </td>
+                          </tr>
+                        ))}
+                      </Fragment>
+                    )
+                  })}
+                </tbody>
+              </table>
             </div>
           </div>
-        </section>
+        )}
       </div>
     </>
   )
