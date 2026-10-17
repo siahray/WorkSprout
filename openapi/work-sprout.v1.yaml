@@ -1,0 +1,278 @@
+openapi: 3.1.0
+info:
+  title: WorkSprout Integration API
+  version: "1.0.0"
+  summary: Read what happens in WorkSprout so an external tool can react to it.
+  description: |
+    A small, authenticated API for external automation tools (n8n, Make, Zapier,
+    custom scripts). It exposes **events** — a durable, ordered log of things that
+    happened in WorkSprout — so a tool can send emails, sync a CRM, or manage
+    appointments in response.
+
+    ## Why an API and not direct database access
+
+    Both Zapier and Make offer a generic Supabase/Postgres connector that reads
+    and writes tables directly. Using it would bypass every invariant the app
+    enforces: invoice numbering, the generated `amount` column, tax
+    snapshotting, derived invoice status, and row-level security scoping. Writes
+    that skip those rules produce records the application cannot render
+    correctly. This API is the supported surface; direct table writes are not.
+
+    ## Polling
+
+    There is no push/webhook delivery in v1, by design: it needs a scheduler and
+    a retry worker that do not exist in this deployment. Instead, poll
+    `GET /api/v1/events` on a schedule and keep the id of the last event you
+    processed as your cursor:
+
+    1. On first run, call the endpoint with no `after` (or `after=0`), process
+       every event returned, then store the highest `id` seen.
+    2. On each later run, call it with `after=<stored id>`. You will receive only
+       newer events.
+    3. Repeat until `has_more` is false.
+
+    Event ids are a single monotonic sequence, so `after=<id>` is exact and safe
+    to retry: re-running the same cursor returns the same events rather than
+    skipping them. That makes at-least-once processing the tool's responsibility
+    to deduplicate, keyed on event `id`.
+
+    Event ordering is guaranteed only within a user. The feed is per API key, so
+    it is effectively per account.
+  contact:
+    name: WorkSprout
+servers:
+  - url: http://localhost:3000
+    description: Local development
+  - url: https://your-deployment.example.com
+    description: Replace with your production origin
+tags:
+  - name: Identity
+    description: Verify a key and see whose data it can read.
+  - name: Events
+    description: The ordered log of things that happened.
+security:
+  - apiKey: []
+paths:
+  /api/v1/me:
+    get:
+      tags: [Identity]
+      operationId: getMe
+      summary: Verify the API key
+      description: |
+        Returns the account the key belongs to and the key's own label. Use this
+        as the connection test in your automation tool — a `200` means the key
+        is valid and unrevoked.
+      responses:
+        "200":
+          description: The key is valid.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Me"
+              examples:
+                ok:
+                  value:
+                    user_id: 3f1a9c2e-8b47-4d6a-9f31-2c5e7a0d4b18
+                    email: you@example.com
+                    key:
+                      name: Make.com
+                      prefix: wsp_live_a1b2c3
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+  /api/v1/events:
+    get:
+      tags: [Events]
+      operationId: listEvents
+      summary: Poll for events
+      description: |
+        Returns events newer than `after`, oldest first, so a cursor walks the log
+        forwards. `limit` bounds a single page; if more remain, `has_more` is
+        true and `next` holds the id to pass as `after` on the following call.
+      parameters:
+        - name: after
+          in: query
+          required: false
+          description: |
+            Return only events with an `id` strictly greater than this. Omit it
+            (or use `0`) to read from the beginning of the log.
+          schema:
+            type: integer
+            format: int64
+            minimum: 0
+            default: 0
+        - name: limit
+          in: query
+          required: false
+          description: Maximum events to return in one page.
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 500
+            default: 100
+        - name: type
+          in: query
+          required: false
+          description: |
+            Filter to a single event type, e.g. `payment.recorded`. Handy for a
+            tool that only cares about one thing.
+          schema:
+            $ref: "#/components/schemas/EventType"
+      responses:
+        "200":
+          description: One page of events.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/EventPage"
+              examples:
+                page:
+                  value:
+                    events:
+                      - id: 1041
+                        type: payment.recorded
+                        created_at: "2026-10-17T04:12:33.481Z"
+                        payload:
+                          payment_id: 8c2f5b1a-9d3e-4a77-8f10-6b2c9e4d7a53
+                          invoice_id: 5e7d1c94-2a6b-4f80-9c31-7d8e2f4a6b90
+                          invoice_number: INV-0007
+                          client_id: 1b4c7d2e-5f8a-4c93-b0e6-3a9d8c7b5e42
+                          client_name: Northwind Trading
+                          amount: 12500
+                          paid_at: "2026-10-17"
+                          method: Bank transfer
+                          balance: 0
+                    has_more: false
+                    next: 1041
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+components:
+  securitySchemes:
+    apiKey:
+      type: http
+      scheme: bearer
+      description: |
+        A WorkSprout API key, created in **Settings → API keys**. Sent as
+        `Authorization: Bearer wsp_live_…`. The raw key is shown once at creation;
+        only a hash is stored, so a lost key must be revoked and replaced.
+  responses:
+    Unauthorized:
+      description: Missing, malformed, unknown or revoked key.
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/Error"
+          examples:
+            missing:
+              value:
+                error: missing_key
+                message: Provide an API key as `Authorization Bearer <key>`.
+            invalid:
+              value:
+                error: invalid_key
+                message: That API key is not valid.
+    BadRequest:
+      description: A query parameter was not usable.
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/Error"
+          examples:
+            badAfter:
+              value:
+                error: invalid_after
+                message: "`after` must be a non-negative integer."
+  schemas:
+    Error:
+      type: object
+      required: [error, message]
+      properties:
+        error:
+          type: string
+          description: Stable, machine-readable code.
+        message:
+          type: string
+          description: Human-readable explanation.
+    Me:
+      type: object
+      required: [user_id, email, key]
+      properties:
+        user_id:
+          type: string
+          format: uuid
+        email:
+          type: [string, "null"]
+        key:
+          type: object
+          required: [name, prefix]
+          properties:
+            name:
+              type: string
+              description: The label given when the key was created.
+            prefix:
+              type: string
+              description: Leading characters of the key, for identifying it in logs.
+    EventType:
+      type: string
+      description: |
+        What happened. Invoices, payments, appointments (calls), clients and
+        expenses each have their own family.
+      enum:
+        - invoice.created
+        - invoice.updated
+        - invoice.sent
+        - invoice.voided
+        - invoice.deleted
+        - payment.recorded
+        - payment.updated
+        - payment.deleted
+        - call.created
+        - call.updated
+        - call.status_changed
+        - call.invite_sent
+        - call.deleted
+        - client.created
+        - client.updated
+        - client.deleted
+        - expense.created
+        - expense.updated
+        - expense.deleted
+    Event:
+      type: object
+      required: [id, type, created_at, payload]
+      properties:
+        id:
+          type: integer
+          format: int64
+          description: |
+            Monotonic. Use it as the `after` cursor and as the deduplication key,
+            since delivery is at-least-once.
+        type:
+          $ref: "#/components/schemas/EventType"
+        created_at:
+          type: string
+          format: date-time
+        payload:
+          type: object
+          additionalProperties: true
+          description: |
+            Event-specific. Identifiers and the values a tool needs to act are
+            included so it rarely has to call back; shapes differ per type and
+            new fields may be added, so ignore unknown keys.
+    EventPage:
+      type: object
+      required: [events, has_more, next]
+      properties:
+        events:
+          type: array
+          items:
+            $ref: "#/components/schemas/Event"
+        has_more:
+          type: boolean
+          description: True when more events remain beyond this page.
+        next:
+          type: [integer, "null"]
+          format: int64
+          description: |
+            Pass as `after` to continue. Null when the page was empty.
