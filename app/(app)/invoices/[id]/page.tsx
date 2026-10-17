@@ -57,6 +57,11 @@ export default async function InvoiceDetailPage({ params }: { params: Promise<{ 
           All invoices
         </Link>
         <PrintButton />
+        {invoice.baseStatus === 'draft' && (
+          <Link href={`/invoices/${id}/edit`} className={`${btnSecondary} ${focus} print:hidden`}>
+            Edit
+          </Link>
+        )}
         {invoice.status !== 'void' && hasEmail ? (
           <ActionButton
             action={sendInvoice}
