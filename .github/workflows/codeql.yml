@@ -24,7 +24,16 @@ jobs:
     - name: Initialize CodeQL
       uses: github/codeql-action/init@v4
       with:
-        languages: javascript, typescript
+        # One combined identifier. TypeScript is analysed by the JavaScript
+        # extractor — there is no separate `typescript` language, and listing it
+        # alongside `javascript` registers a *different* configuration from the
+        # one on `main`. That mismatch is what makes the "Code scanning results"
+        # check report "1 configuration not found" and block the pull request.
+        languages: javascript-typescript
 
     - name: Perform CodeQL Analysis
       uses: github/codeql-action/analyze@v4
+      with:
+        # Must match the category used on `main` (including by default setup) or
+        # the analyses are treated as unrelated configurations.
+        category: "/language:javascript-typescript"
