@@ -2,8 +2,9 @@
 
 import { revalidatePath } from 'next/cache'
 import { createClient } from '@/lib/supabase/server'
+import { generateApiKey } from '@/lib/api-keys'
 import { round2, type Tax } from '@/lib/tax'
-import { optionalText, text, type FormState } from '@/lib/validation'
+import { isUuid, optionalText, text, type FormState } from '@/lib/validation'
 
 export async function updateProfile(_prev: FormState, formData: FormData): Promise<FormState> {
   const fullName = optionalText(formData, 'full_name')
@@ -94,4 +95,81 @@ export async function changePassword(_prev: FormState, formData: FormData): Prom
   }
 
   return { ok: 'Password updated.' }
+}
+
+// API keys authenticate the integration API (openapi/work-sprout.v1.yaml) for
+// external tools. Unlike FormState this carries the raw key back, because it is
+// shown exactly once: only a hash is stored, so it can never be displayed again.
+export type ApiKeyFormState = FormState & {
+  createdKey?: string
+  createdName?: string
+}
+
+const MAX_ACTIVE_KEYS = 10
+
+export async function createApiKey(
+  _prev: ApiKeyFormState,
+  formData: FormData,
+): Promise<ApiKeyFormState> {
+  const name = text(formData, 'name') || 'API key'
+  if (name.length > 80) return { error: 'Give the key a name of 80 characters or fewer.' }
+
+  const supabase = await createClient()
+  const { data } = await supabase.auth.getClaims()
+  const userId = data?.claims?.sub
+  if (!userId) return { error: 'Your session expired — sign in again.' }
+
+  // A modest ceiling keeps a stray loop from piling up live credentials.
+  const { count, error: countError } = await supabase
+    .from('api_keys')
+    .select('id', { count: 'exact', head: true })
+    .eq('user_id', userId)
+    .is('revoked_at', null)
+  if (countError) {
+    console.error('count api keys failed:', countError.message)
+    return { error: 'Could not create the key — please try again.' }
+  }
+  if ((count ?? 0) >= MAX_ACTIVE_KEYS) {
+    return { error: `You already have ${MAX_ACTIVE_KEYS} active keys. Revoke one first.` }
+  }
+
+  const { raw, hash, prefix } = generateApiKey()
+  // `.select()` so a row that silently fails to land is an error, not a success.
+  const { data: inserted, error } = await supabase
+    .from('api_keys')
+    .insert({ user_id: userId, name, key_hash: hash, prefix })
+    .select('id')
+    .maybeSingle()
+  if (error || !inserted) {
+    console.error('create api key failed:', error?.message)
+    return { error: 'Could not create the key — please try again.' }
+  }
+
+  revalidatePath('/settings')
+  return {
+    ok: 'Key created. Copy it now — it will not be shown again.',
+    createdKey: raw,
+    createdName: name,
+  }
+}
+
+export async function revokeApiKey(id: string): Promise<void> {
+  if (!isUuid(id)) return
+
+  const supabase = await createClient()
+  const { data } = await supabase.auth.getClaims()
+  const userId = data?.claims?.sub
+  if (!userId) return
+
+  // Revoked rather than deleted, so the row survives as an audit trail and
+  // `last_used_at` still shows when the key was last seen.
+  const { error } = await supabase
+    .from('api_keys')
+    .update({ revoked_at: new Date().toISOString() })
+    .eq('id', id)
+    .eq('user_id', userId)
+    .is('revoked_at', null)
+  if (error) console.error('revoke api key failed:', error.message)
+
+  revalidatePath('/settings')
 }
