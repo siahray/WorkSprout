@@ -26,5 +26,13 @@ jobs:
           bun run lint
           bunx oxlint
 
+      - name: Type Check
+        run: |
+          bun run typecheck
+          bun run test:types
+
+      - name: Run Tests
+        run: bun run test
+
       - name: Build Next.js App
         run: bun run build

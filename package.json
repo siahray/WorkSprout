@@ -7,6 +7,9 @@
     "build": "bun --bun next build",
     "start": "bun --bun next start",
     "lint": "eslint",
+    "typecheck": "tsc --noEmit",
+    "test": "bun test",
+    "test:types": "bunx tsc --project tsconfig.test.json --noEmit",
     "prepare": "husky"
   },
   "dependencies": {
@@ -22,6 +25,7 @@
     "@types/node": "^20",
     "@types/react": "^19",
     "@types/react-dom": "^19",
+    "bun-types": "^1.4.3",
     "eslint": "^9",
     "eslint-config-next": "16.3.8",
     "husky": "^9.1.7",

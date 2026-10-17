@@ -41,8 +41,8 @@ Invoices used to be **immutable** once created — no `updateInvoice`, no line-i
 | Webhook *delivery* | ❌ pull feed only; no push, no retry worker, no signing |
 | Scheduled jobs | ❌ no pg_cron, no queue |
 | Idempotency | ⚠️ **API** writes are idempotent (`Idempotency-Key` + `idempotency_keys`). **App** mutations still are not — `addPayment` and `createInvoice` double-write on retry. |
-| Tests | ❌ zero test files |
-| CI | lint + build only (plus CodeQL + ZAP) — no test step, because there is nothing to run |
+| Tests | ⚠️ `bun test` harness exists — 3 smoke tests covering API validation and idempotency. **The app's own mutations and the money paths are still untested.** |
+| CI | lint + typecheck + tests + build (plus CodeQL + ZAP). The test step runs. |
 
 Every app mutation is still a Next.js server action — a private RPC bound to a session cookie. `/api/v1` is the first surface an external caller can authenticate to, and it can now do two of the things automation needs: read what happened, and create a client or an appointment. The remaining gaps are update/delete, and the rest of the entities.
 
@@ -120,7 +120,8 @@ The event log follows it: `events` is written by an `after insert or update or d
 
 ### Platform / ops
 - ✅ RLS on user tables, `updated_at` triggers, admin audit log, three CI workflows
-- ❌ **Tests of any kind**
+- ⚠️ **Tests of any kind** — a `bun test` harness now exists (see the changelog), but coverage is only the new API layer: 3 smoke tests. Nothing tests the server actions, invoice math, or the timer.
+- ✅ CI runs a real test step (was: nothing to run)
 - ❌ Rate limiting, pagination (lists load fully), search on expenses/invoices
 - ❌ Observability beyond `console.error`
 - ✅ Migration baseline — `config.toml` now exists and every migration is recorded in the remote history (0 pending). Still no drift check in CI.
@@ -136,7 +137,7 @@ Ordered by dependency, not preference.
 2. **An authenticated API surface** — ⚠️ **partly done.** `api_keys` authenticate `/api/v1`; the event feed is readable and clients and appointments can be created. Missing: update/delete, and create for projects, time, expenses and invoices. Target: `openapi/work-sprout.v1.yaml`.
 3. **Idempotency** — ⚠️ **done for the API** (`Idempotency-Key`, replayed from `idempotency_keys`), which was the urgent case because a machine retries where a person does not. **Not** done for the app's own mutations, where `addPayment` and `createInvoice` can still double-write if a form is resubmitted.
 4. ~~**Event/outbox table** — one `events` table written in the same transaction as mutations.~~ **Done** — `events`, written by triggers, which is a true outbox. It gives a *pull* feed; **push webhooks are not built** and would need a delivery worker plus a scheduler.
-5. **A test harness** — at minimum integration tests for money paths. There is no safety net for automation today. Still ❌.
+5. **A test harness** — ⚠️ **started.** `bun test` is wired up and runs in CI, with a fake supabase client. It covers API input validation and idempotency only — 3 tests. The money paths the audit actually worries about (invoice math, payments, the timer) are still untested, and so are the app's own server actions.
 6. **Then** recurring invoices, dunning, reminders — consumers of step 4.
 
 ---
@@ -146,7 +147,7 @@ Ordered by dependency, not preference.
 1. ~~**What does "automation" mean here**~~ **Answered:** emails, CRMs and appointments, delivered by an **external tool** (n8n / Make / Zapier) that WorkSprout feeds. WorkSprout is not becoming a CRM, booking system or email marketing suite; it exposes what happened and lets the external tool own those domains. CRM sync is deferred, and blocked on the missing contacts model (see Clients above).
 2. **Who is the actor** — you, your clients, or a machine? Client-facing automation implies a client portal, which does not exist and is a far bigger build than an API.
 3. **Which single manual task hurts most right now?** "I forget to send invoices" → dunning + scheduler, not an API. "Entering expenses" → receipt parsing, which needs storage parents extended first.
-4. **Will you freeze features to build the platform layer** (write API, events, tests)? Automation on a system with no tests means every bug becomes a permanent data bug. The write endpoints are the next step and are still unbuilt.
+4. ~~**Will you freeze features to build the platform layer** (write API, events, tests)?~~ **Answered:** no freeze, but the platform layer is being built alongside — write API, events, tests. The write endpoints and the test harness are in. The one gap left is that the app's *own* mutations (`addPayment`, `createInvoice`) are untested and non-idempotent, which is now the highest-value next step.
 5. **Is PHP-only, single-user, no-team deliberate** or accidental? It decides whether automation must be tenant-aware from day one. It also decides whether a single `clients.email` is a real limitation or a deliberate one.
 6. **What is the success metric** — hours saved per week, invoices sent on time, or data captured without touch?
 
@@ -234,6 +235,19 @@ Two decisions worth keeping: the API is **not** a passthrough to the database �
 Scope was chosen for the brief rather than the easy win: a client and an appointment are exactly what the external tool owns (CRM contacts, bookings). Update, delete, and the other entities are not built — an endpoint is now a function plus a thin route, since auth, idempotency, body parsing and error mapping are generic.
 
 The failure mode this closes is the one that matters for money and calendars: a timeout retried into a duplicate appointment. The app's own `addPayment` and `createInvoice` still lack it, and are the next candidate.
+
+### Test harness (branch `test/api-integration`)
+
+| Change | Notes |
+|---|---|
+| `bun test` + `tsconfig.test.json` | The runner ships with Bun, so no new test framework. `bun-types` was added only so the tests type-check. The main tsconfig now excludes `test/`, so `next build` does not try to compile it. |
+| `test/fake-supabase.ts` | A hand-written stand-in for supabase-js. No module mocking and no network. |
+| 3 smoke tests | API input validation and the idempotency outcomes (run, replay, conflict, in-progress) plus the `Idempotency-Key` length limit. |
+| CI | `typecheck`, `test:types` and `bun test` now run before the build. |
+
+This closes "zero test files" and nothing more. The money paths this audit actually worries about — invoice math, payments, the timer — are still untested, as are the app's own server actions.
+
+What made this cheap is a decision from phase 2: `createClientRecord`, `scheduleCall` and `withIdempotency` take their supabase client as a *parameter*. That was done to share rules with the server actions; it also means the tests need no module mocking. The harness is the enabling change — the coverage is the remaining work.
 
 ### CI fix (branch `fix/codeql-configuration`)
 

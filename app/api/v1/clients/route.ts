@@ -5,8 +5,6 @@ import { createClientRecord } from '@/lib/api-mutations'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { writeError } from '@/lib/api-errors'
 
-// Creates a client. Send `Idempotency-Key` so a retry cannot create a duplicate.
-
 export async function POST(request: NextRequest) {
   const auth = await authenticate(request)
   if (!auth.ok) return authFailure(auth)
@@ -14,9 +12,10 @@ export async function POST(request: NextRequest) {
   const parsed = await readJsonBody(request)
   if (!parsed.ok) return parsed.response
 
-  return withIdempotency(request, auth.userId, parsed.raw, async () => {
+  const supabase = createAdminClient()
+  return withIdempotency(request, supabase, auth.userId, parsed.raw, async () => {
     const result = await createClientRecord(
-      createAdminClient(),
+      supabase,
       auth.userId,
       (parsed.body ?? {}) as Record<string, unknown>,
     )
