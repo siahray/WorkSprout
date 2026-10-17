@@ -1,13 +1,14 @@
 openapi: 3.1.0
 info:
   title: WorkSprout Integration API
-  version: "1.0.0"
-  summary: Read what happens in WorkSprout so an external tool can react to it.
+  version: "1.1.0"
+  summary: Read what happens in WorkSprout, and write back to it, from an external tool.
   description: |
     A small, authenticated API for external automation tools (n8n, Make, Zapier,
     custom scripts). It exposes **events** — a durable, ordered log of things that
     happened in WorkSprout — so a tool can send emails, sync a CRM, or manage
-    appointments in response.
+    appointments in response, and it accepts **writes** for the records such a
+    tool creates. It deliberately does not cover everything the app can do.
 
     ## Why an API and not direct database access
 
@@ -38,6 +39,33 @@ info:
 
     Event ordering is guaranteed only within a user. The feed is per API key, so
     it is effectively per account.
+
+    ## Writing
+
+    Write endpoints create a record and return `201` with its id:
+
+    ```bash
+    curl -X POST http://localhost:3000/api/v1/clients \
+      -H "Authorization: Bearer wsp_live_…" \
+      -H "Idempotency-Key: 8f2b0f9c-6d1e-4b3a-9c77-2f5a1d0e7c34" \
+      -H "Content-Type: application/json" \
+      -d '{"name":"Northwind Trading","email":"accounts@northwind.example"}'
+    ```
+
+    **Always send `Idempotency-Key`.** Retrying is unavoidable — a tool that times
+    out will try again — and without the header a retry creates a second client or
+    books a second appointment. With it, the same key replays the first response:
+
+    - a new key runs the request and records the response;
+    - the same key with the same body returns that recorded response;
+    - the same key with a *different* body returns `409 idempotency_conflict`;
+    - a key still running returns `409 request_in_progress` (retry shortly).
+
+    Use a fresh key per logical operation — a UUID is ideal — and a new one after a
+    `409`. Keys are scoped to the account, so two tools cannot collide.
+
+    Writes still emit events, so a create is visible on the feed as
+    `client.created` or `call.created`.
   contact:
     name: WorkSprout
 servers:
@@ -50,6 +78,10 @@ tags:
     description: Verify a key and see whose data it can read.
   - name: Events
     description: The ordered log of things that happened.
+  - name: Clients
+    description: Create the people you invoice.
+  - name: Appointments
+    description: Book calls against a client.
 security:
   - apiKey: []
 paths:
@@ -147,15 +179,121 @@ paths:
           $ref: "#/components/responses/BadRequest"
         "401":
           $ref: "#/components/responses/Unauthorized"
+  /api/v1/clients:
+    post:
+      tags: [Clients]
+      operationId: createClient
+      summary: Create a client
+      description: |
+        Send **`Idempotency-Key`** — a retry without one creates a second client.
+
+        A new client emits a `client.created` event, so anything listening on the
+        feed sees it too.
+      parameters:
+        - $ref: "#/components/parameters/IdempotencyKey"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ClientInput"
+            examples:
+              minimal:
+                value:
+                  name: Northwind Trading
+              full:
+                value:
+                  name: Northwind Trading
+                  company: Northwind Trading Co.
+                  email: accounts@northwind.example
+                  address: "12 Harbour Road, Manila"
+                  tax_id: "123-456-789-000"
+                  notes: Referred by a former client.
+      responses:
+        "201":
+          description: The client was created.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Created"
+              examples:
+                created:
+                  value:
+                    id: 1b4c7d2e-5f8a-4c93-b0e6-3a9d8c7b5e42
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "409":
+          $ref: "#/components/responses/Conflict"
+  /api/v1/calls:
+    post:
+      tags: [Appointments]
+      operationId: scheduleCall
+      summary: Book an appointment
+      description: |
+        Send **`Idempotency-Key`** — a retry without one books a second
+        appointment.
+
+        `scheduled_at` is an ISO 8601 instant and is stored in UTC; the app renders
+        it in Asia/Manila. `duration_minutes` defaults to 30. If `client_id` is
+        given it must belong to the same account, or the request is rejected.
+
+        A new appointment emits a `call.created` event, which is how an external
+        tool sends the confirmation email.
+      parameters:
+        - $ref: "#/components/parameters/IdempotencyKey"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CallInput"
+            examples:
+              booking:
+                value:
+                  title: Discovery call
+                  client_id: 1b4c7d2e-5f8a-4c93-b0e6-3a9d8c7b5e42
+                  scheduled_at: "2026-10-20T06:00:00.000Z"
+                  duration_minutes: 45
+                  location: https://meet.example.com/abc-defg-hij
+                  notes: Ask about the Q4 retainer.
+      responses:
+        "201":
+          description: The appointment was booked.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Created"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "409":
+          $ref: "#/components/responses/Conflict"
 components:
   securitySchemes:
     apiKey:
       type: http
       scheme: bearer
       description: |
-        A WorkSprout API key, created in **Settings → API keys**. Sent as
+        A WorkSprout API key, created in **Settings → Automation**. Sent as
         `Authorization: Bearer wsp_live_…`. The raw key is shown once at creation;
         only a hash is stored, so a lost key must be revoked and replaced.
+  parameters:
+    IdempotencyKey:
+      name: Idempotency-Key
+      in: header
+      required: false
+      description: |
+        Strongly recommended on every write. Any unique string — a UUID per
+        logical operation — so that retrying the *same* request replays the first
+        response instead of acting a second time. Reusing a key with a different
+        body returns `409`. Omit it and a retry may duplicate.
+      schema:
+        type: string
+        maxLength: 200
+        example: 8f2b0f9c-6d1e-4b3a-9c77-2f5a1d0e7c34
   responses:
     Unauthorized:
       description: Missing, malformed, unknown or revoked key.
@@ -173,7 +311,7 @@ components:
                 error: invalid_key
                 message: That API key is not valid.
     BadRequest:
-      description: A query parameter was not usable.
+      description: A parameter or field was not usable.
       content:
         application/json:
           schema:
@@ -183,6 +321,31 @@ components:
               value:
                 error: invalid_after
                 message: "`after` must be a non-negative integer."
+            invalidRequest:
+              value:
+                error: invalid_request
+                message: Client name is required.
+            invalidJson:
+              value:
+                error: invalid_json
+                message: The request body must be valid JSON.
+    Conflict:
+      description: |
+        The `Idempotency-Key` has already been used with a different request, or a
+        request with the same key is still running.
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/Error"
+          examples:
+            reused:
+              value:
+                error: idempotency_conflict
+                message: This Idempotency-Key has already been used with a different request.
+            inProgress:
+              value:
+                error: request_in_progress
+                message: A request with this Idempotency-Key is still in progress. Retry shortly, or use a new key.
   schemas:
     Error:
       type: object
@@ -213,6 +376,60 @@ components:
             prefix:
               type: string
               description: Leading characters of the key, for identifying it in logs.
+    Created:
+      type: object
+      required: [id]
+      properties:
+        id:
+          type: string
+          format: uuid
+          description: The id of the new record.
+    ClientInput:
+      type: object
+      required: [name]
+      properties:
+        name:
+          type: string
+          description: Required.
+        company:
+          type: [string, "null"]
+        email:
+          type: [string, "null"]
+          format: email
+          description: Rejected if it is not a valid address; omit or null is fine.
+        address:
+          type: [string, "null"]
+        tax_id:
+          type: [string, "null"]
+        notes:
+          type: [string, "null"]
+    CallInput:
+      type: object
+      required: [title, scheduled_at]
+      properties:
+        title:
+          type: string
+          description: Required, 200 characters maximum.
+        client_id:
+          type: [string, "null"]
+          format: uuid
+          description: |
+            Optional. Must belong to the same account, otherwise the request is
+            rejected with `400`.
+        scheduled_at:
+          type: string
+          format: date-time
+          description: Required. ISO 8601 instant, stored in UTC.
+        duration_minutes:
+          type: integer
+          minimum: 1
+          maximum: 1440
+          default: 30
+        location:
+          type: [string, "null"]
+          description: A meeting URL or a place.
+        notes:
+          type: [string, "null"]
     EventType:
       type: string
       description: |

@@ -35,16 +35,16 @@ Invoices used to be **immutable** once created — no `updateInvoice`, no line-i
 
 | Automation primitive | Status |
 |---|---|
-| Authenticated public API | ⚠️ reads only — `GET /api/v1/me`, `GET /api/v1/events`. No write endpoint. |
+| Authenticated public API | ⚠️ partial — reads (`GET /api/v1/me`, `/events`) plus creates (`POST /api/v1/clients`, `/calls`). No update or delete, and nothing else is creatable. |
 | User API keys / tokens | ✅ `api_keys` — hashed, shown once, managed in Settings → Automation |
 | Event emitter | ✅ `events` — written by triggers on invoices, payments, calls, clients, expenses |
 | Webhook *delivery* | ❌ pull feed only; no push, no retry worker, no signing |
 | Scheduled jobs | ❌ no pg_cron, no queue |
-| Idempotency keys on mutations | ❌ `addPayment`, `createInvoice` still double-write on retry |
+| Idempotency | ⚠️ **API** writes are idempotent (`Idempotency-Key` + `idempotency_keys`). **App** mutations still are not — `addPayment` and `createInvoice` double-write on retry. |
 | Tests | ❌ zero test files |
 | CI | lint + build only (plus CodeQL + ZAP) — no test step, because there is nothing to run |
 
-Every app mutation is still a Next.js server action — a private RPC bound to a session cookie. The `/api/v1` routes are the first surface an external caller can authenticate to, but they are read-only, so **automation can observe this system and still cannot change it.** The write half is the remaining seam.
+Every app mutation is still a Next.js server action — a private RPC bound to a session cookie. `/api/v1` is the first surface an external caller can authenticate to, and it can now do two of the things automation needs: read what happened, and create a client or an appointment. The remaining gaps are update/delete, and the rest of the entities.
 
 ### 1.3 The good precedent already exists
 
@@ -98,9 +98,9 @@ The event log follows it: `events` is written by an `after insert or update or d
 
 ### Calls
 - ✅ Scheduling, statuses, email invite with ICS, public page, timezone-correct
+- ✅ Bookable from outside the app (`POST /api/v1/calls`)
 - ❌ Reschedule/edit, reminders before the call, two-way calendar sync
 - ❌ Recording/notes capture, follow-up tasks
-- ❌ Not creatable through the API yet — an appointment cannot be booked from outside the app
 
 ### Attachments
 - ✅ Direct-to-Storage upload, signed URLs, 10 MB cap, type allowlist, cleanup on delete
@@ -133,8 +133,8 @@ The event log follows it: `events` is written by an `after insert or update or d
 Ordered by dependency, not preference.
 
 1. ~~**Update paths** — `updateInvoice`, `updateExpense`, `updatePayment`, plus line-item editing.~~ **Done** — all four exist as of the changelog below. Automation without correction is a liability, so this was the blocker.
-2. **An authenticated API surface** — ⚠️ **half done.** `api_keys` authenticate `/api/v1`, and the event feed is readable. The *write* half (create client, book appointment, raise invoice) does not exist, so nothing external can change data yet. Target: `openapi/work-sprout.v1.yaml`.
-3. **Idempotency** — ❌ still absent, and the immediate next requirement for step 2's write endpoints: a polling or retrying client must not double-bill.
+2. **An authenticated API surface** — ⚠️ **partly done.** `api_keys` authenticate `/api/v1`; the event feed is readable and clients and appointments can be created. Missing: update/delete, and create for projects, time, expenses and invoices. Target: `openapi/work-sprout.v1.yaml`.
+3. **Idempotency** — ⚠️ **done for the API** (`Idempotency-Key`, replayed from `idempotency_keys`), which was the urgent case because a machine retries where a person does not. **Not** done for the app's own mutations, where `addPayment` and `createInvoice` can still double-write if a form is resubmitted.
 4. ~~**Event/outbox table** — one `events` table written in the same transaction as mutations.~~ **Done** — `events`, written by triggers, which is a true outbox. It gives a *pull* feed; **push webhooks are not built** and would need a delivery worker plus a scheduler.
 5. **A test harness** — at minimum integration tests for money paths. There is no safety net for automation today. Still ❌.
 6. **Then** recurring invoices, dunning, reminders — consumers of step 4.
@@ -154,7 +154,7 @@ Ordered by dependency, not preference.
 
 ## Appendix — Evidence
 
-**Route handlers (6)**
+**Route handlers (8)**
 
 | Path | Purpose |
 |---|---|
@@ -164,6 +164,8 @@ Ordered by dependency, not preference.
 | `app/admin/(console)/signups-export/route.ts` | admin CSV export |
 | `app/api/v1/events/route.ts` | integration API — poll the event log |
 | `app/api/v1/me/route.ts` | integration API — verify an API key |
+| `app/api/v1/clients/route.ts` | integration API — create a client |
+| `app/api/v1/calls/route.ts` | integration API — book an appointment |
 
 **Server actions by module**
 
@@ -215,9 +217,23 @@ Ordered by dependency, not preference.
 | `openapi/work-sprout.v1.yaml` | The contract, and the artifact n8n / Make / Zapier import to generate actions. |
 | `docs/integration-api.md` | Setup, polling semantics, event catalogue, retention. |
 
-Deliberate limits: **no write endpoints**, and **no push webhooks** — delivery needs a scheduler and a retry worker this deployment does not have, so the feed is pull-only. `SUPABASE_SERVICE_ROLE_KEY` is required and is unset, so `/api/v1` returns `503 not_configured` until it is added.
+Deliberate limits: **no push webhooks** — delivery needs a scheduler and a retry worker this deployment does not have, so the feed is pull-only — and **no write endpoints** (those are phase 2, below). `SUPABASE_SERVICE_ROLE_KEY` is required and is unset, so `/api/v1` returns `503 not_configured` until it is added.
 
 Two decisions worth keeping: the API is **not** a passthrough to the database — a generic Postgres connector would bypass invoice numbering, the generated `amount` column, the tax snapshot, derived status and RLS — and the service-role client it uses must scope every query to the key's `user_id` explicitly, since it bypasses RLS.
+
+### Integration API, phase 2 — writes (branch `feat/integration-api`)
+
+| Change | Notes |
+|---|---|
+| `POST /api/v1/clients` | Creates a client; returns `201` with the new id. |
+| `POST /api/v1/calls` | Books an appointment. `scheduled_at` is an ISO 8601 instant stored UTC; `client_id`, if given, must belong to the same account. |
+| `idempotency_keys` + `Idempotency-Key` | A retrying caller is the normal case, so a write is deduplicated on a caller-supplied key: the first request runs and records its response, the rest replay it. Same key with a different body → `409 idempotency_conflict`; a key still running → `409 request_in_progress`. RLS is deny-all; only the service role touches the table. |
+| `lib/api-mutations.ts` | The create rules, **shared with the app's own server actions** — `createClient` and `createCall` were refactored to call it, so a rule cannot apply to the API and not to the form. |
+| OpenAPI + `docs/integration-api.md` | Contract and walkthrough for writing, including the idempotency rules. |
+
+Scope was chosen for the brief rather than the easy win: a client and an appointment are exactly what the external tool owns (CRM contacts, bookings). Update, delete, and the other entities are not built — an endpoint is now a function plus a thin route, since auth, idempotency, body parsing and error mapping are generic.
+
+The failure mode this closes is the one that matters for money and calendars: a timeout retried into a duplicate appointment. The app's own `addPayment` and `createInvoice` still lack it, and are the next candidate.
 
 ### CI fix (branch `fix/codeql-configuration`)
 
