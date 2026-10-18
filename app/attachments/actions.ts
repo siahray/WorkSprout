@@ -21,7 +21,17 @@ type RecordInput = {
 }
 
 function revalidateParent(parentType: AttachmentParentType, parentId: string) {
-  revalidatePath(parentType === 'project' ? `/projects/${parentId}` : `/invoices/${parentId}`)
+  // Expenses have no detail page — the receipts live on the list.
+  if (parentType === 'project') revalidatePath(`/projects/${parentId}`)
+  else if (parentType === 'invoice') revalidatePath(`/invoices/${parentId}`)
+  else revalidatePath('/expenses')
+}
+
+// The table each parent type lives in, for the ownership probe below.
+const PARENT_TABLE: Record<AttachmentParentType, string> = {
+  project: 'projects',
+  invoice: 'invoices',
+  expense: 'expenses',
 }
 
 // Called after the browser uploads a file straight to Storage. The path is
@@ -35,7 +45,7 @@ export async function recordAttachment(input: RecordInput): Promise<FormState> {
   const mimeType = String(input.mimeType ?? '')
   const size = Number(input.size ?? 0)
 
-  if (parentType !== 'project' && parentType !== 'invoice') {
+  if (parentType !== 'project' && parentType !== 'invoice' && parentType !== 'expense') {
     return { error: 'Unknown upload target.' }
   }
   if (!isUuid(parentId)) return { error: 'That upload target could not be found.' }
@@ -55,8 +65,11 @@ export async function recordAttachment(input: RecordInput): Promise<FormState> {
   }
 
   // The parent must belong to the caller (the table policy also enforces this).
-  const parentTable = parentType === 'project' ? 'projects' : 'invoices'
-  const { data: parent } = await supabase.from(parentTable).select('id').eq('id', parentId).maybeSingle()
+  const { data: parent } = await supabase
+    .from(PARENT_TABLE[parentType])
+    .select('id')
+    .eq('id', parentId)
+    .maybeSingle()
   if (!parent) return { error: 'That upload target could not be found.' }
 
   // Confirm the object actually landed in Storage.
@@ -72,6 +85,7 @@ export async function recordAttachment(input: RecordInput): Promise<FormState> {
     user_id: userId,
     project_id: parentType === 'project' ? parentId : null,
     invoice_id: parentType === 'invoice' ? parentId : null,
+    expense_id: parentType === 'expense' ? parentId : null,
     name,
     path,
     mime_type: mimeType,
@@ -96,7 +110,7 @@ export async function deleteAttachment(_prev: FormState, formData: FormData): Pr
   const supabase = await createClient()
   const { data: attachment } = await supabase
     .from('attachments')
-    .select('id, path, project_id, invoice_id')
+    .select('id, path, project_id, invoice_id, expense_id')
     .eq('id', id)
     .maybeSingle()
 
@@ -111,5 +125,6 @@ export async function deleteAttachment(_prev: FormState, formData: FormData): Pr
 
   if (attachment.project_id) revalidatePath(`/projects/${attachment.project_id}`)
   if (attachment.invoice_id) revalidatePath(`/invoices/${attachment.invoice_id}`)
+  if (attachment.expense_id) revalidatePath('/expenses')
   return { ok: 'File removed.' }
 }

@@ -1,7 +1,7 @@
 # WorkSprout — Feature Audit & Automation Readiness
 
 **Date:** 18 October 2026
-**Branches:** PRs #18–#27 merged. No open branches.
+**Branches:** PRs #18–#28 merged. Open: `feat/expense-receipts`.
 **Method:** static inventory of `app/**` routes, server actions, route handlers, `supabase/migrations/*.sql`, database functions and triggers, and CI workflows. No runtime walkthrough.
 
 Legend: ✅ built · ⚠️ partial · ❌ absent
@@ -91,7 +91,7 @@ The event log follows it: `events` is written by an `after insert or update or d
 ### Expenses
 - ✅ Create / read / delete, 9 categories, month grouping, project linking, modal capture
 - ✅ **Edit** — `updateExpense` and an edit modal
-- ❌ Receipt attachment (attachments support projects + invoices only)
+- ✅ Receipt attachment — each expense row opens a receipts panel (upload, signed-URL preview, removal)
 - ❌ Recurring/subscription expenses
 - ❌ Mileage, reimbursable flag, vendor field
 - ❌ Export (CSV / accounting)
@@ -104,7 +104,8 @@ The event log follows it: `events` is written by an `after insert or update or d
 
 ### Attachments
 - ✅ Direct-to-Storage upload, signed URLs, 10 MB cap, type allowlist, cleanup on delete
-- ❌ Expenses and clients as parents
+- ✅ Expenses as parents (receipts)
+- ❌ Clients as parents
 - ❌ Versioning, virus scanning, quota display
 
 ### Notifications & comms
@@ -311,6 +312,23 @@ Two findings worth recording, both of which came from verifying against real out
 | `app/reset-password/` + login link | The in-app new-password form, and the "Forgot password?" entry point the audit's ❌ pointed at. |
 
 Rides Supabase's auth email service, so it is independent of the app's Resend config — the two email paths stay separate. **Operational gate:** `https://<site>/auth/callback` must be in Dashboard → Authentication → URL Configuration → Redirect URLs, or the emailed link lands on the Site URL and the flow breaks there.
+
+### CI typegen fix (branch `fix/ci-typegen`)
+
+| Change | Notes |
+|---|---|
+| `next typegen` before typecheck | `build-and-test` had failed on **every** run since it landed — on `main` itself included. A fresh checkout has no `.next`, so `tsc --noEmit` could not resolve the generated global `LayoutProps` in `app/layout.tsx`, and the step exited before tests and the build ever ran. It went unnoticed because nothing enforced the check, so merges went through red. Next.js 16 documents `next typegen && tsc --noEmit` for exactly this case — route types are generated during `next dev`/`next build`, or standalone. The pipeline went fully green (build, ZAP, CodeQL) for the first time on the next run. |
+
+### Expense receipts (branch `feat/expense-receipts`)
+
+| Change | Notes |
+|---|---|
+| Migration `20261018130000` | `attachments` gains `expense_id` (FK, `on delete cascade`) as a third parent, and `attachments_parent_check` now demands exactly one of project / invoice / expense. The RLS `with check` grew a branch proving the expense belongs to the caller. Storage policies needed no change — they only inspect the owner-id folder segment, which `expense` fits into as a path segment. |
+| `recordAttachment` / `deleteAttachment` | Accept `expense` as a parent type; the parent-ownership probe goes through one `PARENT_TABLE` map, and removals revalidate `/expenses` (there is no expense detail page — receipts live on the list). |
+| `deleteExpense` | Removes Storage objects before the cascade drops their metadata rows — the pre-delete cleanup invoices and projects already do, without which the object would outlive its row. |
+| `ReceiptsDialog` | A per-row "Receipt (n)" button on the expenses table opening the standard modal with the existing uploader + list. Content mounts only while open, matching the edit dialog. |
+
+Receipts attach from the saved expense's row, not inside the add-expense form: the upload target needs an id that does not exist until the insert lands, and keeping upload out of the create form leaves that money-adjacent action's shape untouched. Deleting a project does **not** delete its expenses — the FK is `on delete set null` — so receipt cleanup belongs solely to `deleteExpense`, and no project/client cascade had to grow an expense branch.
 
 ### Audit corrections
 

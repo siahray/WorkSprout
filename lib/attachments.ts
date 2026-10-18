@@ -28,7 +28,7 @@ export const ALLOWED_MIME_TYPES = [
 // For the <input type="file"> accept attribute.
 export const ATTACHMENT_ACCEPT = ALLOWED_MIME_TYPES.join(',')
 
-export type AttachmentParentType = 'project' | 'invoice'
+export type AttachmentParentType = 'project' | 'invoice' | 'expense'
 
 export type Attachment = {
   id: string
