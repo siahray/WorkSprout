@@ -5,14 +5,33 @@ import { createClient } from '@/lib/supabase/server'
 import { PageHeader } from '@/components/ui/page-header'
 import { StatusBadge } from '@/components/ui/status-badge'
 import { ConfirmAction } from '@/components/ui/confirm-action'
-import { AddPhaseForm, AddSubtaskForm, AddTaskForm, SubtaskStatusSelect, TaskStatusSelect } from '../task-controls'
+import {
+  AddPhaseForm,
+  AddSubtaskForm,
+  AddTaskForm,
+  InlineRename,
+  MoveItem,
+  SubtaskStatusSelect,
+  TaskStatusSelect,
+} from '../task-controls'
 import { StartTimer, RunningTimerCard, type ActiveTimer, type ProjectOption } from '@/app/(app)/time/timer-controls'
 import { AttachmentSection } from '@/components/attachments/attachment-section'
 import { Collapsible } from '@/components/ui/collapsible'
 import { decimalHours, formatDate, hoursFromMinutes, peso } from '@/lib/format'
 import { btnPrimary, btnSecondary, btnDanger, card, focus, tableHead, th, rowHover } from '@/lib/ui'
 import type { Attachment } from '@/lib/attachments'
-import { deletePhase, deleteProject, deleteSubtask, deleteTask } from '../actions'
+import {
+  deletePhase,
+  deleteProject,
+  deleteSubtask,
+  deleteTask,
+  movePhase,
+  moveSubtask,
+  moveTask,
+  updatePhase,
+  updateSubtask,
+  updateTask,
+} from '../actions'
 import { display } from '@/lib/fonts'
 
 export const metadata: Metadata = {
@@ -20,8 +39,8 @@ export const metadata: Metadata = {
 }
 
 type PhaseRow = { id: string; title: string; position: number }
-type TaskRow = { id: string; title: string; status: string | null; phase_id: string | null }
-type SubtaskRow = { id: string; title: string; status: string | null; parent_task_id: string }
+type TaskRow = { id: string; title: string; status: string | null; phase_id: string | null; position: number }
+type SubtaskRow = { id: string; title: string; status: string | null; parent_task_id: string; position: number }
 type TimeRow = {
   id: string
   task_id: string
@@ -33,14 +52,38 @@ type TimeRow = {
   invoice_id: string | null
 }
 
-function TaskItem({ task, subtasks, projectId }: { task: TaskRow; subtasks: SubtaskRow[]; projectId: string }) {
+function TaskItem({
+  task,
+  subtasks,
+  projectId,
+  isFirst,
+  isLast,
+}: {
+  task: TaskRow
+  subtasks: SubtaskRow[]
+  projectId: string
+  isFirst: boolean
+  isLast: boolean
+}) {
   return (
     <li className="px-4 py-3">
       <div className="flex items-center justify-between gap-3">
-        <span className={`text-sm font-medium ${task.status === 'done' ? 'text-[#0E2F27]/45 line-through' : ''}`}>
-          {task.title}
-        </span>
-        <span className="flex items-center gap-2">
+        <div className="min-w-0 flex-1">
+          <InlineRename
+            action={updateTask}
+            id={task.id}
+            value={task.title}
+            label={`task ${task.title}`}
+            className={
+              task.status === 'done'
+                ? 'text-sm font-medium text-[#0E2F27]/45 line-through'
+                : 'text-sm font-medium'
+            }
+          />
+        </div>
+        <span className="flex items-center gap-1.5">
+          <MoveItem action={moveTask} id={task.id} direction="up" disabled={isFirst} label={task.title} />
+          <MoveItem action={moveTask} id={task.id} direction="down" disabled={isLast} label={task.title} />
           <TaskStatusSelect id={task.id} status={task.status ?? 'todo'} />
           <ConfirmAction
             action={deleteTask}
@@ -55,16 +98,36 @@ function TaskItem({ task, subtasks, projectId }: { task: TaskRow; subtasks: Subt
 
       {subtasks.length > 0 && (
         <ul className="mt-2 space-y-1.5 border-l-2 border-[#0E2F27]/10 pl-4">
-          {subtasks.map((subtask) => (
+          {subtasks.map((subtask, subIndex) => (
             <li key={subtask.id} className="flex items-center justify-between gap-3">
-              <span
-                className={`min-w-0 flex-1 truncate text-sm ${
-                  subtask.status === 'done' ? 'text-[#0E2F27]/45 line-through' : 'text-[#0E2F27]/80'
-                }`}
-              >
-                {subtask.title}
-              </span>
+              <div className="min-w-0 flex-1">
+                <InlineRename
+                  action={updateSubtask}
+                  id={subtask.id}
+                  value={subtask.title}
+                  label={`subtask ${subtask.title}`}
+                  className={`text-sm ${
+                    subtask.status === 'done'
+                      ? 'text-[#0E2F27]/45 line-through'
+                      : 'text-[#0E2F27]/80'
+                  }`}
+                />
+              </div>
               <span className="flex items-center gap-1.5">
+                <MoveItem
+                  action={moveSubtask}
+                  id={subtask.id}
+                  direction="up"
+                  disabled={subIndex === 0}
+                  label={subtask.title}
+                />
+                <MoveItem
+                  action={moveSubtask}
+                  id={subtask.id}
+                  direction="down"
+                  disabled={subIndex === subtasks.length - 1}
+                  label={subtask.title}
+                />
                 <SubtaskStatusSelect id={subtask.id} status={subtask.status ?? 'todo'} />
                 <ConfirmAction
                   action={deleteSubtask}
@@ -136,13 +199,15 @@ export default async function ProjectDetailPage({ params }: { params: Promise<{ 
       .order('created_at', { ascending: true }),
     supabase
       .from('tasks')
-      .select('id, title, status, phase_id')
+      .select('id, title, status, phase_id, position')
       .eq('project_id', id)
+      .order('position', { ascending: true })
       .order('created_at', { ascending: true }),
     supabase
       .from('subtasks')
-      .select('id, title, status, parent_task_id')
+      .select('id, title, status, parent_task_id, position')
       .eq('project_id', id)
+      .order('position', { ascending: true })
       .order('created_at', { ascending: true }),
     supabase
       .from('invoice_balances')
@@ -303,28 +368,58 @@ export default async function ProjectDetailPage({ params }: { params: Promise<{ 
             <div className="space-y-4">
               <AddPhaseForm projectId={id} />
 
-            {phases.map((phase) => {
+            {phases.map((phase, phaseIndex) => {
               const phaseTasks = tasksByPhase.get(phase.id) ?? []
               return (
                 <div key={phase.id} className={`${card} p-4`}>
                   <div className="flex items-center justify-between gap-3">
-                    <h3 className="text-sm font-semibold text-[#0E2F27]">
-                      {phase.title} <span className="font-normal text-[#0E2F27]/55">({phaseTasks.length})</span>
+                    <h3 className="flex min-w-0 items-center gap-2 text-sm font-semibold text-[#0E2F27]">
+                      <InlineRename
+                        action={updatePhase}
+                        id={phase.id}
+                        value={phase.title}
+                        label={`phase ${phase.title}`}
+                        className="text-sm font-semibold"
+                      />
+                      <span className="font-normal text-[#0E2F27]/55">({phaseTasks.length})</span>
                     </h3>
-                    <ConfirmAction
-                      action={deletePhase}
-                      id={phase.id}
-                      message="Delete this phase? Its tasks will be kept and moved to Unassigned."
-                      extra={{ project_id: id }}
-                      className={`${btnDanger} px-2.5 py-1.5 text-xs`}
-                    >
-                      Delete phase
-                    </ConfirmAction>
+                    <span className="flex items-center gap-1.5">
+                      <MoveItem
+                        action={movePhase}
+                        id={phase.id}
+                        direction="up"
+                        disabled={phaseIndex === 0}
+                        label={phase.title}
+                      />
+                      <MoveItem
+                        action={movePhase}
+                        id={phase.id}
+                        direction="down"
+                        disabled={phaseIndex === phases.length - 1}
+                        label={phase.title}
+                      />
+                      <ConfirmAction
+                        action={deletePhase}
+                        id={phase.id}
+                        message="Delete this phase? Its tasks will be kept and moved to Unassigned."
+                        extra={{ project_id: id }}
+                        className={`${btnDanger} px-2.5 py-1.5 text-xs`}
+                      >
+                        Delete phase
+                      </ConfirmAction>
+                    </span>
                   </div>
                   {phaseTasks.length > 0 && (
                     <ul className="mt-3 divide-y divide-[#0E2F27]/10">
-                      {phaseTasks.map((t) => (
-                        <TaskItem key={t.id} task={t} subtasks={subtasksByTask.get(t.id) ?? []} projectId={id} />
+                      {phaseTasks.map((t, taskIndex) => (
+                        <TaskItem
+                          key={t.id}
+                          task={t}
+                          subtasks={subtasksByTask.get(t.id) ?? []}
+                          projectId={id}
+                          isFirst={taskIndex === 0}
+                          isLast={taskIndex === phaseTasks.length - 1}
+                        />
                       ))}
                     </ul>
                   )}
@@ -341,8 +436,15 @@ export default async function ProjectDetailPage({ params }: { params: Promise<{ 
               </h3>
               {unassignedTasks.length > 0 && (
                 <ul className="mt-3 divide-y divide-[#0E2F27]/10">
-                  {unassignedTasks.map((t) => (
-                    <TaskItem key={t.id} task={t} subtasks={subtasksByTask.get(t.id) ?? []} projectId={id} />
+                  {unassignedTasks.map((t, taskIndex) => (
+                    <TaskItem
+                      key={t.id}
+                      task={t}
+                      subtasks={subtasksByTask.get(t.id) ?? []}
+                      projectId={id}
+                      isFirst={taskIndex === 0}
+                      isLast={taskIndex === unassignedTasks.length - 1}
+                    />
                   ))}
                 </ul>
               )}

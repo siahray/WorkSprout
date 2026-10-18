@@ -187,10 +187,21 @@ export async function addTask(_prev: FormState, formData: FormData): Promise<For
   if (phaseId && !isUuid(phaseId)) return { error: 'That phase could not be found.' }
 
   const supabase = await createClient()
+
+  // Tasks order within their (project, phase) group, so the next position is the
+  // highest already in that group plus one. A null phase is its own group.
+  let lastQuery = supabase.from('tasks').select('position').eq('project_id', projectId)
+  lastQuery = phaseId ? lastQuery.eq('phase_id', phaseId) : lastQuery.is('phase_id', null)
+  const { data: last } = await lastQuery
+    .order('position', { ascending: false })
+    .limit(1)
+    .maybeSingle()
+
   const { error } = await supabase.from('tasks').insert({
     project_id: projectId,
     phase_id: phaseId ?? null,
     title,
+    position: (last?.position ?? -1) + 1,
   })
 
   if (error) {
@@ -243,10 +254,22 @@ export async function addSubtask(_prev: FormState, formData: FormData): Promise<
   if (!title) return { error: 'Enter a subtask title.' }
 
   const supabase = await createClient()
+
+  // Subtasks order within their parent task, so the next position is the highest
+  // already under that parent plus one.
+  const { data: last } = await supabase
+    .from('subtasks')
+    .select('position')
+    .eq('parent_task_id', parentTaskId)
+    .order('position', { ascending: false })
+    .limit(1)
+    .maybeSingle()
+
   const { error } = await supabase.from('subtasks').insert({
     parent_task_id: parentTaskId,
     project_id: projectId,
     title,
+    position: (last?.position ?? -1) + 1,
   })
 
   if (error) {
@@ -294,4 +317,241 @@ export async function deleteSubtask(_prev: FormState, formData: FormData): Promi
   revalidatePath('/projects')
   revalidatePath('/focus')
   return { ok: 'Subtask deleted.' }
+}
+
+// Pure: reorder a list of ids by moving `id` one step up or down. Returns the
+// same array untouched when the move is a no-op (already at the edge), so the
+// caller can bail without writing anything.
+function stepOrder(ids: string[], id: string, direction: 'up' | 'down'): string[] {
+  const index = ids.indexOf(id)
+  const target = direction === 'up' ? index - 1 : index + 1
+  if (index === -1 || target < 0 || target >= ids.length) return ids
+  const next = [...ids]
+  ;[next[index], next[target]] = [next[target], next[index]]
+  return next
+}
+
+// Rewrites `position` to match the new ordering, but only for rows whose value
+// actually moved — so a single-step reorder stays a pair of writes. Returns an
+// error message on failure (null on success) so callers report a failed reorder
+// honestly instead of claiming success.
+async function writeOrder(
+  supabase: Awaited<ReturnType<typeof createClient>>,
+  table: 'phases' | 'tasks' | 'subtasks',
+  rows: { id: string; position: number }[],
+  order: string[],
+): Promise<string | null> {
+  const byId = new Map(rows.map((row) => [row.id, row.position]))
+  for (const [index, id] of order.entries()) {
+    if (byId.get(id) === index) continue
+    const { error } = await supabase.from(table).update({ position: index }).eq('id', id)
+    if (error) {
+      console.error(`reorder ${table} failed:`, error.message)
+      return 'Could not reorder — please try again.'
+    }
+  }
+  return null
+}
+
+export async function updatePhase(_prev: FormState, formData: FormData): Promise<FormState> {
+  const id = text(formData, 'id')
+  const title = text(formData, 'title')
+
+  if (!isUuid(id)) return { error: 'That phase could not be found.' }
+  if (!title) return { error: 'Enter a phase name.' }
+  if (title.length > 200) return { error: 'Keep the phase name under 200 characters.' }
+
+  const supabase = await createClient()
+  // One statement: the .select() both proves the row landed and yields the
+  // project to revalidate.
+  const { data, error } = await supabase
+    .from('phases')
+    .update({ title })
+    .eq('id', id)
+    .select('project_id')
+    .maybeSingle()
+
+  if (error) {
+    console.error('update phase failed:', error.message)
+    return { error: 'Could not rename the phase. Please try again.' }
+  }
+  if (!data) return { error: 'That phase could not be found.' }
+
+  revalidatePath(`/projects/${data.project_id}`)
+  revalidatePath('/focus')
+  return { ok: 'Phase renamed.' }
+}
+
+export async function movePhase(_prev: FormState, formData: FormData): Promise<FormState> {
+  const id = text(formData, 'id')
+  const direction = text(formData, 'direction')
+
+  if (!isUuid(id) || (direction !== 'up' && direction !== 'down')) {
+    return { error: 'Invalid request.' }
+  }
+
+  const supabase = await createClient()
+  const { data: phase } = await supabase
+    .from('phases')
+    .select('id, project_id')
+    .eq('id', id)
+    .maybeSingle()
+  if (!phase) return { error: 'That phase could not be found.' }
+
+  // Siblings share a project. The order mirrors the page: position, then
+  // created_at and id as stable tiebreakers.
+  const { data: siblings } = await supabase
+    .from('phases')
+    .select('id, position, created_at')
+    .eq('project_id', phase.project_id)
+    .order('position', { ascending: true })
+    .order('created_at', { ascending: true })
+    .order('id', { ascending: true })
+
+  const rows = siblings ?? []
+  const ids = rows.map((row) => row.id)
+  const next = stepOrder(ids, id, direction)
+  if (next === ids) return { ok: 'Already at the edge.' }
+
+  const writeError = await writeOrder(supabase, 'phases', rows, next)
+  if (writeError) return { error: writeError }
+
+  revalidatePath(`/projects/${phase.project_id}`)
+  revalidatePath('/focus')
+  return { ok: 'Phase reordered.' }
+}
+
+export async function updateTask(_prev: FormState, formData: FormData): Promise<FormState> {
+  const id = text(formData, 'id')
+  const title = text(formData, 'title')
+
+  if (!isUuid(id)) return { error: 'That task could not be found.' }
+  if (!title) return { error: 'Enter a task title.' }
+  if (title.length > 200) return { error: 'Keep the task title under 200 characters.' }
+
+  const supabase = await createClient()
+  const { data, error } = await supabase
+    .from('tasks')
+    .update({ title })
+    .eq('id', id)
+    .select('project_id')
+    .maybeSingle()
+
+  if (error) {
+    console.error('update task failed:', error.message)
+    return { error: 'Could not rename the task. Please try again.' }
+  }
+  if (!data) return { error: 'That task could not be found.' }
+
+  revalidatePath(`/projects/${data.project_id}`)
+  revalidatePath('/time')
+  revalidatePath('/focus')
+  return { ok: 'Task renamed.' }
+}
+
+export async function moveTask(_prev: FormState, formData: FormData): Promise<FormState> {
+  const id = text(formData, 'id')
+  const direction = text(formData, 'direction')
+
+  if (!isUuid(id) || (direction !== 'up' && direction !== 'down')) {
+    return { error: 'Invalid request.' }
+  }
+
+  const supabase = await createClient()
+  const { data: task } = await supabase
+    .from('tasks')
+    .select('id, project_id, phase_id')
+    .eq('id', id)
+    .maybeSingle()
+  if (!task) return { error: 'That task could not be found.' }
+
+  // Tasks order within their (project, phase) pair — a null phase is the
+  // project's "unassigned" bucket and orders on its own.
+  let query = supabase
+    .from('tasks')
+    .select('id, position, created_at')
+    .eq('project_id', task.project_id)
+  query = task.phase_id ? query.eq('phase_id', task.phase_id) : query.is('phase_id', null)
+  const { data: siblings } = await query
+    .order('position', { ascending: true })
+    .order('created_at', { ascending: true })
+    .order('id', { ascending: true })
+
+  const rows = siblings ?? []
+  const ids = rows.map((row) => row.id)
+  const next = stepOrder(ids, id, direction)
+  if (next === ids) return { ok: 'Already at the edge.' }
+
+  const writeError = await writeOrder(supabase, 'tasks', rows, next)
+  if (writeError) return { error: writeError }
+
+  revalidatePath(`/projects/${task.project_id}`)
+  revalidatePath('/time')
+  revalidatePath('/focus')
+  return { ok: 'Task reordered.' }
+}
+
+export async function updateSubtask(_prev: FormState, formData: FormData): Promise<FormState> {
+  const id = text(formData, 'id')
+  const title = text(formData, 'title')
+
+  if (!isUuid(id)) return { error: 'That subtask could not be found.' }
+  if (!title) return { error: 'Enter a subtask title.' }
+  if (title.length > 200) return { error: 'Keep the subtask title under 200 characters.' }
+
+  const supabase = await createClient()
+  const { data, error } = await supabase
+    .from('subtasks')
+    .update({ title })
+    .eq('id', id)
+    .select('project_id')
+    .maybeSingle()
+
+  if (error) {
+    console.error('update subtask failed:', error.message)
+    return { error: 'Could not rename the subtask. Please try again.' }
+  }
+  if (!data) return { error: 'That subtask could not be found.' }
+
+  revalidatePath(`/projects/${data.project_id}`)
+  revalidatePath('/focus')
+  return { ok: 'Subtask renamed.' }
+}
+
+export async function moveSubtask(_prev: FormState, formData: FormData): Promise<FormState> {
+  const id = text(formData, 'id')
+  const direction = text(formData, 'direction')
+
+  if (!isUuid(id) || (direction !== 'up' && direction !== 'down')) {
+    return { error: 'Invalid request.' }
+  }
+
+  const supabase = await createClient()
+  const { data: subtask } = await supabase
+    .from('subtasks')
+    .select('id, project_id, parent_task_id')
+    .eq('id', id)
+    .maybeSingle()
+  if (!subtask) return { error: 'That subtask could not be found.' }
+
+  // Subtasks order within their parent task.
+  const { data: siblings } = await supabase
+    .from('subtasks')
+    .select('id, position, created_at')
+    .eq('parent_task_id', subtask.parent_task_id)
+    .order('position', { ascending: true })
+    .order('created_at', { ascending: true })
+    .order('id', { ascending: true })
+
+  const rows = siblings ?? []
+  const ids = rows.map((row) => row.id)
+  const next = stepOrder(ids, id, direction)
+  if (next === ids) return { ok: 'Already at the edge.' }
+
+  const writeError = await writeOrder(supabase, 'subtasks', rows, next)
+  if (writeError) return { error: writeError }
+
+  revalidatePath(`/projects/${subtask.project_id}`)
+  revalidatePath('/focus')
+  return { ok: 'Subtask reordered.' }
 }
