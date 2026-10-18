@@ -27,7 +27,10 @@ jobs:
           bunx oxlint
 
       - name: Type Check
+        # Route types (PageProps, LayoutProps, …) are generated, not checked in:
+        # a fresh checkout has no .next, so tsc alone fails on LayoutProps.
         run: |
+          bunx next typegen
           bun run typecheck
           bun run test:types
 
