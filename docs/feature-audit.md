@@ -40,8 +40,8 @@ Invoices used to be **immutable** once created — no `updateInvoice`, no line-i
 | Event emitter | ✅ `events` — written by triggers on invoices, payments, calls, clients, expenses |
 | Webhook *delivery* | ❌ pull feed only; no push, no retry worker, no signing |
 | Scheduled jobs | ❌ no pg_cron, no queue |
-| Idempotency | ⚠️ **API** writes are idempotent (`Idempotency-Key` + `idempotency_keys`). **App** mutations still are not — `addPayment` and `createInvoice` double-write on retry. |
-| Tests | ⚠️ `bun test` harness exists — 3 smoke tests covering API validation and idempotency. **The app's own mutations and the money paths are still untested.** |
+| Idempotency | ✅ **Both surfaces.** API writes via `Idempotency-Key` + `idempotency_keys` (service-role, RLS deny-all). App mutations via a per-form `submission_key` + `form_submissions` (session-scoped, `auth.uid() = user_id`) — a resubmit of `addPayment` / `createInvoice` replays the first result instead of double-writing. |
+| Tests | ⚠️ `bun test` harness — 13 tests covering API validation, API idempotency, and the new form-idempotency helper (claim / replay / in-progress / per-user scoping / key release). **Invoice math, payments and the timer are still untested.** |
 | CI | lint + typecheck + tests + build (plus CodeQL + ZAP). The test step runs. |
 
 Every app mutation is still a Next.js server action — a private RPC bound to a session cookie. `/api/v1` is the first surface an external caller can authenticate to, and it can now do two of the things automation needs: read what happened, and create a client or an appointment. The remaining gaps are update/delete, and the rest of the entities.
@@ -120,7 +120,7 @@ The event log follows it: `events` is written by an `after insert or update or d
 
 ### Platform / ops
 - ✅ RLS on user tables, `updated_at` triggers, admin audit log, three CI workflows
-- ⚠️ **Tests of any kind** — a `bun test` harness now exists (see the changelog), but coverage is only the new API layer: 3 smoke tests. Nothing tests the server actions, invoice math, or the timer.
+- ⚠️ **Tests of any kind** — a `bun test` harness now exists (see the changelog), covering the API layer and the form-idempotency helper: 13 tests. Still nothing over invoice math, payments end-to-end, or the timer.
 - ✅ CI runs a real test step (was: nothing to run)
 - ❌ Rate limiting, pagination (lists load fully), search on expenses/invoices
 - ❌ Observability beyond `console.error`
@@ -135,9 +135,9 @@ Ordered by dependency, not preference.
 
 1. ~~**Update paths** — `updateInvoice`, `updateExpense`, `updatePayment`, plus line-item editing.~~ **Done** — all four exist as of the changelog below. Automation without correction is a liability, so this was the blocker.
 2. **An authenticated API surface** — ⚠️ **partly done.** `api_keys` authenticate `/api/v1`; the event feed is readable and clients and appointments can be created. Missing: update/delete, and create for projects, time, expenses and invoices. Target: `openapi/work-sprout.v1.yaml`.
-3. **Idempotency** — ⚠️ **done for the API** (`Idempotency-Key`, replayed from `idempotency_keys`), which was the urgent case because a machine retries where a person does not. **Not** done for the app's own mutations, where `addPayment` and `createInvoice` can still double-write if a form is resubmitted.
+3. ~~**Idempotency**~~ **Done for both surfaces.** The API (`Idempotency-Key`, replayed from `idempotency_keys`) was the urgent case, because a machine retries where a person does not. The app's own money mutations are now covered too: `addPayment` and `createInvoice` carry a per-form `submission_key` checked against `form_submissions`, so a resubmit replays the first result rather than double-writing.
 4. ~~**Event/outbox table** — one `events` table written in the same transaction as mutations.~~ **Done** — `events`, written by triggers, which is a true outbox. It gives a *pull* feed; **push webhooks are not built** and would need a delivery worker plus a scheduler.
-5. **A test harness** — ⚠️ **started.** `bun test` is wired up and runs in CI, with a fake supabase client. It covers API input validation and idempotency only — 3 tests. The money paths the audit actually worries about (invoice math, payments, the timer) are still untested, and so are the app's own server actions.
+5. **A test harness** — ⚠️ **started.** `bun test` is wired up and runs in CI, with a fake supabase client. It covers API input validation, API idempotency, and the form-idempotency helper — 13 tests. The money paths the audit actually worries about (invoice math, payments, the timer) are still untested, and so are the app's own server actions.
 6. **Then** recurring invoices, dunning, reminders — consumers of step 4.
 
 ---
@@ -242,7 +242,7 @@ The failure mode this closes is the one that matters for money and calendars: a 
 |---|---|
 | `bun test` + `tsconfig.test.json` | The runner ships with Bun, so no new test framework. `bun-types` was added only so the tests type-check. The main tsconfig now excludes `test/`, so `next build` does not try to compile it. |
 | `test/fake-supabase.ts` | A hand-written stand-in for supabase-js. No module mocking and no network. |
-| 3 smoke tests | API input validation and the idempotency outcomes (run, replay, conflict, in-progress) plus the `Idempotency-Key` length limit. |
+| 3 smoke tests | API input validation and the idempotency outcomes (run, replay, conflict, in-progress) plus the `Idempotency-Key` length limit. The suite has since grown to 13 — see the app-side idempotency entry below. |
 | CI | `typecheck`, `test:types` and `bun test` now run before the build. |
 
 This closes "zero test files" and nothing more. The money paths this audit actually worries about — invoice math, payments, the timer — are still untested, as are the app's own server actions.
@@ -254,6 +254,24 @@ What made this cheap is a decision from phase 2: `createClientRecord`, `schedule
 | Change | Notes |
 |---|---|
 | CodeQL language identifier | `languages: javascript, typescript` → `javascript-typescript`, plus an explicit `category`. TypeScript is analysed by the JavaScript extractor; the legacy and combined names are treated as *different* configurations, which made the "Code scanning results" check report "1 configuration not found" and fail every PR. |
+
+### App-side idempotency (branch `feat/app-idempotency`)
+
+| Change | Notes |
+|---|---|
+| `form_submissions` | Migration `20261017170000`. The mirror of `idempotency_keys` for the app, and deliberately the *opposite* RLS model: that table is deny-all so only the service-role client reaches it, while this one is `auth.uid() = user_id`, because server actions have a session and no service role. The unique `(user_id, key)` constraint is what actually serialises a double-submit. |
+| `lib/form-idempotency.ts` | `claimFormSubmission` / `storeFormResponse` / `releaseFormClaim`. Three explicit steps rather than a wrapper, because `createInvoice` ends in `redirect()` — which throws `NEXT_REDIRECT` and must stay outside any try/catch, so a wrapper that caught everything would swallow it. |
+| `lib/use-submission-key.ts` | Mints the key client-side and rotates it after each success. |
+| `addPayment` / `createInvoice` | Claim before writing, replay the stored result on a resubmit, release the claim on every failure path. `createInvoice`'s replay redirects to the invoice the first attempt created. |
+
+The two money paths were not equally exposed, and the difference is worth recording: `addPayment` had **no guard at all**, so a resubmit wrote a second row and double-counted the money. `createInvoice` had *accidental* partial protection — line 84 only collects entries whose `invoice_id` is still null, so tracked time was already safe — but **manual lines were not**: a resubmit minted a second invoice containing them, and with no manual lines the user got the baffling "Add at least one line" error on a form they had clearly filled in.
+
+Two constraints shaped the key, and both were found by reading the code rather than assuming:
+
+- **It must rotate after every success.** `PaymentForm` is rendered *inline* on the invoice page (`invoices/[id]/page.tsx:149`) and stays mounted — it is not in a dialog. A "one key per mount" rule would let payment #1 consume the key and then silently swallow payment #2 as a duplicate: a real money loss, not a cosmetic bug.
+- **It cannot be deterministic.** `useId()`-style ids survive a page reload, so payment #2 after a reload would collide with payment #1. The key is a `crypto.randomUUID()` minted in an effect, which also keeps it out of SSR and avoids a hydration mismatch. Until that effect runs the key is empty, and the server treats an empty key as "no key": the mutation simply runs.
+
+Scope is **resubmits only** — double-click, back button, network retry. A second browser tab has its own key, so it is not covered; that case needs time entries locked when the new-invoice form opens, with expiry and stale-lock UX, and is better taken as its own batch. On a replay the user sees the **same success as the original** ("Payment recorded.", or a redirect to the same invoice) rather than an "already recorded" notice: they clicked once and exactly one payment exists, so warning them would be noise.
 
 ### Audit corrections
 

@@ -7,6 +7,7 @@ import { SubmitButton } from '@/components/ui/submit-button'
 import { addPayment, updatePayment } from '../actions'
 import { alertError, alertOk, btnAccent, btnSecondary, input } from '@/lib/ui'
 import { nowDateInput } from '@/lib/format'
+import { useSubmissionKey } from '@/lib/use-submission-key'
 import type { FormState } from '@/lib/validation'
 
 // The stored values an existing payment prefills the form with. `paid_at` is a
@@ -37,6 +38,10 @@ export function PaymentForm({
   const uid = useId()
   const fieldId = (name: string) => `${uid}-${name}`
 
+  // Only the create path needs it — updating a payment is idempotent by
+  // nature, since every attempt writes the same row.
+  const submissionKey = useSubmissionKey(Boolean(state.ok))
+
   useEffect(() => {
     if (state.ok) onSuccess?.()
   }, [state, onSuccess])
@@ -51,6 +56,7 @@ export function PaymentForm({
     <form action={formAction} aria-busy={pending} className="space-y-4">
       <input type="hidden" name="invoice_id" value={invoiceId} />
       {payment && <input type="hidden" name="id" value={payment.id} />}
+      <input type="hidden" name="submission_key" value={submissionKey} />
 
       <div className="grid gap-4 sm:grid-cols-2">
         <Field label="Amount received (₱)" htmlFor={fieldId('amount')}>
