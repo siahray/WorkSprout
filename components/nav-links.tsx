@@ -72,7 +72,10 @@ export function NavLinks({ variant = 'sidebar' }: { variant?: 'sidebar' | 'bar' 
               }`}
             >
               {dark && active && (
-                <span className="absolute left-0 top-1/2 h-4 w-1 -translate-y-1/2 rounded-full bg-[#F4B63F]" aria-hidden="true" />
+                <span
+                  className="animate-bar-in absolute left-0 top-1/2 h-4 w-1 -translate-y-1/2 rounded-full bg-[#F4B63F]"
+                  aria-hidden="true"
+                />
               )}
               <svg
                 width="18"
