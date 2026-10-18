@@ -1,7 +1,7 @@
 # WorkSprout — Feature Audit & Automation Readiness
 
 **Date:** 17 October 2026
-**Branches:** `feat/correction-paths`, `feat/integration-api`, `fix/codeql-configuration` — all pushed, none merged.
+**Branches:** PRs #18–#22 merged. Open: `feat/animations`, `feat/app-idempotency`, `test/money-paths` (stacked on the second).
 **Method:** static inventory of `app/**` routes, server actions, route handlers, `supabase/migrations/*.sql`, database functions and triggers, and CI workflows. No runtime walkthrough.
 
 Legend: ✅ built · ⚠️ partial · ❌ absent
@@ -58,7 +58,7 @@ The event log follows it: `events` is written by an `after insert or update or d
 
 ### Auth & accounts
 - ✅ Login, logout, invite-only signup with OTP, waitlist, DB-level signup gate
-- ❌ Password reset / forgot-password page (Supabase-hosted only)
+- ✅ Password reset / forgot-password page (in-app: request → emailed link → `/auth/callback` exchanges the PKCE code → `/reset-password`)
 - ❌ Email change flow, account deletion, session/device management
 - ❌ MFA
 
