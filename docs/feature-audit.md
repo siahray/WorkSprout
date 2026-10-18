@@ -1,7 +1,7 @@
 # WorkSprout — Feature Audit & Automation Readiness
 
 **Date:** 18 October 2026
-**Branches:** PRs #18–#22 merged. Open: `feat/animations`, `feat/app-idempotency`, `test/money-paths`, `feat/password-reset`, `feat/rename-reorder`.
+**Branches:** PRs #18–#27 merged. No open branches.
 **Method:** static inventory of `app/**` routes, server actions, route handlers, `supabase/migrations/*.sql`, database functions and triggers, and CI workflows. No runtime walkthrough.
 
 Legend: ✅ built · ⚠️ partial · ❌ absent
@@ -40,8 +40,8 @@ Invoices used to be **immutable** once created — no `updateInvoice`, no line-i
 | Event emitter | ✅ `events` — written by triggers on invoices, payments, calls, clients, expenses |
 | Webhook *delivery* | ❌ pull feed only; no push, no retry worker, no signing |
 | Scheduled jobs | ❌ no pg_cron, no queue |
-| Idempotency | ⚠️ **API** writes are idempotent (`Idempotency-Key` + `idempotency_keys`). **App** mutations still are not — `addPayment` and `createInvoice` double-write on retry. |
-| Tests | ⚠️ `bun test` harness exists — 3 smoke tests covering API validation and idempotency. **The app's own mutations and the money paths are still untested.** |
+| Idempotency | ✅ **Both surfaces.** API writes via `Idempotency-Key` + `idempotency_keys` (service-role, RLS deny-all). App mutations via a per-form `submission_key` + `form_submissions` (session-scoped, `auth.uid() = user_id`) — a resubmit of `addPayment` / `createInvoice` replays the first result instead of double-writing. |
+| Tests | ⚠️ `bun test` harness — 50 tests covering API validation and idempotency, the form-idempotency helper, and the **pure money paths**: invoice tax math, timer elapsed, money/quantity parsing, currency and hour formatting. **The server actions and DB writes are still untested.** |
 | CI | lint + typecheck + tests + build (plus CodeQL + ZAP). The test step runs. |
 
 Every app mutation is still a Next.js server action — a private RPC bound to a session cookie. `/api/v1` is the first surface an external caller can authenticate to, and it can now do two of the things automation needs: read what happened, and create a client or an appointment. The remaining gaps are update/delete, and the rest of the entities.
@@ -58,7 +58,7 @@ The event log follows it: `events` is written by an `after insert or update or d
 
 ### Auth & accounts
 - ✅ Login, logout, invite-only signup with OTP, waitlist, DB-level signup gate
-- ❌ Password reset / forgot-password page (Supabase-hosted only)
+- ✅ Password reset / forgot-password page (in-app: request → emailed link → `/auth/callback` exchanges the PKCE code → `/reset-password`)
 - ❌ Email change flow, account deletion, session/device management
 - ❌ MFA
 
@@ -120,7 +120,7 @@ The event log follows it: `events` is written by an `after insert or update or d
 
 ### Platform / ops
 - ✅ RLS on user tables, `updated_at` triggers, admin audit log, three CI workflows
-- ⚠️ **Tests of any kind** — a `bun test` harness now exists (see the changelog), but coverage is only the new API layer: 3 smoke tests. Nothing tests the server actions, invoice math, or the timer.
+- ⚠️ **Tests of any kind** — a `bun test` harness now exists (see the changelog) with 50 tests, covering the API layer, the form-idempotency helper, and the pure money paths: tax math, timer elapsed, money parsing, formatting. Still nothing exercises the server actions end-to-end or asserts against a real database.
 - ✅ CI runs a real test step (was: nothing to run)
 - ❌ Rate limiting, pagination (lists load fully), search on expenses/invoices
 - ❌ Observability beyond `console.error`
@@ -135,9 +135,9 @@ Ordered by dependency, not preference.
 
 1. ~~**Update paths** — `updateInvoice`, `updateExpense`, `updatePayment`, plus line-item editing.~~ **Done** — all four exist as of the changelog below. Automation without correction is a liability, so this was the blocker.
 2. **An authenticated API surface** — ⚠️ **partly done.** `api_keys` authenticate `/api/v1`; the event feed is readable and clients and appointments can be created. Missing: update/delete, and create for projects, time, expenses and invoices. Target: `openapi/work-sprout.v1.yaml`.
-3. **Idempotency** — ⚠️ **done for the API** (`Idempotency-Key`, replayed from `idempotency_keys`), which was the urgent case because a machine retries where a person does not. **Not** done for the app's own mutations, where `addPayment` and `createInvoice` can still double-write if a form is resubmitted.
+3. ~~**Idempotency**~~ **Done for both surfaces.** The API (`Idempotency-Key`, replayed from `idempotency_keys`) was the urgent case, because a machine retries where a person does not. The app's own money mutations are now covered too: `addPayment` and `createInvoice` carry a per-form `submission_key` checked against `form_submissions`, so a resubmit replays the first result rather than double-writing.
 4. ~~**Event/outbox table** — one `events` table written in the same transaction as mutations.~~ **Done** — `events`, written by triggers, which is a true outbox. It gives a *pull* feed; **push webhooks are not built** and would need a delivery worker plus a scheduler.
-5. **A test harness** — ⚠️ **started.** `bun test` is wired up and runs in CI, with a fake supabase client. It covers API input validation and idempotency only — 3 tests. The money paths the audit actually worries about (invoice math, payments, the timer) are still untested, and so are the app's own server actions.
+5. **A test harness** — ⚠️ **well started.** `bun test` is wired up and runs in CI, with a fake supabase client. 50 tests now cover API validation, API idempotency, the form-idempotency helper, and the pure money paths the audit worried about — tax math, timer elapsed, money parsing, formatting. What is still missing is integration-level coverage: no test drives a server action end-to-end or asserts against a real database.
 6. **Then** recurring invoices, dunning, reminders — consumers of step 4.
 
 ---
@@ -147,7 +147,7 @@ Ordered by dependency, not preference.
 1. ~~**What does "automation" mean here**~~ **Answered:** emails, CRMs and appointments, delivered by an **external tool** (n8n / Make / Zapier) that WorkSprout feeds. WorkSprout is not becoming a CRM, booking system or email marketing suite; it exposes what happened and lets the external tool own those domains. CRM sync is deferred, and blocked on the missing contacts model (see Clients above).
 2. **Who is the actor** — you, your clients, or a machine? Client-facing automation implies a client portal, which does not exist and is a far bigger build than an API.
 3. **Which single manual task hurts most right now?** "I forget to send invoices" → dunning + scheduler, not an API. "Entering expenses" → receipt parsing, which needs storage parents extended first.
-4. ~~**Will you freeze features to build the platform layer** (write API, events, tests)?~~ **Answered:** no freeze, but the platform layer is being built alongside — write API, events, tests. The write endpoints and the test harness are in. The one gap left is that the app's *own* mutations (`addPayment`, `createInvoice`) are untested and non-idempotent, which is now the highest-value next step.
+4. ~~**Will you freeze features to build the platform layer** (write API, events, tests)?~~ **Answered:** no freeze, but the platform layer is being built alongside — write API, events, tests. The write endpoints, the test harness, and coverage of the pure money math are in. What remains untested is the server actions themselves, which need a real database to test honestly.
 5. **Is PHP-only, single-user, no-team deliberate** or accidental? It decides whether automation must be tenant-aware from day one. It also decides whether a single `clients.email` is a real limitation or a deliberate one.
 6. **What is the success metric** — hours saved per week, invoices sent on time, or data captured without touch?
 
@@ -242,10 +242,10 @@ The failure mode this closes is the one that matters for money and calendars: a 
 |---|---|
 | `bun test` + `tsconfig.test.json` | The runner ships with Bun, so no new test framework. `bun-types` was added only so the tests type-check. The main tsconfig now excludes `test/`, so `next build` does not try to compile it. |
 | `test/fake-supabase.ts` | A hand-written stand-in for supabase-js. No module mocking and no network. |
-| 3 smoke tests | API input validation and the idempotency outcomes (run, replay, conflict, in-progress) plus the `Idempotency-Key` length limit. |
+| 3 smoke tests | API input validation and the idempotency outcomes (run, replay, conflict, in-progress) plus the `Idempotency-Key` length limit. The suite has since grown to 50 — see the app-side idempotency and money-path test entries below. |
 | CI | `typecheck`, `test:types` and `bun test` now run before the build. |
 
-This closes "zero test files" and nothing more. The money paths this audit actually worries about — invoice math, payments, the timer — are still untested, as are the app's own server actions.
+This closes "zero test files" and nothing more. The money paths this audit actually worries about — invoice math, payments, the timer — have since been covered at the pure-function level, though the server actions themselves remain untested.
 
 What made this cheap is a decision from phase 2: `createClientRecord`, `scheduleCall` and `withIdempotency` take their supabase client as a *parameter*. That was done to share rules with the server actions; it also means the tests need no module mocking. The harness is the enabling change — the coverage is the remaining work.
 
@@ -265,6 +265,52 @@ What made this cheap is a decision from phase 2: `createClientRecord`, `schedule
 | Order alignment | The project page, `/focus`, and the timer's task dropdown now read the same order — the dropdown sorts the flat list by phase position then task position to mirror how the page groups them. |
 
 Rename was the correction testers would hit fastest ("I typo'd a task name and can't fix it"); reorder rides on the same controls. Deliberately up/down buttons, not drag-and-drop — no new dependency, keyboard-accessible, and consistent with the existing select/button vocabulary.
+
+### App-side idempotency (branch `feat/app-idempotency`)
+
+| Change | Notes |
+|---|---|
+| `form_submissions` | Migration `20261017170000`. The mirror of `idempotency_keys` for the app, and deliberately the *opposite* RLS model: that table is deny-all so only the service-role client reaches it, while this one is `auth.uid() = user_id`, because server actions have a session and no service role. The unique `(user_id, key)` constraint is what actually serialises a double-submit. |
+| `lib/form-idempotency.ts` | `claimFormSubmission` / `storeFormResponse` / `releaseFormClaim`. Three explicit steps rather than a wrapper, because `createInvoice` ends in `redirect()` — which throws `NEXT_REDIRECT` and must stay outside any try/catch, so a wrapper that caught everything would swallow it. |
+| `lib/use-submission-key.ts` | Mints the key client-side and rotates it after each success. |
+| `addPayment` / `createInvoice` | Claim before writing, replay the stored result on a resubmit, release the claim on every failure path. `createInvoice`'s replay redirects to the invoice the first attempt created. |
+
+The two money paths were not equally exposed, and the difference is worth recording: `addPayment` had **no guard at all**, so a resubmit wrote a second row and double-counted the money. `createInvoice` had *accidental* partial protection — line 84 only collects entries whose `invoice_id` is still null, so tracked time was already safe — but **manual lines were not**: a resubmit minted a second invoice containing them, and with no manual lines the user got the baffling "Add at least one line" error on a form they had clearly filled in.
+
+Two constraints shaped the key, and both were found by reading the code rather than assuming:
+
+- **It must rotate after every success.** `PaymentForm` is rendered *inline* on the invoice page (`invoices/[id]/page.tsx:149`) and stays mounted — it is not in a dialog. A "one key per mount" rule would let payment #1 consume the key and then silently swallow payment #2 as a duplicate: a real money loss, not a cosmetic bug.
+- **It cannot be deterministic.** `useId()`-style ids survive a page reload, so payment #2 after a reload would collide with payment #1. The key is a `crypto.randomUUID()` minted in an effect, which also keeps it out of SSR and avoids a hydration mismatch. Until that effect runs the key is empty, and the server treats an empty key as "no key": the mutation simply runs.
+
+Scope is **resubmits only** — double-click, back button, network retry. A second browser tab has its own key, so it is not covered; that case needs time entries locked when the new-invoice form opens, with expiry and stale-lock UX, and is better taken as its own batch. On a replay the user sees the **same success as the original** ("Payment recorded.", or a redirect to the same invoice) rather than an "already recorded" notice: they clicked once and exactly one payment exists, so warning them would be noise.
+
+### Money-path tests (branch `test/money-paths`)
+
+| Change | Notes |
+|---|---|
+| `test/tax-simple.test.ts` | `round2`, `coerceTaxes`, `taxLines`, `taxTotal`. |
+| `test/timer-simple.test.ts` | `timerElapsedSeconds`, `formatElapsed`. |
+| `test/format-simple.test.ts` | `decimalHours`, `hoursFromMinutes`, `peso`, `formatPercent`. |
+| `test/money-entry-simple.test.ts` | `money` and `quantity` from `lib/validation`, built on a real `FormData`. |
+
+Suite: 13 → **50 tests**. This closes the audit's "invoice math, payments and the timer are still untested" — for the **pure functions only**. Nothing here drives a server action or touches a database, so the row stays ⚠️ rather than becoming ✅.
+
+Two findings worth recording, both of which came from verifying against real output instead of trusting an intuition about how the code "should" behave:
+
+- **The rounding invariant in `tax.ts` is real and load-bearing.** The comment promises the invoice total always matches the sum of the displayed lines. For subtotal `1.01` with two 33.33% taxes, rounding each line then summing gives **0.68**, while rounding the raw sum gives **0.67**. An invoice whose printed lines did not add up to its printed total would be an obvious credibility problem, so the invariant is now pinned rather than assumed.
+- **`addPayment` re-implements `money()` inline.** `lib/validation.ts` already exports a `money()` parser doing exactly the same `₱`/comma/leading-`p` stripping that `app/(app)/invoices/actions.ts:564` copies by hand. The two disagree narrowly — `money()` rejects negatives and accepts `0`; `addPayment` requires `> 0` — so it is duplication, not a defect, and both are now tested. Worth folding `addPayment` onto the shared helper at some point, but that is a production change and did not belong in a test batch.
+
+**Three of the first assertions written were wrong and were corrected against observed behaviour**, which is the whole argument for running tests rather than reasoning about them: `round2(0.065)` rounds *up* to `0.07` (the product is exactly `6.5`), not down to `0.06`; `round2(0.145)` rounds *down* to `0.14` (`14.499999999999998`); `formatPercent(null)` renders `"0%"`, not an em dash. A fourth, `formatElapsed(3_600_000)`, was simply bad arithmetic on my part — that is 1000 hours, not 100.
+
+### Password reset (branch `feat/password-reset`)
+
+| Change | Notes |
+|---|---|
+| `app/forgot-password/` | Server action calls `resetPasswordForEmail` with `redirectTo: /auth/callback?next=/reset-password`. Success answers the same whether or not the account exists — a different message would let anyone probe which emails have WorkSprout accounts — with rate-limit as the one error that is reported honestly. |
+| `app/auth/callback/route.ts` | Exchanges the emailed PKCE `code` for a real session (without it `/reset-password` has no session to act on), only ever redirects to an in-app path, and sends a bad/expired code to `?expired=1` instead of a dead end. |
+| `app/reset-password/` + login link | The in-app new-password form, and the "Forgot password?" entry point the audit's ❌ pointed at. |
+
+Rides Supabase's auth email service, so it is independent of the app's Resend config — the two email paths stay separate. **Operational gate:** `https://<site>/auth/callback` must be in Dashboard → Authentication → URL Configuration → Redirect URLs, or the emailed link lands on the Site URL and the flow breaks there.
 
 ### Audit corrections
 

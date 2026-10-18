@@ -86,6 +86,14 @@ export function LoginForm() {
                 {showPassword ? 'Hide' : 'Show'}
               </button>
             </div>
+            <p className="mt-1.5 text-right text-sm">
+              <Link
+                href="/forgot-password"
+                className={`rounded font-medium text-[#1F6B52] hover:underline ${focus}`}
+              >
+                Forgot password?
+              </Link>
+            </p>
           </div>
         </div>
 
