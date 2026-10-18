@@ -8,6 +8,7 @@ import type { FormState } from '@/lib/validation'
 import { taxLines, type Tax } from '@/lib/tax'
 import { alertError, btnSecondary, card, focus, input } from '@/lib/ui'
 import { decimalHours, formatPercent, nowDateInput, peso } from '@/lib/format'
+import { useSubmissionKey } from '@/lib/use-submission-key'
 import { display } from '@/lib/fonts'
 
 export type UnbilledGroup = {
@@ -46,6 +47,9 @@ export function InvoiceBuilder({
   initialProjectId?: string
 }) {
   const [state, formAction] = useActionState(action, {})
+  // createInvoice redirects away on success, so the form unmounts and rotation
+  // never fires here — but sharing the hook keeps one mechanism, not two.
+  const submissionKey = useSubmissionKey(false)
   const [clientId, setClientId] = useState(initialClientId ?? clients[0]?.id ?? '')
   const [projectId, setProjectId] = useState(initialProjectId ?? '')
   const [selected, setSelected] = useState<Record<string, boolean>>(() =>
@@ -126,6 +130,7 @@ export function InvoiceBuilder({
   return (
     <form action={formAction} className="space-y-6">
       <input type="hidden" name="lines" value={payload} />
+      <input type="hidden" name="submission_key" value={submissionKey} />
 
       <section className={`${card} space-y-5 p-6`}>
         <div className="grid gap-5 sm:grid-cols-2">

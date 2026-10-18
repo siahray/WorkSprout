@@ -3,6 +3,7 @@
 import { revalidatePath } from 'next/cache'
 import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
+import { claimFormSubmission, releaseFormClaim, storeFormResponse } from '@/lib/form-idempotency'
 import { attachmentPathsForParent, removeAttachmentObjects } from '@/lib/attachments-server'
 import { decimalHours } from '@/lib/format'
 import { coerceTaxes, round2, taxTotal } from '@/lib/tax'
@@ -161,9 +162,35 @@ export async function createInvoice(_prev: FormState, formData: FormData): Promi
 
   if (items.length === 0) return { error: 'Add at least one line with an amount before saving.' }
 
+  const submissionKey = text(formData, 'submission_key')
+
   const subtotal = round2(items.reduce((sum, i) => sum + round2(i.quantity * i.unit_rate), 0))
   const taxAmount = taxTotal(subtotal, taxes)
   const total = round2(subtotal + taxAmount)
+
+  // Claimed only once every check has passed, so a validation error never
+  // burns the key — the form stays usable for a corrected resubmit.
+  //
+  // Time lines were already self-protecting (an entry with an invoice_id is
+  // skipped above), but manual lines were not: a resubmit used to mint a second
+  // invoice containing them, or — with none — report the baffling "Add at
+  // least one line" on a form the user clearly filled in.
+  const claim = await claimFormSubmission(supabase, userId, submissionKey)
+  if (claim.kind === 'in_progress') {
+    return { error: 'That invoice is still being saved — give it a moment, then reload.' }
+  }
+  // A replay redirects to the invoice the first attempt created, so the person
+  // lands where they expected instead of being told off for clicking twice.
+  if (claim.kind === 'replay') {
+    const replayed = claim.response as { invoiceId?: string }
+    if (replayed?.invoiceId) {
+      revalidatePath('/invoices')
+      revalidatePath('/time')
+      revalidatePath('/dashboard')
+      redirect(`/invoices/${replayed.invoiceId}`)
+    }
+    return { error: 'That invoice was already created — reload the page to see it.' }
+  }
 
   // --- Number: INV-0001, retrying if two people collide.
   const { count } = await supabase.from('invoices').select('id', { count: 'exact', head: true })
@@ -195,12 +222,16 @@ export async function createInvoice(_prev: FormState, formData: FormData): Promi
     if (error) {
       if (error.code === '23505') continue
       console.error('create invoice failed:', error.message)
+      await releaseFormClaim(supabase, userId, submissionKey)
       return { error: 'Could not save the invoice — please try again.' }
     }
     invoiceId = invoice!.id
   }
 
-  if (!invoiceId) return { error: 'Could not allocate an invoice number — please try again.' }
+  if (!invoiceId) {
+    await releaseFormClaim(supabase, userId, submissionKey)
+    return { error: 'Could not allocate an invoice number — please try again.' }
+  }
 
   const { error: itemsError } = await supabase
     .from('invoice_items')
@@ -209,6 +240,7 @@ export async function createInvoice(_prev: FormState, formData: FormData): Promi
   if (itemsError) {
     console.error('create invoice items failed:', itemsError.message)
     await supabase.from('invoices').delete().eq('id', invoiceId)
+    await releaseFormClaim(supabase, userId, submissionKey)
     return { error: 'Could not save the invoice lines — please try again.' }
   }
 
@@ -219,6 +251,8 @@ export async function createInvoice(_prev: FormState, formData: FormData): Promi
       .in('id', linkedEntryIds)
     if (linkError) console.error('link time entries failed:', linkError.message)
   }
+
+  await storeFormResponse(supabase, userId, submissionKey, { invoiceId })
 
   revalidatePath('/invoices')
   revalidatePath('/time')
@@ -522,6 +556,7 @@ export async function addPayment(_prev: FormState, formData: FormData): Promise<
   const paidAt = text(formData, 'paid_at')
   const method = optionalText(formData, 'method')
   const note = optionalText(formData, 'note')
+  const submissionKey = text(formData, 'submission_key')
 
   if (!isUuid(invoiceId)) return { error: 'That invoice could not be found.' }
   if (!DATE_RE.test(paidAt)) return { error: 'Enter a valid payment date.' }
@@ -535,9 +570,23 @@ export async function addPayment(_prev: FormState, formData: FormData): Promise<
   const userId = claimsData?.claims?.sub
   if (!userId) return { error: 'Your session expired — sign in again.' }
 
+  // A resubmit (double-click, back button, network retry) carries the same key
+  // and must not write a second row — the money would double-count.
+  const claim = await claimFormSubmission(supabase, userId, submissionKey)
+  if (claim.kind === 'replay') return claim.response as FormState
+  if (claim.kind === 'in_progress') {
+    return { error: 'That payment is still being saved — give it a moment, then reload.' }
+  }
+
   const { data: invoice } = await supabase.from('invoices').select('status').eq('id', invoiceId).maybeSingle()
-  if (!invoice) return { error: 'That invoice could not be found.' }
-  if (invoice.status === 'void') return { error: 'You cannot record a payment against a void invoice.' }
+  if (!invoice) {
+    await releaseFormClaim(supabase, userId, submissionKey)
+    return { error: 'That invoice could not be found.' }
+  }
+  if (invoice.status === 'void') {
+    await releaseFormClaim(supabase, userId, submissionKey)
+    return { error: 'You cannot record a payment against a void invoice.' }
+  }
 
   const { error } = await supabase.from('payments').insert({
     user_id: userId,
@@ -550,13 +599,18 @@ export async function addPayment(_prev: FormState, formData: FormData): Promise<
 
   if (error) {
     console.error('add payment failed:', error.message)
+    // Hand the key back so the form can be corrected and tried again.
+    await releaseFormClaim(supabase, userId, submissionKey)
     return { error: 'Could not record the payment — please try again.' }
   }
+
+  const result: FormState = { ok: 'Payment recorded.' }
+  await storeFormResponse(supabase, userId, submissionKey, result)
 
   revalidatePath(`/invoices/${invoiceId}`)
   revalidatePath('/invoices')
   revalidatePath('/dashboard')
-  return { ok: 'Payment recorded.' }
+  return result
 }
 
 export async function updatePayment(_prev: FormState, formData: FormData): Promise<FormState> {
