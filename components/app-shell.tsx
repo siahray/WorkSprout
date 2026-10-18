@@ -3,6 +3,7 @@ import type { ReactNode } from 'react'
 import { body } from '@/lib/fonts'
 import { Logo } from '@/components/logo'
 import { NavLinks } from '@/components/nav-links'
+import { PageTransition } from '@/components/page-transition'
 import { ActiveTimer, type ActiveTimerInfo } from '@/components/active-timer'
 import { TimerSync } from '@/components/timer-sync'
 import { logout } from '@/app/(app)/actions'
@@ -86,7 +87,7 @@ export function AppShell({
           </header>
 
           <main className="mx-auto w-full max-w-7xl flex-1 px-4 py-8 sm:px-6 lg:px-10 print:max-w-none print:p-0">
-            {children}
+            <PageTransition>{children}</PageTransition>
           </main>
         </div>
       </div>

@@ -1,5 +1,6 @@
 'use client'
 
+import { useState } from 'react'
 import { ActionButton } from '@/components/ui/action-button'
 import { ConfirmAction } from '@/components/ui/confirm-action'
 import type { FormState } from '@/lib/validation'
@@ -22,8 +23,15 @@ export function TodoItem({
 }) {
   const done = Boolean(todo.completed_at)
 
+  // The check only pops for a tick the *person* made. Keyed purely off `done`,
+  // every already-completed to-do would pop at once on page load — motion
+  // nobody asked for. `armed` is set by the click that started the change, so
+  // the pop lands when the server's `done` arrives (arming on click rather
+  // than diffing `done` also means ticking and unticking can't be confused).
+  const [armed, setArmed] = useState(false)
+
   return (
-    <li className="flex items-center gap-3 py-2.5">
+    <li className="flex items-center gap-3 py-2.5" onClick={() => setArmed(!done)}>
       <ActionButton
         action={toggleAction}
         id={todo.id}
@@ -35,7 +43,13 @@ export function TodoItem({
         }`}
       >
         <span className="sr-only">{done ? 'Mark as not done' : 'Mark as done'}</span>
-        {done ? '✓' : '○'}
+        <span
+          className={armed && done ? 'animate-pop' : undefined}
+          onAnimationEnd={() => setArmed(false)}
+          aria-hidden="true"
+        >
+          {done ? '✓' : '○'}
+        </span>
       </ActionButton>
 
       <span

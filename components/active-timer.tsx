@@ -30,7 +30,7 @@ export function ActiveTimer({ active }: { active: ActiveTimerInfo | null }) {
 
   return (
     <div
-      className={`flex items-center gap-2 rounded-full border py-1 pl-3 pr-1 ${
+      className={`animate-rise-in flex items-center gap-2 rounded-full border py-1 pl-3 pr-1 ${
         paused ? 'border-[#F4B63F]/40 bg-[#F4B63F]/15' : 'border-[#2E9E6B]/30 bg-[#2E9E6B]/10'
       }`}
     >
