@@ -199,10 +199,14 @@ export default async function FocusPage({
       supabase
         .from('tasks')
         .select('id, title, status, project_id, phase_id')
+        // Matches the project page: position is scoped per (project, phase), so
+        // cross-group ties fall back to created_at and each group stays ordered.
+        .order('position', { ascending: true })
         .order('created_at', { ascending: true }),
       supabase
         .from('subtasks')
         .select('id, title, status, project_id, parent_task_id')
+        .order('position', { ascending: true })
         .order('created_at', { ascending: true }),
       supabase.from('clients').select('id, name').order('name', { ascending: true }),
       supabase

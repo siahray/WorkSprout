@@ -1,7 +1,7 @@
 # WorkSprout — Feature Audit & Automation Readiness
 
-**Date:** 17 October 2026
-**Branches:** `feat/correction-paths`, `feat/integration-api`, `fix/codeql-configuration` — all pushed, none merged.
+**Date:** 18 October 2026
+**Branches:** PRs #18–#22 merged. Open: `feat/animations`, `feat/app-idempotency`, `test/money-paths`, `feat/password-reset`, `feat/rename-reorder`.
 **Method:** static inventory of `app/**` routes, server actions, route handlers, `supabase/migrations/*.sql`, database functions and triggers, and CI workflows. No runtime walkthrough.
 
 Legend: ✅ built · ⚠️ partial · ❌ absent
@@ -22,9 +22,9 @@ The app was complete on Create / Read / Delete and weak on Update. The Update co
 | **Invoices** | ✅ | ✅ | ✅ draft only | draft only |
 | Invoice items | via invoice | ✅ | ✅ via invoice | ✅ via invoice |
 | Payments | ✅ | ✅ | ✅ | ✅ |
-| Phases | ✅ | ✅ | ❌ | ✅ |
-| Tasks | ✅ | ✅ | status only | ✅ |
-| Subtasks | ✅ | ✅ | status only | ✅ |
+| Phases | ✅ | ✅ | ✅ rename | ✅ |
+| Tasks | ✅ | ✅ | ✅ rename + status | ✅ |
+| Subtasks | ✅ | ✅ | ✅ rename + status | ✅ |
 | Time entries | ✅ | ✅ | manual only | ✅ |
 | Calls | ✅ | ✅ | status only | ✅ |
 | Todos | ✅ | ✅ | toggle only | ✅ |
@@ -70,7 +70,7 @@ The event log follows it: `events` is written by an `after insert or update or d
 
 ### Projects
 - ✅ CRUD, hourly + fixed rates, statuses, phases, tasks, subtasks, progress
-- ❌ Rename/reorder tasks, phases, subtasks
+- ✅ Rename and reorder phases, tasks, subtasks — inline rename on the project page; up/down reorder scoped to each phase (or Unassigned), parent task, or project. `tasks` and `subtasks` gained a `position` column (`20261018120000`, backfilled from `created_at` so nothing visibly moved); `phases` already had one.
 - ❌ Templates, duplication, per-task rate or estimate
 - ❌ Budget vs actual burn
 
@@ -173,7 +173,7 @@ Ordered by dependency, not preference.
 | Module | Actions |
 |---|---|
 | Clients | `createClient`, `updateClient`, `deleteClient` |
-| Projects | `createProject`, `updateProject`, `deleteProject`, `addPhase`, `deletePhase`, `addTask`, `setTaskStatus`, `deleteTask`, `addSubtask`, `setSubtaskStatus`, `deleteSubtask` |
+| Projects | `createProject`, `updateProject`, `deleteProject`, `addPhase`, `updatePhase`, `movePhase`, `deletePhase`, `addTask`, `updateTask`, `moveTask`, `setTaskStatus`, `deleteTask`, `addSubtask`, `updateSubtask`, `moveSubtask`, `setSubtaskStatus`, `deleteSubtask` |
 | Time | `startTimer`, `pauseTimer`, `resumeTimer`, `stopTimer`, `addManualEntry`, `updateManualEntry`, `deleteTimeEntry` |
 | Invoices | `createInvoice`, `updateInvoice`, `sendInvoice`, `markInvoiceSent`, `voidInvoice`, `deleteInvoice`, `addPayment`, `updatePayment`, `deletePayment` |
 | Expenses | `createExpense`, `updateExpense`, `deleteExpense` |
@@ -254,6 +254,17 @@ What made this cheap is a decision from phase 2: `createClientRecord`, `schedule
 | Change | Notes |
 |---|---|
 | CodeQL language identifier | `languages: javascript, typescript` → `javascript-typescript`, plus an explicit `category`. TypeScript is analysed by the JavaScript extractor; the legacy and combined names are treated as *different* configurations, which made the "Code scanning results" check report "1 configuration not found" and fail every PR. |
+
+### Rename & reorder (branch `feat/rename-reorder`)
+
+| Change | Notes |
+|---|---|
+| `updatePhase`, `updateTask`, `updateSubtask` | Inline rename on the project page — the title is a button until clicked, then a focused input; Enter/blur saves, Escape cancels. Each update verifies the row landed via `.select()` (same pattern as `updateExpense`), so a deleted-elsewhere row errors instead of reporting a false success. Closes the last CRUD gap: Phases Update. |
+| `movePhase`, `moveTask`, `moveSubtask` | Up/down reorder. Siblings are read in page order, the pair swaps, and `writeOrder` rewrites only the rows whose position changed — reporting a failure rather than claiming success. Scope matches the UI: project for phases, (project, phase) with null phase as its own bucket for tasks, parent for subtasks. |
+| Migration `20261018120000` | `tasks` and `subtasks` had no `position` column (phases did) — they were listed by `created_at`. Both gained one, backfilled by `row_number()` over the existing `created_at` order so nothing visibly moved, plus indexes for the ordered reads. `addTask`/`addSubtask` now append (`max + 1`) into their group like `addPhase` already did. |
+| Order alignment | The project page, `/focus`, and the timer's task dropdown now read the same order — the dropdown sorts the flat list by phase position then task position to mirror how the page groups them. |
+
+Rename was the correction testers would hit fastest ("I typo'd a task name and can't fix it"); reorder rides on the same controls. Deliberately up/down buttons, not drag-and-drop — no new dependency, keyboard-accessible, and consistent with the existing select/button vocabulary.
 
 ### Audit corrections
 
