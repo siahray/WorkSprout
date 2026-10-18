@@ -18,16 +18,19 @@
   /* Motion. One easing for things arriving, one slightly springy for things
      that confirm. Keeping these in the theme means a duration can never drift
      from one component to the next. */
-  --animate-page-in: page-in 260ms cubic-bezier(0.22, 1, 0.36, 1) both;
+  --animate-page-in: page-in 300ms cubic-bezier(0.22, 1, 0.36, 1) both;
   --animate-rise-in: rise-in 220ms cubic-bezier(0.22, 1, 0.36, 1) both;
   --animate-bar-in: bar-in 240ms cubic-bezier(0.22, 1, 0.36, 1) both;
   --animate-pop: pop 280ms cubic-bezier(0.34, 1.4, 0.64, 1) both;
 }
 
+/* Horizontal, not vertical: a rise reads as "content loaded", a slide reads as
+   "I went somewhere". Small enough not to induce motion sickness, large enough
+   to register as travel. */
 @keyframes page-in {
   from {
     opacity: 0;
-    transform: translateY(6px);
+    transform: translateX(14px);
   }
   to {
     opacity: 1;
