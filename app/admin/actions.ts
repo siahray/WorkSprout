@@ -11,9 +11,9 @@ export type InviteState = { error?: string; ok?: string; email?: string }
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
 
-// Admin-only: email a one-time OTP that lets an invited person create their
-// account. The client here is session-less so sending the OTP never disturbs
-// the signed-in admin's own session.
+// Admin-only: email a link that lets an invited person set their own password.
+// The client here is session-less so sending the invite never disturbs the
+// signed-in admin's own session.
 export async function sendInvite(_prevState: InviteState, formData: FormData): Promise<InviteState> {
   const email = String(formData.get('email') ?? '').trim().toLowerCase()
 
@@ -47,7 +47,15 @@ export async function sendInvite(_prevState: InviteState, formData: FormData): P
   const h = await headers()
   const host = h.get('host')
   const proto = h.get('x-forwarded-proto') ?? 'http'
-  const emailRedirectTo = host ? `${proto}://${host}/signup?email=${encodeURIComponent(email)}` : undefined
+  // The invite email carries a link and nothing else — no template here fills
+  // `{{ .Token }}`, and the free tier will not let us add one — so the link has
+  // to be the way in: /auth/confirm turns it into a session and hands the
+  // invitee to the set-password form. If the host is not in Supabase's redirect
+  // allow-list (localhost included, measured) the session lands on the site
+  // root instead, which AuthLinkCatcher picks up.
+  const emailRedirectTo = host
+    ? `${proto}://${host}/auth/confirm?next=/reset-password`
+    : undefined
 
   const auth = createAuthClient()
   const { error } = await auth.auth.signInWithOtp({
