@@ -46,6 +46,23 @@ cron-job.org — all fine) at `https://<site>/api/health`, checking every
 alert; it requires an account on your side and cannot be automated from
 this repo.
 
+## Function region (where server code runs)
+
+Server code runs in **`syd1` (Sydney)**, pinned by `regions` in
+`vercel.json`, because the Supabase project lives in `ap-southeast-2`.
+Vercel's default is `iad1` (Washington, D.C.), and with that default every
+database round trip crossed the Pacific twice — roughly 200 ms each, and a
+single page issues several, which is what made navigation feel like
+seconds. Hobby plans may pin exactly one region; `regions` has to be a
+single entry there.
+
+To check what a request actually used, read the `x-vercel-id` response
+header — it is `<edge>::<function>::<request>`, for example
+`sin1::syd1::…` for an edge in Singapore and a function in Sydney. If the
+middle value is `iad1`, the deployment predates this setting (or the file
+was removed). If you ever move the database, this is the setting to move
+with it.
+
 ## Error tracking (Sentry — extension point, not wired)
 
 Structured logs cover diagnosis; they do not *push* alerts when a new error
