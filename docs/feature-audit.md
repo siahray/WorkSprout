@@ -1,7 +1,7 @@
 # WorkSprout — Feature Audit & Automation Readiness
 
 **Date:** 19 October 2026
-**Branches:** PRs #18–#33 merged. No open branches.
+**Branches:** none open — all merged work is on `main`.
 **Method:** static inventory of `app/**` routes, server actions, route handlers, `supabase/migrations/*.sql`, database functions and triggers, and CI workflows. No runtime walkthrough.
 
 Legend: ✅ built · ⚠️ partial · ❌ absent
@@ -78,7 +78,7 @@ The event log follows it: `events` is written by an `after insert or update or d
 - ✅ Live timer with pause/resume, manual entries, edit/delete
 - ✅ Editing timer-generated entries — the same `update_manual_entry` path handles them; it only requires a stopped, unbilled entry. (An earlier version of this audit marked this ❌ by inferring from the function's name rather than reading its SQL.)
 - ❌ Approval/lock, rounding rules, billable/non-billable flag beyond project
-- ❌ Timesheet view by week/month, export
+- ✅ Timesheet view by week/month + export — `?view=timesheet&period=week|month&start=` on `/time` renders projects as rows against Manila-day columns with a totals row, a billable/non-billable footer, and prev/next period browsing that never leaves the current period; the same matrix exports as CSV, and the list view exports its filtered entries too.
 
 ### Invoices
 - ✅ Build from unbilled time + manual lines, multi-tax, numbering, PDF, email, public link, payments, void, statuses
@@ -94,7 +94,7 @@ The event log follows it: `events` is written by an `after insert or update or d
 - ✅ Receipt attachment — each expense row opens a receipts panel (upload, signed-URL preview, removal)
 - ❌ Recurring/subscription expenses
 - ❌ Mileage, reimbursable flag, vendor field
-- ❌ Export (CSV / accounting)
+- ⚠️ Export (CSV / accounting) — CSV export of the full filtered list exists (Export CSV in the page header); accounting-package formats (QBO/OFX) do not.
 
 ### Calls
 - ✅ Scheduling, statuses, email invite with ICS, public page, timezone-correct
@@ -116,12 +116,12 @@ The event log follows it: `events` is written by an `after insert or update or d
 
 ### Reporting
 - ✅ Dashboard KPIs, business health, project margins, admin analytics
-- ❌ Per-client / per-period P&L export, tax reports (BIR), cash-flow view
-- ❌ Any export other than invoice PDF and admin signups CSV
+- ⚠️ Per-client / per-period P&L export, tax reports (BIR), cash-flow view — `/reports` builds P&L (per client + Overhead, with a client filter), monthly cash-flow buckets with in/out bars, and an output-tax summary by rate — each CSV-exportable. BIR pre-filled form generation is still absent (needs requirements).
+- ⚠️ Any export other than invoice PDF and admin signups CSV — CSV exports now cover expenses, invoices, time entries, timesheets, and all three reports; still CSV-only (no XLSX, QBO/OFX).
 
 ### Platform / ops
 - ✅ RLS on user tables, `updated_at` triggers, admin audit log, four CI workflows (build, ZAP, CodeQL, migration drift)
-- ⚠️ **Tests of any kind** — a `bun test` harness now exists (see the changelog) with 70 tests, covering the API layer, the form-idempotency helper, the drift summariser and log formatter, and the pure money paths: tax math, timer elapsed, money parsing, formatting. Still nothing exercises the server actions end-to-end or asserts against a real database.
+- ⚠️ **Tests of any kind** — a `bun test` harness now exists (see the changelog) with 101 tests, covering the API layer, the form-idempotency helper, the drift summariser and log formatter, the pure money paths (tax math, timer elapsed, money parsing, formatting), plus the CSV, period, and report builders behind the exports. Still nothing exercises the server actions end-to-end or asserts against a real database.
 - ✅ CI runs a real test step (was: nothing to run)
 - ❌ Rate limiting (deferred with the dormant API layer)
 - ⚠️ Pagination — invoices, expenses, and time entries fetch 50 rows per page with a Previous/Next footer, and an out-of-range `?page=` redirects to the last real page. The bounded workspace lists (clients, projects) and every picker still load in full by design.
@@ -140,7 +140,7 @@ Ordered by dependency, not preference.
 2. **An authenticated API surface** — ⚠️ **partly done.** `api_keys` authenticate `/api/v1`; the event feed is readable and clients and appointments can be created. Missing: update/delete, and create for projects, time, expenses and invoices. Target: `openapi/work-sprout.v1.yaml`.
 3. ~~**Idempotency**~~ **Done for both surfaces.** The API (`Idempotency-Key`, replayed from `idempotency_keys`) was the urgent case, because a machine retries where a person does not. The app's own money mutations are now covered too: `addPayment` and `createInvoice` carry a per-form `submission_key` checked against `form_submissions`, so a resubmit replays the first result rather than double-writing.
 4. ~~**Event/outbox table** — one `events` table written in the same transaction as mutations.~~ **Done** — `events`, written by triggers, which is a true outbox. It gives a *pull* feed; **push webhooks are not built** and would need a delivery worker plus a scheduler.
-5. **A test harness** — ⚠️ **well started.** `bun test` is wired up and runs in CI, with a fake supabase client. 70 tests now cover API validation, API idempotency, the form-idempotency helper, the drift summariser and log formatter, and the pure money paths the audit worried about — tax math, timer elapsed, money parsing, formatting. What is still missing is integration-level coverage: no test drives a server action end-to-end or asserts against a real database.
+5. **A test harness** — ⚠️ **well started.** `bun test` is wired up and runs in CI, with a fake supabase client. 101 tests now cover API validation, API idempotency, the form-idempotency helper, the drift summariser and log formatter, and the pure money paths the audit worried about — tax math, timer elapsed, money parsing, formatting — plus the CSV, period, and report builders behind this batch's exports. What is still missing is integration-level coverage: no test drives a server action end-to-end or asserts against a real database.
 6. **Then** recurring invoices, dunning, reminders — consumers of step 4.
 
 ---
@@ -158,7 +158,7 @@ Ordered by dependency, not preference.
 
 ## Appendix — Evidence
 
-**Route handlers (9)**
+**Route handlers (13)**
 
 | Path | Purpose |
 |---|---|
@@ -171,6 +171,10 @@ Ordered by dependency, not preference.
 | `app/api/v1/me/route.ts` | integration API — verify an API key |
 | `app/api/v1/clients/route.ts` | integration API — create a client |
 | `app/api/v1/calls/route.ts` | integration API — book an appointment |
+| `app/(app)/expenses/export/route.ts` | session-gated expenses CSV (honours `?q=`) |
+| `app/(app)/invoices/export/route.ts` | session-gated invoices CSV (honours `?q=`) |
+| `app/(app)/time/export/route.ts` | time entries + timesheet matrix CSV |
+| `app/(app)/reports/export/route.ts` | P&L / cash-flow / tax CSV for a range |
 
 **Server actions by module**
 
@@ -370,6 +374,21 @@ Archiving does not cascade: projects, invoices, time, and expenses are untouched
 Suite: 58 → **70 tests**. Test counts quoted elsewhere in the audit were stale at 50 (the pagination batch had taken it to 58) and are refreshed.
 
 Two corrections to earlier assumptions, both from running things instead of trusting memory: `supabase db dump` **requires Docker/Podman** (it failed here with `docker: command not found`; `migration list`/`db push` do not need Docker, but `db dump` does) — the runbook documents both the Docker and the libpq path as a result. And the CLI's credentials live in the macOS keychain, which is exactly why CI must receive `SUPABASE_ACCESS_TOKEN` as a secret rather than inheriting anything local.
+
+### Exports & reporting (branch `feat/exports-reporting`)
+
+| Change | Notes |
+|---|---|
+| `lib/csv.ts` | `csvCell` / `toCsv` (RFC 4180 quoting, plain decimal numbers, null → empty cell) plus the dated `text/csv` attachment headers, shared by every export route — the admin signups export dropped its local copy for this one. Pinned by `test/csv-simple.test.ts`. |
+| `lib/period.ts` | Day arithmetic on `YYYY-MM-DD` strings: ISO-week starts, month bounds, inclusive day lists, Manila-day bucketing of timestamps, `resolveRange` (validates `?from=`/`?to=`, caps the span at 24 month buckets) and `resolvePeriodRange` (timesheet windows — a malformed or future `?start=` collapses to the period containing today). Replaces the `monthKey`/`monthLabel` copy the expenses page carried. `test/period-simple.test.ts`. |
+| `lib/reports.ts` | Pure builders: `buildTimesheet` (entries → project × day minute matrix, rows sorted by hours), `buildPnl` (income per client, expenses attributed through their project, an Overhead row for the rest; rows always foot to the totals because `invoices.client_id` is `NOT NULL ON DELETE RESTRICT` and archived clients stay in the query), `buildCashflow` (monthly in/out buckets over the range), and `summarizeTaxes` (output tax grouped by each invoice's snapshotted label+rate, footing to the stored `tax_amount`). `test/reports-simple.test.ts`. |
+| `lib/export.ts` | `fetchAll` walks PostgREST in 1000-row pages until a short page says the data has run out; a query error or the 50 000-row safety stop returns null so the route answers 500 instead of shipping a truncated file. Tested against stub pages. |
+| Four export routes | `/expenses/export`, `/invoices/export`, `/time/export`, `/reports/export` — session-gated via `getClaims` (401 without one, verified live against `next start`), honouring the list's current `?q=` / `?project=` filter. The report route runs the same loader and builders as the page, so the file cannot drift from the screen. |
+| Timesheet view | `?view=timesheet&period=week|month&start=` on `/time`: projects as rows × Manila-day columns, totals row, billable/non-billable footer, prev/next period links that never navigate past the current period, and a List/Timesheet toggle that carries the project filter. Range bounds are fetched as fixed `+08:00` instants so the matrix buckets exactly what the query fetched. |
+| `/reports` | P&L cards + per-client breakdown, a monthly cash-flow table with shared-scale in/out bars (no chart library — none is installed), and an output-tax summary by rate with a footnote saying plainly that BIR form generation is not built. Preset range links, `from`/`to`/client filters, per-section CSV exports. A query failure renders an explicit error card rather than a table of zeroes — a failed report must not read as "no activity". |
+| Nav | "Reports" link between Expenses and Settings. |
+
+Suite: 70 → **101 tests**. Three audit lines move to ⚠️ rather than ✅ on purpose: accounting-package export formats (QBO/OFX) do not exist, BIR pre-filled forms cannot be claimed without requirements, and everything new is CSV-only.
 
 
 
