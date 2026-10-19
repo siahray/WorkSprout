@@ -13,10 +13,10 @@ export const metadata: Metadata = {
 
 function StatusBadge({ status }: { status: string }) {
   const tones: Record<string, string> = {
-    sent: 'bg-[#2E9E6B]/12 text-[#1F6B52]',
-    partial: 'bg-[#F4B63F]/30 text-[#8a5a00]',
-    failed: 'bg-red-100 text-red-700',
-    not_configured: 'bg-[#0E2F27]/8 text-[#0E2F27]/70',
+    sent: 'bg-sprout/12 text-sprout-deep',
+    partial: 'bg-mango/30 text-mango-deep',
+    failed: 'bg-danger-wash text-danger',
+    not_configured: 'bg-ink/8 text-ink-2',
   }
   const labels: Record<string, string> = {
     sent: 'Sent',
@@ -57,7 +57,7 @@ export default async function AdminBroadcastPage() {
       />
 
       {!configured && (
-        <div className="mb-6 rounded-xl border border-[#F4B63F]/40 bg-[#F4B63F]/12 px-4 py-3 text-sm text-[#7a5200]">
+        <div className="mb-6 rounded-control border border-mango/40 bg-mango/12 px-4 py-3 text-sm text-mango-deep">
           Email is not configured yet. Set <code className="font-semibold">RESEND_API_KEY</code> and{' '}
           <code className="font-semibold">EMAIL_FROM</code> in the environment to enable sending. Broadcasts
           attempted before then are recorded as “not configured”.
@@ -75,7 +75,7 @@ export default async function AdminBroadcastPage() {
       <h2 className="mt-10 text-lg font-bold tracking-tight">Recent broadcasts</h2>
       <div className={`${card} mt-3 overflow-hidden`}>
         {history.length === 0 ? (
-          <p className="p-10 text-center text-[#0E2F27]/60">No broadcasts yet.</p>
+          <p className="p-10 text-center text-ink-2">No broadcasts yet.</p>
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
@@ -88,16 +88,16 @@ export default async function AdminBroadcastPage() {
                   <th className={th}>Status</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-[#0E2F27]/10">
+              <tbody className="divide-y divide-line">
                 {history.map((row) => (
                   <tr key={row.id} className={rowHover}>
-                    <td className="px-5 py-3.5 text-[#0E2F27]/70">{formatDateTime(row.created_at)}</td>
+                    <td className="px-5 py-3.5 text-ink-2">{formatDateTime(row.created_at)}</td>
                     <td className="px-5 py-3.5 font-medium">
                       {row.subject}
-                      {row.error && <span className="mt-0.5 block text-xs text-red-600">{row.error}</span>}
+                      {row.error && <span className="mt-0.5 block text-xs text-danger">{row.error}</span>}
                     </td>
-                    <td className="px-5 py-3.5 text-[#0E2F27]/70">{row.audience}</td>
-                    <td className="px-5 py-3.5 text-right tabular-nums text-[#0E2F27]/70">
+                    <td className="px-5 py-3.5 text-ink-2">{row.audience}</td>
+                    <td className="px-5 py-3.5 text-right tabular-nums text-ink-2">
                       {row.recipient_count}
                     </td>
                     <td className="px-5 py-3.5">

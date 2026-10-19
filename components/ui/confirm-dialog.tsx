@@ -29,7 +29,7 @@ export function ConfirmDialog({
   return (
     <Dialog open={open} onOpenChange={onOpenChange} labelledBy={titleId}>
       <div className="flex flex-col items-center gap-4 p-6">
-        <span className="flex h-12 w-12 items-center justify-center rounded-full bg-red-50">
+        <span className="flex h-12 w-12 items-center justify-center rounded-full bg-danger-wash">
           <svg
             width="22"
             height="22"
@@ -47,10 +47,10 @@ export function ConfirmDialog({
           </svg>
         </span>
         <div className="text-center">
-          <h2 id={titleId} className="text-base font-semibold text-[#0E2F27]">
+          <h2 id={titleId} className="text-base font-semibold text-ink">
             {title}
           </h2>
-          <p className="mt-1 text-sm text-[#0E2F27]/60">{message}</p>
+          <p className="mt-1 text-sm text-ink-2">{message}</p>
         </div>
         <div className="mt-1 flex w-full gap-3">
           <button ref={cancelRef} type="button" className={`${btnSecondary} flex-1`} onClick={() => onOpenChange(false)}>

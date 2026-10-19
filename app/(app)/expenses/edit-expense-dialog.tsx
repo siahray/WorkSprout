@@ -19,7 +19,7 @@ export function EditExpenseDialog({
 
   return (
     <>
-      <button type="button" onClick={() => setOpen(true)} className={`${btnGhost} !px-2.5 !py-1.5 text-xs`}>
+      <button type="button" onClick={() => setOpen(true)} className={`${btnGhost} px-2.5! py-1.5! text-xs`}>
         Edit
       </button>
 

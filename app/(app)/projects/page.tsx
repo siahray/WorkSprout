@@ -93,15 +93,15 @@ export default async function ProjectsPage() {
                 <th className={th}>Status</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-[#0E2F27]/10">
+            <tbody className="divide-y divide-line">
               {projects.map((p) => (
                 <tr key={p.id} className={rowHover}>
                   <td className="px-5 py-3.5">
-                    <Link href={`/projects/${p.id}`} className={`font-semibold text-[#1F6B52] hover:underline ${focus}`}>
+                    <Link href={`/projects/${p.id}`} className={`font-semibold text-sprout-deep hover:underline ${focus}`}>
                       {p.name}
                     </Link>
                   </td>
-                  <td className="px-5 py-3.5 text-[#0E2F27]/75">{p.client?.name ?? '—'}</td>
+                  <td className="px-5 py-3.5 text-ink-2">{p.client?.name ?? '—'}</td>
                   <td className="px-5 py-3.5">
                     <ProgressBar
                       done={tasksByProject.get(p.id)?.done ?? 0}
@@ -109,7 +109,7 @@ export default async function ProjectsPage() {
                       className="w-36"
                     />
                   </td>
-                  <td className="px-5 py-3.5 tabular-nums text-[#0E2F27]/75">{rateLabel(p)}</td>
+                  <td className="px-5 py-3.5 tabular-nums text-ink-2">{rateLabel(p)}</td>
                   <td className="px-5 py-3.5">
                     <StatusBadge status={p.status ?? 'active'} />
                   </td>

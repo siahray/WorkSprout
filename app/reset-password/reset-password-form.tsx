@@ -6,23 +6,18 @@ import { setNewPassword } from './actions'
 import { Logo } from '@/components/logo'
 import { LogoMark } from '@/components/logo-mark'
 import { display } from '@/lib/fonts'
+import { alertError, btnMango, focus, input, label } from '@/lib/ui'
 
-const focus =
-  'focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#2E9E6B]'
-
-const input =
-  'w-full rounded-xl border border-[#0E2F27]/20 bg-white px-4 py-3.5 text-[#0E2F27] placeholder:text-[#0E2F27]/40 transition-colors hover:border-[#0E2F27]/40 ' +
-  focus
 
 // Staggered entrance: each block rises in slightly after the previous one.
 const delay = (n: number) => ({ animationDelay: `${150 + n * 90}ms` })
 
 const LEVELS = [
   { label: '', color: '' },
-  { label: 'Too short', color: '#f87171' },
-  { label: 'Okay', color: '#F4B63F' },
-  { label: 'Good', color: '#2E9E6B' },
-  { label: 'Strong', color: '#1F6B52' },
+  { label: 'Too short', color: 'var(--color-danger)' },
+  { label: 'Okay', color: 'var(--color-mango)' },
+  { label: 'Good', color: 'var(--color-sprout)' },
+  { label: 'Strong', color: 'var(--color-sprout-deep)' },
 ]
 
 function strength(pw: string) {
@@ -48,12 +43,12 @@ export function ResetPasswordForm() {
   return (
     <div className="mx-auto w-full max-w-md px-6">
       <div className="ws-rise mb-8 flex items-center justify-between" style={delay(0)}>
-        <Link href="/" className={`${focus} rounded-lg`}>
+        <Link href="/" className={`${focus} rounded-control`}>
           <Logo />
         </Link>
         <Link
           href="/login"
-          className={`rounded-lg px-2 py-1 text-sm font-medium text-[#0E2F27]/70 hover:text-[#0E2F27] ${focus}`}
+          className={`rounded-control px-2 py-1 text-sm font-medium text-ink-2 hover:text-ink ${focus}`}
         >
           Log in
         </Link>
@@ -62,21 +57,21 @@ export function ResetPasswordForm() {
       <form
         action={formAction}
         aria-busy={pending}
-        className="rounded-2xl border border-[#0E2F27]/12 bg-white p-8 shadow-[0_24px_50px_-28px_rgba(14,47,39,0.45)]"
+        className="rounded-panel border border-line bg-panel p-8 shadow-overlay"
       >
         <div className="ws-rise" style={delay(1)}>
-          <span className="mb-3 inline-block rounded-full bg-[#2E9E6B]/15 px-2.5 py-0.5 text-xs font-semibold text-[#1F6B52]">
+          <span className="mb-3 inline-block rounded-full bg-sprout/15 px-2.5 py-0.5 text-xs font-semibold text-sprout-deep">
             Verified by email
           </span>
           <h1 className={`${display.className} text-3xl font-extrabold tracking-tight`}>Choose a new password</h1>
-          <p className="mt-1.5 text-[#0E2F27]/65">
+          <p className="mt-1.5 text-ink-2">
             You&rsquo;ll use this to log in from now on. Pick something you don&rsquo;t use anywhere else.
           </p>
         </div>
 
         <div className="mt-7 space-y-5">
           <div className="ws-rise" style={delay(2)}>
-            <label htmlFor="password" className="mb-1.5 block text-sm font-semibold">
+            <label htmlFor="password" className={`mb-1.5 ${label}`}>
               New password
             </label>
             <div className="relative">
@@ -97,7 +92,7 @@ export function ResetPasswordForm() {
                 type="button"
                 onClick={() => setShowPassword((v) => !v)}
                 aria-pressed={showPassword}
-                className={`absolute right-2 top-1/2 -translate-y-1/2 rounded-lg px-2.5 py-1.5 text-sm font-semibold text-[#1F6B52] hover:bg-[#1F6B52]/10 ${focus}`}
+                className={`absolute right-2 top-1/2 -translate-y-1/2 rounded-control px-2.5 py-1.5 text-sm font-semibold text-sprout-deep hover:bg-sprout-deep/10 ${focus}`}
               >
                 {showPassword ? 'Hide' : 'Show'}
               </button>
@@ -106,18 +101,18 @@ export function ResetPasswordForm() {
               {[1, 2, 3, 4].map((i) => (
                 <div
                   key={i}
-                  className="h-1.5 flex-1 rounded-full bg-[#0E2F27]/10 transition-colors duration-300 motion-reduce:transition-none"
+                  className="h-1.5 flex-1 rounded-full bg-ink/10 transition-colors duration-300 motion-reduce:transition-none"
                   style={i <= level ? { backgroundColor: LEVELS[level].color } : undefined}
                 />
               ))}
             </div>
-            <p aria-live="polite" className="mt-1.5 h-4 text-xs font-medium text-[#0E2F27]/65">
+            <p aria-live="polite" className="mt-1.5 h-4 text-xs font-medium text-ink-2">
               {level > 0 && `Password strength: ${LEVELS[level].label}`}
             </p>
           </div>
 
           <div className="ws-rise" style={delay(3)}>
-            <label htmlFor="confirm_password" className="mb-1.5 block text-sm font-semibold">
+            <label htmlFor="confirm_password" className={`mb-1.5 ${label}`}>
               Confirm new password
             </label>
             <input
@@ -138,7 +133,7 @@ export function ResetPasswordForm() {
           <p
             key={state.error}
             role="alert"
-            className="ws-shake mt-4 rounded-lg bg-red-50 px-3.5 py-2.5 text-sm font-medium text-red-700"
+            className={`ws-shake mt-4 ${alertError}`}
           >
             {state.error}
           </p>
@@ -148,16 +143,16 @@ export function ResetPasswordForm() {
           <button
             type="submit"
             disabled={pending}
-            className={`mt-6 flex w-full items-center justify-center gap-2.5 rounded-xl bg-[#F4B63F] px-5 py-3.5 text-base font-semibold text-[#0E2F27] transition-colors hover:bg-[#e9a82a] disabled:cursor-wait disabled:opacity-80 ${focus}`}
+            className={`mt-6 w-full ${btnMango}`}
           >
             {pending && <SproutLoader />}
             {pending ? 'Saving password…' : 'Save new password'}
           </button>
         </div>
 
-        <p className="ws-rise mt-6 text-center text-sm text-[#0E2F27]/65" style={delay(5)}>
+        <p className="ws-rise mt-6 text-center text-sm text-ink-2" style={delay(5)}>
           Changed your mind?{' '}
-          <Link href="/login" className={`rounded font-semibold text-[#1F6B52] hover:underline ${focus}`}>
+          <Link href="/login" className={`rounded font-semibold text-sprout-deep hover:underline ${focus}`}>
             Log in
           </Link>
         </p>

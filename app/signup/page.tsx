@@ -3,14 +3,13 @@ import Link from 'next/link'
 import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import { AuthShell } from '@/components/auth-shell'
+import { btnMango, focus } from '@/lib/ui'
 
 export const metadata: Metadata = {
   title: 'Create your account · WorkSprout',
   robots: { index: false, follow: false },
 }
 
-const focus =
-  'focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#2E9E6B]'
 
 // Beta access is invite-only, and the invite email carries a *link*, not a
 // one-time code: no template in this project fills `{{ .Token }}`, and the free
@@ -30,27 +29,27 @@ export default async function SignupPage() {
       text="We email you a link that sets your password. Open it and you&rsquo;re in."
     >
       <div className="mx-auto w-full max-w-md px-6">
-        <div className="rounded-2xl border border-[#0E2F27]/12 bg-white p-8 text-center shadow-[0_24px_50px_-28px_rgba(14,47,39,0.45)]">
+        <div className="rounded-panel border border-line bg-panel p-8 text-center shadow-overlay">
           <h1 className="text-2xl font-extrabold tracking-tight">Check your invite email</h1>
-          <p className="mt-2 text-[#0E2F27]/65">
+          <p className="mt-2 text-ink-2">
             Open the link in that email and choose the password you&rsquo;ll use from now on &mdash; there&rsquo;s no
             code to type.
           </p>
 
           <Link
             href="/join"
-            className={`mt-6 inline-flex w-full items-center justify-center gap-2.5 rounded-xl bg-[#F4B63F] px-5 py-3.5 text-base font-semibold text-[#0E2F27] transition-colors hover:bg-[#e9a82a] ${focus}`}
+            className={`mt-6 w-full ${btnMango}`}
           >
             Join the beta
           </Link>
 
-          <p className="mt-4 text-sm text-[#0E2F27]/65">
+          <p className="mt-4 text-sm text-ink-2">
             Already have an account?{' '}
-            <Link href="/login" className={`rounded font-semibold text-[#1F6B52] hover:underline ${focus}`}>
+            <Link href="/login" className={`rounded font-semibold text-sprout-deep hover:underline ${focus}`}>
               Log in
             </Link>
           </p>
-          <p className="mt-1.5 text-xs text-[#0E2F27]/50">
+          <p className="mt-1.5 text-xs text-ink-3">
             Invite never arrived? Joining the list again will get you a fresh one.
           </p>
         </div>

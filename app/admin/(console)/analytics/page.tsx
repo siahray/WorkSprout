@@ -14,11 +14,11 @@ export const metadata: Metadata = {
 function Tile({ label, value, hint }: { label: string; value: number | string; hint?: string }) {
   return (
     <div className={`${card} relative overflow-hidden p-5`}>
-      <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-[#0E2F27]/50">{label}</p>
+      <p className="text-meta font-medium text-ink-3">{label}</p>
       <p className={`${display.className} mt-2 text-[1.75rem] font-extrabold leading-none tabular-nums`}>
         {value}
       </p>
-      {hint && <p className="mt-1 text-xs text-[#0E2F27]/50">{hint}</p>}
+      {hint && <p className="mt-1 text-xs text-ink-3">{hint}</p>}
     </div>
   )
 }

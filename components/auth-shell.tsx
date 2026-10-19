@@ -1,8 +1,8 @@
 import type { ReactNode } from 'react'
-import { body, display } from '@/lib/fonts'
+import { display } from '@/lib/fonts'
 
 const weave = {
-  backgroundColor: '#0E2F27',
+  backgroundColor: 'var(--color-ink)',
   backgroundImage:
     'repeating-linear-gradient(45deg, rgba(255,255,255,.05) 0 2px, transparent 2px 14px), repeating-linear-gradient(-45deg, rgba(255,255,255,.05) 0 2px, transparent 2px 14px)',
 }
@@ -37,7 +37,7 @@ export function AuthShell({
   children: ReactNode
 }) {
   return (
-    <div className={`${body.className} grid min-h-screen text-[#0E2F27] lg:grid-cols-[0.95fr_1.05fr]`}>
+    <div className="grid min-h-screen text-ink lg:grid-cols-[0.95fr_1.05fr]">
       <style>{css}</style>
 
       <aside
@@ -45,7 +45,7 @@ export function AuthShell({
         style={weave}
       >
         <div
-          className="pointer-events-none absolute -top-32 left-1/2 h-80 w-80 -translate-x-1/2 rounded-full bg-[#2E9E6B]/25 blur-3xl"
+          className="pointer-events-none absolute -top-32 left-1/2 h-80 w-80 -translate-x-1/2 rounded-full bg-sprout/25 blur-3xl"
           aria-hidden="true"
         />
 
@@ -69,13 +69,13 @@ export function AuthShell({
         >
           {heading}
         </h2>
-        <span className="ws-rise relative mt-5 h-1 w-10 rounded-full bg-[#F4B63F]" style={{ animationDelay: '1.6s' }} />
+        <span className="ws-rise relative mt-5 h-1 w-10 rounded-full bg-mango" style={{ animationDelay: '1.6s' }} />
         <p className="ws-rise relative mt-5 max-w-xs text-white/75" style={{ animationDelay: '1.7s' }}>
           {text}
         </p>
       </aside>
 
-      <main className="flex items-center bg-[#F4F8F5] py-10">{children}</main>
+      <main className="flex items-center bg-canvas py-10">{children}</main>
     </div>
   )
 }

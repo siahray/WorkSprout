@@ -18,7 +18,7 @@ export function Field({
         {label}
       </label>
       {children}
-      {hint && <p className="text-xs text-[#0E2F27]/55">{hint}</p>}
+      {hint && <p className="text-xs text-ink-3">{hint}</p>}
     </div>
   )
 }

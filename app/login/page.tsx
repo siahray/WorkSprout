@@ -1,7 +1,7 @@
 import type { Metadata } from 'next'
 import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
-import { body, display } from '@/lib/fonts'
+import { display } from '@/lib/fonts'
 import { LoginForm } from './login-form'
 
 export const metadata: Metadata = {
@@ -10,7 +10,7 @@ export const metadata: Metadata = {
 }
 
 const weave = {
-  backgroundColor: '#0E2F27',
+  backgroundColor: 'var(--color-ink)',
   backgroundImage:
     'repeating-linear-gradient(45deg, rgba(255,255,255,.05) 0 2px, transparent 2px 14px), repeating-linear-gradient(-45deg, rgba(255,255,255,.05) 0 2px, transparent 2px 14px)',
 }
@@ -41,7 +41,7 @@ export default async function LoginPage() {
   if (data?.claims) redirect('/dashboard')
 
   return (
-    <div className={`${body.className} grid min-h-screen text-[#0E2F27] lg:grid-cols-[0.95fr_1.05fr]`}>
+    <div className="grid min-h-screen text-ink lg:grid-cols-[0.95fr_1.05fr]">
       <style>{css}</style>
 
       {/* Brand panel */}
@@ -72,7 +72,7 @@ export default async function LoginPage() {
       </aside>
 
       {/* Form */}
-      <main className="flex items-center bg-[#F4F8F5] py-10">
+      <main className="flex items-center bg-canvas py-10">
         <LoginForm />
       </main>
     </div>

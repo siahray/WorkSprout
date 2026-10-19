@@ -50,8 +50,8 @@ export function AdminNav({ variant = 'sidebar' }: { variant?: 'sidebar' | 'bar' 
           : pathname === link.href || pathname.startsWith(`${link.href}/`)
         const tone = bar
           ? active
-            ? 'bg-[#2E9E6B]/12 text-[#1F6B52]'
-            : 'text-[#0E2F27]/70 hover:bg-[#F4F8F5] hover:text-[#0E2F27]'
+            ? 'bg-sprout/12 text-sprout-deep'
+            : 'text-ink-2 hover:bg-canvas hover:text-ink'
           : active
             ? 'bg-white/10 text-white'
             : 'text-white/60 hover:bg-white/5 hover:text-white'
@@ -60,13 +60,13 @@ export function AdminNav({ variant = 'sidebar' }: { variant?: 'sidebar' | 'bar' 
             <Link
               href={link.href}
               aria-current={active ? 'page' : undefined}
-              className={`relative flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-semibold transition-colors ${focus} ${tone} ${
+              className={`relative flex items-center gap-3 rounded-control px-3 py-2.5 text-sm font-semibold transition-colors ${focus} ${tone} ${
                 bar ? 'whitespace-nowrap py-2' : ''
               }`}
             >
               {!bar && active && (
                 <span
-                  className="absolute left-0 top-1/2 h-4 w-1 -translate-y-1/2 rounded-full bg-[#F4B63F]"
+                  className="absolute left-0 top-1/2 h-4 w-1 -translate-y-1/2 rounded-full bg-mango"
                   aria-hidden="true"
                 />
               )}

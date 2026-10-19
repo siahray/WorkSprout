@@ -156,43 +156,43 @@ export default async function DashboardPage() {
     (sum: number, e: { duration_minutes: number | null }) => sum + (e.duration_minutes ?? 0),
     0
   )
-const clientsCount = clientsRes.count ?? 0
-const activeProjects = projectsRes.count ?? 0
-const recent = invoices.slice(0, 5)
-const todayTodos = (todayTodosRes.data ?? []) as TodoRow[]
-const topProjects = (topProjectsRes.data ?? []) as unknown as ProjectRow[]
-const clientsList = (clientsListRes.data ?? []) as ClientRow[]
+  const clientsCount = clientsRes.count ?? 0
+  const activeProjects = projectsRes.count ?? 0
+  const recent = invoices.slice(0, 5)
+  const todayTodos = (todayTodosRes.data ?? []) as TodoRow[]
+  const topProjects = (topProjectsRes.data ?? []) as unknown as ProjectRow[]
+  const clientsList = (clientsListRes.data ?? []) as ClientRow[]
 
-const expensesAll = (expensesRes.data ?? []) as ExpenseRow[]
-const expensesThisMonth = expensesAll
-  .filter((e) => e.spent_on >= monthStartIso)
-  .reduce((sum, e) => sum + Number(e.amount), 0)
-const netThisMonth = collectedThisMonth - expensesThisMonth
-const marginPercent =
-  collectedThisMonth > 0 ? formatPercent((netThisMonth / collectedThisMonth) * 100) : '—'
+  const expensesAll = (expensesRes.data ?? []) as ExpenseRow[]
+  const expensesThisMonth = expensesAll
+    .filter((e) => e.spent_on >= monthStartIso)
+    .reduce((sum, e) => sum + Number(e.amount), 0)
+  const netThisMonth = collectedThisMonth - expensesThisMonth
+  const marginPercent =
+    collectedThisMonth > 0 ? formatPercent((netThisMonth / collectedThisMonth) * 100) : '—'
 
-const invoicedByProject = new Map<string, number>()
-for (const inv of invoices) {
-  const row = inv as { project_id: string | null; status: string }
-  if (row.status === 'draft' || row.status === 'void' || !row.project_id) continue
-  invoicedByProject.set(row.project_id, (invoicedByProject.get(row.project_id) ?? 0) + Number(inv.total))
-}
-const expensesByProject = new Map<string, number>()
-for (const expense of expensesAll) {
-  if (!expense.project_id) continue
-  expensesByProject.set(expense.project_id, (expensesByProject.get(expense.project_id) ?? 0) + Number(expense.amount))
-}
-const marginProjects = ((marginProjectsRes.data ?? []) as { id: string; name: string }[])
-  .map((project) => {
-    const invoiced = invoicedByProject.get(project.id) ?? 0
-    const projectExpenses = expensesByProject.get(project.id) ?? 0
-    if (invoiced <= 0 && projectExpenses <= 0) return null
-    const net = invoiced - projectExpenses
-    const pct = invoiced > 0 ? Math.min(100, Math.max(0, Math.round((net / invoiced) * 1000) / 10)) : 0
-    return { id: project.id, name: project.name, invoiced, projectExpenses, net, pct }
-  })
-  .filter((row): row is MarginProject => row !== null)
-  .sort((a, b) => b.invoiced - a.invoiced)
+  const invoicedByProject = new Map<string, number>()
+  for (const inv of invoices) {
+    const row = inv as { project_id: string | null; status: string }
+    if (row.status === 'draft' || row.status === 'void' || !row.project_id) continue
+    invoicedByProject.set(row.project_id, (invoicedByProject.get(row.project_id) ?? 0) + Number(inv.total))
+  }
+  const expensesByProject = new Map<string, number>()
+  for (const expense of expensesAll) {
+    if (!expense.project_id) continue
+    expensesByProject.set(expense.project_id, (expensesByProject.get(expense.project_id) ?? 0) + Number(expense.amount))
+  }
+  const marginProjects = ((marginProjectsRes.data ?? []) as { id: string; name: string }[])
+    .map((project) => {
+      const invoiced = invoicedByProject.get(project.id) ?? 0
+      const projectExpenses = expensesByProject.get(project.id) ?? 0
+      if (invoiced <= 0 && projectExpenses <= 0) return null
+      const net = invoiced - projectExpenses
+      const pct = invoiced > 0 ? Math.min(100, Math.max(0, Math.round((net / invoiced) * 1000) / 10)) : 0
+      return { id: project.id, name: project.name, invoiced, projectExpenses, net, pct }
+    })
+    .filter((row): row is MarginProject => row !== null)
+    .sort((a, b) => b.invoiced - a.invoiced)
 
   if (clientsCount === 0 && invoices.length === 0) {
     return (

@@ -20,7 +20,7 @@ export function InvoiceDocument({ invoice, className = '' }: { invoice: InvoiceS
       <header className="flex flex-wrap items-start justify-between gap-6">
         <div>
           <p className={`${display.className} text-xl font-extrabold tracking-tight`}>{invoice.business.name}</p>
-          <div className="mt-1 space-y-0.5 text-sm text-[#0E2F27]/65">
+          <div className="mt-1 space-y-0.5 text-sm text-ink-2">
             {invoice.business.address && <p className="whitespace-pre-line">{invoice.business.address}</p>}
             {invoice.business.phone && <p>{invoice.business.phone}</p>}
             {invoice.business.email && <p>{invoice.business.email}</p>}
@@ -37,27 +37,27 @@ export function InvoiceDocument({ invoice, className = '' }: { invoice: InvoiceS
 
       <div className="mt-8 flex flex-wrap justify-between gap-6">
         <div>
-          <p className="text-xs font-semibold uppercase tracking-wide text-[#0E2F27]/50">Bill to</p>
+          <p className="text-meta font-medium text-ink-3">Bill to</p>
           <div className="mt-1 space-y-0.5 text-sm">
             <p className="font-semibold">{invoice.client?.name}</p>
             {invoice.client?.company && <p>{invoice.client.company}</p>}
-            {invoice.client?.address && <p className="whitespace-pre-line text-[#0E2F27]/65">{invoice.client.address}</p>}
-            {invoice.client?.email && <p className="text-[#0E2F27]/65">{invoice.client.email}</p>}
-            {invoice.client?.taxId && <p className="text-[#0E2F27]/65">TIN: {invoice.client.taxId}</p>}
+            {invoice.client?.address && <p className="whitespace-pre-line text-ink-2">{invoice.client.address}</p>}
+            {invoice.client?.email && <p className="text-ink-2">{invoice.client.email}</p>}
+            {invoice.client?.taxId && <p className="text-ink-2">TIN: {invoice.client.taxId}</p>}
           </div>
         </div>
         <dl className="space-y-1 text-sm">
           <div className="flex justify-between gap-8">
-            <dt className="text-[#0E2F27]/60">Issued</dt>
+            <dt className="text-ink-2">Issued</dt>
             <dd className="font-medium">{formatDate(invoice.issueDate)}</dd>
           </div>
           <div className="flex justify-between gap-8">
-            <dt className="text-[#0E2F27]/60">Due</dt>
+            <dt className="text-ink-2">Due</dt>
             <dd className="font-medium">{invoice.dueDate ? formatDate(invoice.dueDate) : '—'}</dd>
           </div>
           {invoice.projectName && (
             <div className="flex justify-between gap-8">
-              <dt className="text-[#0E2F27]/60">Project</dt>
+              <dt className="text-ink-2">Project</dt>
               <dd className="font-medium">{invoice.projectName}</dd>
             </div>
           )}
@@ -66,7 +66,7 @@ export function InvoiceDocument({ invoice, className = '' }: { invoice: InvoiceS
 
       <div className="mt-8 overflow-x-auto">
         <table className="w-full text-sm">
-          <thead className="border-b border-[#0E2F27]/15 text-left text-[#0E2F27]/55">
+          <thead className="border-b border-line text-left text-ink-3">
             <tr>
               <th className="py-2 font-medium">Description</th>
               <th className="py-2 text-right font-medium">Qty</th>
@@ -74,7 +74,7 @@ export function InvoiceDocument({ invoice, className = '' }: { invoice: InvoiceS
               <th className="py-2 text-right font-medium">Amount</th>
             </tr>
           </thead>
-          <tbody className="divide-y divide-[#0E2F27]/8">
+          <tbody className="divide-y divide-line">
             {invoice.items.map((item, index) => (
               <tr key={index}>
                 <td className="py-3 pr-4">{item.description}</td>
@@ -89,28 +89,28 @@ export function InvoiceDocument({ invoice, className = '' }: { invoice: InvoiceS
 
       <div className="mt-6 ml-auto w-full max-w-xs space-y-1.5 text-sm">
         <div className="flex justify-between">
-          <span className="text-[#0E2F27]/65">Subtotal</span>
+          <span className="text-ink-2">Subtotal</span>
           <span className="tabular-nums">{peso(invoice.subtotal)}</span>
         </div>
         {breakdown.map((tax) => (
           <div key={tax.label} className="flex justify-between">
-            <span className="text-[#0E2F27]/65">
+            <span className="text-ink-2">
               {tax.label} ({formatPercent(tax.rate)})
             </span>
             <span className="tabular-nums">{peso(tax.amount)}</span>
           </div>
         ))}
-        <div className="flex justify-between border-t border-[#0E2F27]/10 pt-2 font-bold">
+        <div className="flex justify-between border-t border-line pt-2 font-bold">
           <span>Total</span>
           <span className={`${display.className} tabular-nums`}>{peso(invoice.total)}</span>
         </div>
         {invoice.amountPaid > 0 && (
           <>
-            <div className="flex justify-between text-[#1F6B52]">
+            <div className="flex justify-between text-sprout-deep">
               <span>Amount paid</span>
               <span className="tabular-nums">−{peso(invoice.amountPaid)}</span>
             </div>
-            <div className="flex justify-between border-t border-[#0E2F27]/10 pt-2 text-base font-bold">
+            <div className="flex justify-between border-t border-line pt-2 text-base font-bold">
               <span>Balance due</span>
               <span className={`${display.className} tabular-nums`}>{peso(invoice.balance)}</span>
             </div>
@@ -119,8 +119,8 @@ export function InvoiceDocument({ invoice, className = '' }: { invoice: InvoiceS
       </div>
 
       {invoice.notes && (
-        <div className="mt-8 border-t border-[#0E2F27]/10 pt-4 text-sm text-[#0E2F27]/70">
-          <p className="font-semibold text-[#0E2F27]/60">Notes</p>
+        <div className="mt-8 border-t border-line pt-4 text-sm text-ink-2">
+          <p className="font-semibold text-ink-2">Notes</p>
           <p className="mt-1 whitespace-pre-line">{invoice.notes}</p>
         </div>
       )}

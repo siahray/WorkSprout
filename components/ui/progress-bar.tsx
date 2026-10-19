@@ -17,14 +17,14 @@ export function ProgressBar({
         aria-valuemin={0}
         aria-valuemax={100}
         aria-label={`${done} of ${total} tasks done`}
-        className="h-1.5 overflow-hidden rounded-full bg-[#0E2F27]/10"
+        className="h-1.5 overflow-hidden rounded-full bg-ink/10"
       >
         <div
-          className="h-full rounded-full bg-[#2E9E6B] transition-all"
+          className="h-full rounded-full bg-sprout transition-all"
           style={{ width: `${percent}%` }}
         />
       </div>
-      <p className="mt-1.5 text-xs text-[#0E2F27]/55">
+      <p className="mt-1.5 text-xs text-ink-3">
         {total === 0 ? 'No tasks yet' : `${done} of ${total} tasks · ${percent}%`}
       </p>
     </div>

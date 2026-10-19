@@ -99,7 +99,7 @@ export function TaskStatusSelect({ id, status }: { id: string; status: string })
           await setTaskStatus(id, event.target.value)
         })
       }
-      className={`rounded-xl border border-[#0E2F27]/20 bg-white px-3.5 py-1.5 text-xs text-[#0E2F27] disabled:cursor-not-allowed disabled:opacity-60 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#2E9E6B] w-[130px]`}
+      className={`rounded-control border border-line-strong bg-panel px-3.5 py-1.5 text-xs text-ink disabled:cursor-not-allowed disabled:opacity-60 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-sprout w-[130px]`}
     >
       <option value="todo">To do</option>
       <option value="in_progress">In progress</option>
@@ -153,7 +153,7 @@ export function SubtaskStatusSelect({ id, status }: { id: string; status: string
           await setSubtaskStatus(id, event.target.value)
         })
       }
-      className={`rounded-xl border border-[#0E2F27]/20 bg-white px-2.5 py-1 text-xs text-[#0E2F27] disabled:cursor-not-allowed disabled:opacity-60 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#2E9E6B] w-[110px]`}
+      className={`rounded-control border border-line-strong bg-panel px-2.5 py-1 text-xs text-ink disabled:cursor-not-allowed disabled:opacity-60 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-sprout w-[110px]`}
     >
       <option value='todo'>To do</option>
       <option value='in_progress'>In progress</option>
@@ -196,7 +196,7 @@ export function MoveItem({
             setError(result.error ?? null)
           })
         }}
-        className={`flex h-6 w-6 items-center justify-center rounded-md text-sm leading-none text-[#0E2F27]/40 transition-colors hover:bg-[#0E2F27]/5 hover:text-[#0E2F27] disabled:cursor-not-allowed disabled:opacity-25 ${focusRing}`}
+        className={`flex h-6 w-6 items-center justify-center rounded-chip text-sm leading-none text-ink-4 transition-colors hover:bg-ink/5 hover:text-ink disabled:cursor-not-allowed disabled:opacity-25 ${focusRing}`}
       >
         {pending ? '…' : arrow}
       </button>
@@ -271,7 +271,7 @@ export function InlineRename({
           setDraft(value)
           setEditing(true)
         }}
-        className={`group -mx-1 flex min-w-0 items-center gap-1.5 rounded-lg px-1 text-left transition-colors hover:bg-[#0E2F27]/5 ${focusRing}`}
+        className={`group -mx-1 flex min-w-0 items-center gap-1.5 rounded-control px-1 text-left transition-colors hover:bg-ink/5 ${focusRing}`}
       >
         <span className={`min-w-0 truncate ${className}`}>{value}</span>
         <svg
@@ -284,7 +284,7 @@ export function InlineRename({
           strokeLinecap="round"
           strokeLinejoin="round"
           aria-hidden="true"
-          className="shrink-0 text-[#0E2F27]/0 transition-colors group-hover:text-[#0E2F27]/40 group-focus-visible:text-[#0E2F27]/40"
+          className="shrink-0 text-transparent transition-colors group-hover:text-ink-4 group-focus-visible:text-ink-4"
         >
           <path d="M17 3a2.83 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z" />
         </svg>
@@ -326,12 +326,12 @@ export function InlineRename({
         type="submit"
         disabled={pending}
         onMouseDown={(event) => event.preventDefault()}
-        className={`inline-flex items-center justify-center gap-1 rounded-lg border border-[#0E2F27]/15 bg-white px-2.5 py-1 text-xs font-semibold text-[#0E2F27] transition-colors hover:border-[#0E2F27]/25 hover:bg-[#F4F8F5] disabled:cursor-not-allowed disabled:opacity-60 ${focusRing}`}
+        className={`inline-flex items-center justify-center gap-1 rounded-control border border-line bg-panel px-2.5 py-1 text-xs font-semibold text-ink transition-colors hover:border-ink-4 hover:bg-canvas disabled:cursor-not-allowed disabled:opacity-60 ${focusRing}`}
       >
         {pending ? '…' : 'Save'}
       </button>
       {error && (
-        <span role="alert" className="whitespace-nowrap text-xs font-medium text-red-700">
+        <span role="alert" className="whitespace-nowrap text-xs font-medium text-danger">
           {error}
         </span>
       )}

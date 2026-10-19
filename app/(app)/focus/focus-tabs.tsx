@@ -44,7 +44,7 @@ export function FocusTabs({
 
   return (
     <div className="space-y-6">
-      <div className="inline-flex rounded-full bg-[#F4F8F5] p-1">
+      <div className="inline-flex rounded-full bg-canvas p-1">
         {TABS.map((tab) => {
           const active = view === tab.key
           return (
@@ -54,11 +54,11 @@ export function FocusTabs({
               onClick={() => setView(tab.key)}
               aria-pressed={active}
               className={`rounded-full px-4 py-1.5 text-sm font-semibold transition-colors ${focus} ${
-                active ? 'bg-white text-[#0E2F27] shadow-sm' : 'text-[#0E2F27]/60 hover:text-[#0E2F27]'
+                active ? 'bg-panel text-ink shadow-panel' : 'text-ink-2 hover:text-ink'
               }`}
             >
               {tab.label}
-              <span className={`ml-1.5 tabular-nums ${active ? 'text-[#1F6B52]' : 'text-[#0E2F27]/45'}`}>
+              <span className={`ml-1.5 tabular-nums ${active ? 'text-sprout-deep' : 'text-ink-3'}`}>
                 {counts[tab.key]}
               </span>
             </button>

@@ -32,6 +32,8 @@ const button = `inline-flex items-center justify-center gap-2 rounded-control px
 
 export const btnPrimary = `${button} bg-ink text-white hover:bg-ink-deep`
 export const btnAccent = `${button} bg-sprout text-white hover:bg-sprout-deep`
+/** The public and auth CTA — Mango on Ink. The one loud button on those screens. */
+export const btnMango = `${button} bg-mango text-ink hover:bg-mango-strong`
 export const btnSecondary = `${button} border border-line-strong bg-panel text-ink hover:border-ink-4 hover:bg-canvas`
 export const btnGhost = `inline-flex items-center justify-center gap-2 rounded-control px-3 py-2 text-small font-medium text-ink-2 transition-colors hover:bg-canvas hover:text-ink disabled:cursor-not-allowed disabled:opacity-55 ${focus}`
 export const btnDanger = `${button} border border-danger/25 bg-panel text-danger hover:bg-danger-wash`

@@ -137,12 +137,12 @@ export function InvoiceEditor({
 
       <section className={`${card} p-6`}>
         <h2 className={`${display.className} text-lg font-bold tracking-tight`}>Line items</h2>
-        <p className="mt-1 text-sm text-[#0E2F27]/65">
+        <p className="mt-1 text-sm text-ink-2">
           Correct descriptions, hours or rates. Leaving a line out removes it.
         </p>
 
         <div className="mt-4 space-y-3">
-          {lines.length === 0 && <p className="text-sm text-[#0E2F27]/65">No lines yet — add one below.</p>}
+          {lines.length === 0 && <p className="text-sm text-ink-2">No lines yet — add one below.</p>}
           {lines.map((line) => {
             const quantity = Number(line.quantity)
             const rate = Number(line.unit_rate)
@@ -185,7 +185,7 @@ export function InvoiceEditor({
                 <button
                   type="button"
                   onClick={() => removeLine(line.id)}
-                  className={`${btnSecondary} !px-3 !py-2 text-sm`}
+                  className={`${btnSecondary} px-3! py-2! text-sm`}
                 >
                   Remove
                 </button>
@@ -213,18 +213,18 @@ export function InvoiceEditor({
 
         <dl className="ml-auto w-full max-w-xs space-y-1.5 text-sm">
           <div className="flex justify-between">
-            <dt className="text-[#0E2F27]/65">Subtotal</dt>
+            <dt className="text-ink-2">Subtotal</dt>
             <dd className="tabular-nums">{peso(subtotal)}</dd>
           </div>
           {taxBreakdown.map((tax) => (
             <div key={tax.label} className="flex justify-between">
-              <dt className="text-[#0E2F27]/65">
+              <dt className="text-ink-2">
                 {tax.label} ({formatPercent(tax.rate)})
               </dt>
               <dd className="tabular-nums">{peso(tax.amount)}</dd>
             </div>
           ))}
-          <div className="flex justify-between border-t border-[#0E2F27]/10 pt-2 text-base font-bold">
+          <div className="flex justify-between border-t border-line pt-2 text-base font-bold">
             <dt>Total</dt>
             <dd className={`${display.className} tabular-nums`}>{peso(total)}</dd>
           </div>

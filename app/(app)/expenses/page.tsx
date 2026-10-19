@@ -130,21 +130,21 @@ export default async function ExpensesPage({
         <AddExpenseDialog projects={projects} />
       </PageHeader>
 
-      <div className={`${card} grid grid-cols-1 divide-y divide-[#0E2F27]/10 sm:grid-cols-3 sm:divide-x sm:divide-y-0`}>
+      <div className={`${card} grid grid-cols-1 divide-y divide-line sm:grid-cols-3 sm:divide-x sm:divide-y-0`}>
         <div className="p-5">
-          <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-[#0E2F27]/50">This month</p>
+          <p className="text-meta font-medium text-ink-3">This month</p>
           <p className={`${display.className} mt-2 text-2xl font-extrabold leading-none tabular-nums`}>
             {peso(Number(stats.month_total))}
           </p>
         </div>
         <div className="p-5">
-          <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-[#0E2F27]/50">Entries</p>
+          <p className="text-meta font-medium text-ink-3">Entries</p>
           <p className={`${display.className} mt-2 text-2xl font-extrabold leading-none tabular-nums`}>
             {stats.entries}
           </p>
         </div>
         <div className="p-5">
-          <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-[#0E2F27]/50">Total recorded</p>
+          <p className="text-meta font-medium text-ink-3">Total recorded</p>
           <p className={`${display.className} mt-2 text-2xl font-extrabold leading-none tabular-nums`}>
             {peso(Number(stats.total))}
           </p>
@@ -165,7 +165,7 @@ export default async function ExpensesPage({
           </EmptyState>
         ) : total === 0 ? (
           <div className={`${card} flex flex-col items-center gap-4 p-10 text-center`}>
-            <div className="text-sm text-[#0E2F27]/65">
+            <div className="text-sm text-ink-2">
               No expenses yet. Log your first subscription or purchase — it feeds the business health numbers on
               the dashboard.
             </div>
@@ -189,36 +189,36 @@ export default async function ExpensesPage({
                     <th className={th}></th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-[#0E2F27]/10">
+                <tbody className="divide-y divide-line">
                   {Array.from(months.entries()).map(([key, rows]) => {
                     const subtotal = rows.reduce((sum, e) => sum + Number(e.amount), 0)
                     return (
                       <Fragment key={key}>
-                        <tr className="bg-[#F4F8F5]">
+                        <tr className="bg-canvas">
                           <th colSpan={6} className="px-5 py-2.5 text-left">
-                            <span className="text-[11px] font-semibold uppercase tracking-[0.12em] text-[#0E2F27]/55">
+                            <span className="text-meta font-medium text-ink-3">
                               {monthLabel(key)}
                             </span>
-                            <span className="ml-3 text-xs font-normal tabular-nums text-[#0E2F27]/55">
+                            <span className="ml-3 text-xs font-normal tabular-nums text-ink-3">
                               {rows.length} {rows.length === 1 ? 'expense' : 'expenses'} · {peso(subtotal)}
                             </span>
                           </th>
                         </tr>
                         {rows.map((expense) => (
                           <tr key={expense.id} className={rowHover}>
-                            <td className="px-5 py-3.5 whitespace-nowrap text-[#0E2F27]/65">
+                            <td className="px-5 py-3.5 whitespace-nowrap text-ink-2">
                               {formatDate(expense.spent_on)}
                             </td>
                             <td className="px-5 py-3.5">
-                              <span className="font-medium text-[#0E2F27]">{expense.description}</span>
+                              <span className="font-medium text-ink">{expense.description}</span>
                               {expense.note && (
-                                <span className="block text-xs text-[#0E2F27]/50">{expense.note}</span>
+                                <span className="block text-xs text-ink-3">{expense.note}</span>
                               )}
                             </td>
                             <td className="px-5 py-3.5">
                               <span className={categoryBadge(expense.category)}>{expense.category}</span>
                             </td>
-                            <td className="px-5 py-3.5 text-[#0E2F27]/75">{expense.project?.name ?? 'Overhead'}</td>
+                            <td className="px-5 py-3.5 text-ink-2">{expense.project?.name ?? 'Overhead'}</td>
                             <td className="px-5 py-3.5 text-right tabular-nums">{peso(expense.amount)}</td>
                             <td className="px-5 py-3.5 text-right">
                               <span className="flex items-center justify-end gap-1">
@@ -243,7 +243,7 @@ export default async function ExpensesPage({
                                   action={deleteExpense}
                                   id={expense.id}
                                   message={`Delete "${expense.description}"? This cannot be undone.`}
-                                  className={`${btnGhost} !px-2.5 !py-1.5 text-xs text-red-700 hover:text-red-800`}
+                                  className={`${btnGhost} px-2.5! py-1.5! text-xs text-danger hover:bg-danger-wash`}
                                 >
                                   Delete
                                 </ConfirmAction>

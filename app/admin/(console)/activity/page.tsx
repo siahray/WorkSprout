@@ -34,7 +34,7 @@ export default async function AdminActivityPage() {
 
       <div className={`${card} overflow-hidden`}>
         {entries.length === 0 ? (
-          <p className="p-10 text-center text-[#0E2F27]/60">No admin activity recorded yet.</p>
+          <p className="p-10 text-center text-ink-2">No admin activity recorded yet.</p>
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
@@ -47,22 +47,22 @@ export default async function AdminActivityPage() {
                   <th className={th}>Details</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-[#0E2F27]/10">
+              <tbody className="divide-y divide-line">
                 {entries.map((entry) => (
                   <tr key={entry.id} className={rowHover}>
-                    <td className="whitespace-nowrap px-5 py-3.5 text-[#0E2F27]/70">
+                    <td className="whitespace-nowrap px-5 py-3.5 text-ink-2">
                       {formatDateTime(entry.created_at)}
                     </td>
-                    <td className="px-5 py-3.5 text-[#0E2F27]/70">{entry.actor_email ?? '—'}</td>
+                    <td className="px-5 py-3.5 text-ink-2">{entry.actor_email ?? '—'}</td>
                     <td className="px-5 py-3.5">
-                      <span className="rounded-full bg-[#0E2F27]/8 px-2 py-0.5 font-mono text-xs font-semibold text-[#0E2F27]/80">
+                      <span className="rounded-full bg-ink/8 px-2 py-0.5 font-mono text-xs font-semibold text-ink-2">
                         {entry.action}
                       </span>
                     </td>
-                    <td className="max-w-[220px] truncate px-5 py-3.5 font-mono text-xs text-[#0E2F27]/60">
+                    <td className="max-w-[220px] truncate px-5 py-3.5 font-mono text-xs text-ink-2">
                       {entry.target ?? '—'}
                     </td>
-                    <td className="px-5 py-3.5 font-mono text-xs text-[#0E2F27]/60">
+                    <td className="px-5 py-3.5 font-mono text-xs text-ink-2">
                       {entry.metadata && Object.keys(entry.metadata).length > 0
                         ? JSON.stringify(entry.metadata)
                         : '—'}

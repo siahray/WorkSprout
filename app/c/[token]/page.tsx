@@ -28,8 +28,8 @@ export default async function PublicCallPage({ params }: { params: Promise<{ tok
     <main className="mx-auto min-h-screen max-w-2xl px-4 py-10 sm:py-16">
       <header className="mb-6 flex flex-wrap items-center justify-between gap-4">
         <div className="flex items-center gap-2">
-          <span className="h-2.5 w-2.5 rounded-full bg-[#2E9E6B]" aria-hidden="true" />
-          <span className={`${display.className} text-sm font-extrabold tracking-tight text-[#0E2F27]`}>WorkSprout</span>
+          <span className="h-2.5 w-2.5 rounded-full bg-sprout" aria-hidden="true" />
+          <span className={`${display.className} text-sm font-extrabold tracking-tight text-ink`}>WorkSprout</span>
         </div>
         <div className="flex flex-wrap items-center gap-2 print:hidden">
           <a href={`/c/${token}/ics`} className={`${btnSecondary} ${focus}`}>
@@ -44,26 +44,26 @@ export default async function PublicCallPage({ params }: { params: Promise<{ tok
       </header>
 
       <article className={`${card} p-8`}>
-        <p className="text-xs font-semibold uppercase tracking-wide text-[#0E2F27]/50">
+        <p className="text-meta font-medium text-ink-3">
           {cancelled ? 'Cancelled call' : 'Scheduled call'}
         </p>
         <h1
           className={`${display.className} mt-1 text-2xl font-extrabold tracking-tight ${
-            cancelled ? 'text-[#0E2F27]/45 line-through' : ''
+            cancelled ? 'text-ink-3 line-through' : ''
           }`}
         >
           {call.title}
         </h1>
-        <p className="mt-2 text-sm text-[#0E2F27]/70">{callWhen(call.scheduledAt, call.durationMinutes)}</p>
+        <p className="mt-2 text-sm text-ink-2">{callWhen(call.scheduledAt, call.durationMinutes)}</p>
 
-        <dl className="mt-6 divide-y divide-[#0E2F27]/10 border-t border-[#0E2F27]/10 text-sm">
+        <dl className="mt-6 divide-y divide-line border-t border-line text-sm">
           <div className="flex justify-between gap-6 py-3">
-            <dt className="text-[#0E2F27]/60">Duration</dt>
+            <dt className="text-ink-2">Duration</dt>
             <dd className="font-medium">{call.durationMinutes} minutes</dd>
           </div>
           {call.client?.name && (
             <div className="flex justify-between gap-6 py-3">
-              <dt className="text-[#0E2F27]/60">With</dt>
+              <dt className="text-ink-2">With</dt>
               <dd className="font-medium">
                 {call.client.name}
                 {call.client.company ? ` · ${call.client.company}` : ''}
@@ -72,10 +72,10 @@ export default async function PublicCallPage({ params }: { params: Promise<{ tok
           )}
           {call.location && (
             <div className="flex justify-between gap-6 py-3">
-              <dt className="text-[#0E2F27]/60">Where</dt>
+              <dt className="text-ink-2">Where</dt>
               <dd className="min-w-0 max-w-[60%] break-words text-right font-medium">
                 {join ? (
-                  <a href={join} target="_blank" rel="noreferrer" className="text-[#1F6B52] underline-offset-2 hover:underline">
+                  <a href={join} target="_blank" rel="noreferrer" className="text-sprout-deep underline-offset-2 hover:underline">
                     Join online
                   </a>
                 ) : (
@@ -85,20 +85,20 @@ export default async function PublicCallPage({ params }: { params: Promise<{ tok
             </div>
           )}
           <div className="flex justify-between gap-6 py-3">
-            <dt className="text-[#0E2F27]/60">Host</dt>
+            <dt className="text-ink-2">Host</dt>
             <dd className="font-medium">{call.business.name}</dd>
           </div>
         </dl>
 
         {call.notes && (
-          <div className="mt-6 border-t border-[#0E2F27]/10 pt-4 text-sm text-[#0E2F27]/70">
-            <p className="font-semibold text-[#0E2F27]/60">Agenda</p>
+          <div className="mt-6 border-t border-line pt-4 text-sm text-ink-2">
+            <p className="font-semibold text-ink-2">Agenda</p>
             <p className="mt-1 whitespace-pre-line">{call.notes}</p>
           </div>
         )}
       </article>
 
-      <p className="mt-6 text-center text-xs text-[#0E2F27]/45">
+      <p className="mt-6 text-center text-xs text-ink-3">
         Shared by {call.business.name} · Powered by WorkSprout
       </p>
     </main>

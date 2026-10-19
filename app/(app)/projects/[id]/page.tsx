@@ -76,7 +76,7 @@ function TaskItem({
             label={`task ${task.title}`}
             className={
               task.status === 'done'
-                ? 'text-sm font-medium text-[#0E2F27]/45 line-through'
+                ? 'text-sm font-medium text-ink-3 line-through'
                 : 'text-sm font-medium'
             }
           />
@@ -97,7 +97,7 @@ function TaskItem({
       </div>
 
       {subtasks.length > 0 && (
-        <ul className="mt-2 space-y-1.5 border-l-2 border-[#0E2F27]/10 pl-4">
+        <ul className="mt-2 space-y-1.5 border-l-2 border-line pl-4">
           {subtasks.map((subtask, subIndex) => (
             <li key={subtask.id} className="flex items-center justify-between gap-3">
               <div className="min-w-0 flex-1">
@@ -108,8 +108,8 @@ function TaskItem({
                   label={`subtask ${subtask.title}`}
                   className={`text-sm ${
                     subtask.status === 'done'
-                      ? 'text-[#0E2F27]/45 line-through'
-                      : 'text-[#0E2F27]/80'
+                      ? 'text-ink-3 line-through'
+                      : 'text-ink-2'
                   }`}
                 />
               </div>
@@ -145,7 +145,7 @@ function TaskItem({
       )}
 
       <details className="mt-2">
-        <summary className="cursor-pointer text-xs font-semibold text-[#1F6B52]">Add subtask</summary>
+        <summary className="cursor-pointer text-xs font-semibold text-sprout-deep">Add subtask</summary>
         <div className="mt-2">
           <AddSubtaskForm parentTaskId={task.id} projectId={projectId} />
         </div>
@@ -157,9 +157,9 @@ function TaskItem({
 function Stat({ label, value, hint }: { label: string; value: string; hint?: string }) {
   return (
     <div className={`${card} p-5`}>
-      <p className="text-sm text-[#0E2F27]/60">{label}</p>
+      <p className="text-sm text-ink-2">{label}</p>
       <p className={`${display.className} mt-1 text-2xl font-extrabold tabular-nums`}>{value}</p>
-      {hint && <p className="mt-1 text-xs text-[#0E2F27]/55">{hint}</p>}
+      {hint && <p className="mt-1 text-xs text-ink-3">{hint}</p>}
     </div>
   )
 }
@@ -331,7 +331,7 @@ export default async function ProjectDetailPage({ params }: { params: Promise<{ 
         </Link>
       </PageHeader>
 
-      {project.description && <p className="mb-6 max-w-3xl whitespace-pre-line text-[#0E2F27]/70">{project.description}</p>}
+      {project.description && <p className="mb-6 max-w-3xl whitespace-pre-line text-ink-2">{project.description}</p>}
 
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <Stat label="Tracked" value={hoursFromMinutes(totalMinutes)} />
@@ -373,7 +373,7 @@ export default async function ProjectDetailPage({ params }: { params: Promise<{ 
               return (
                 <div key={phase.id} className={`${card} p-4`}>
                   <div className="flex items-center justify-between gap-3">
-                    <h3 className="flex min-w-0 items-center gap-2 text-sm font-semibold text-[#0E2F27]">
+                    <h3 className="flex min-w-0 items-center gap-2 text-sm font-semibold text-ink">
                       <InlineRename
                         action={updatePhase}
                         id={phase.id}
@@ -381,7 +381,7 @@ export default async function ProjectDetailPage({ params }: { params: Promise<{ 
                         label={`phase ${phase.title}`}
                         className="text-sm font-semibold"
                       />
-                      <span className="font-normal text-[#0E2F27]/55">({phaseTasks.length})</span>
+                      <span className="font-normal text-ink-3">({phaseTasks.length})</span>
                     </h3>
                     <span className="flex items-center gap-1.5">
                       <MoveItem
@@ -410,7 +410,7 @@ export default async function ProjectDetailPage({ params }: { params: Promise<{ 
                     </span>
                   </div>
                   {phaseTasks.length > 0 && (
-                    <ul className="mt-3 divide-y divide-[#0E2F27]/10">
+                    <ul className="mt-3 divide-y divide-line">
                       {phaseTasks.map((t, taskIndex) => (
                         <TaskItem
                           key={t.id}
@@ -431,11 +431,11 @@ export default async function ProjectDetailPage({ params }: { params: Promise<{ 
             })}
 
             <div className={`${card} p-4`}>
-              <h3 className="text-sm font-semibold text-[#0E2F27]">
-                Unassigned <span className="font-normal text-[#0E2F27]/55">({unassignedTasks.length})</span>
+              <h3 className="text-sm font-semibold text-ink">
+                Unassigned <span className="font-normal text-ink-3">({unassignedTasks.length})</span>
               </h3>
               {unassignedTasks.length > 0 && (
-                <ul className="mt-3 divide-y divide-[#0E2F27]/10">
+                <ul className="mt-3 divide-y divide-line">
                   {unassignedTasks.map((t, taskIndex) => (
                     <TaskItem
                       key={t.id}
@@ -459,18 +459,18 @@ export default async function ProjectDetailPage({ params }: { params: Promise<{ 
         <section>
           <Collapsible title="Invoices" count={invoices.length}>
             {invoices.length === 0 ? (
-            <div className={`${card} p-6 text-sm text-[#0E2F27]/65`}>No invoices for this project yet.</div>
+            <div className={`${card} p-6 text-sm text-ink-2`}>No invoices for this project yet.</div>
           ) : (
-            <div className={`${card} divide-y divide-[#0E2F27]/10`}>
+            <div className={`${card} divide-y divide-line`}>
               {invoices.map((inv) => (
                 <Link
                   key={inv.id}
                   href={`/invoices/${inv.id}`}
-                  className={`flex items-center justify-between gap-4 px-5 py-3.5 hover:bg-[#F4F8F5]/60 ${focus}`}
+                  className={`flex items-center justify-between gap-4 px-5 py-3.5 hover:bg-canvas/60 ${focus}`}
                 >
-                  <span className="font-semibold text-[#1F6B52]">{inv.number}</span>
+                  <span className="font-semibold text-sprout-deep">{inv.number}</span>
                   <span className="flex items-center gap-3">
-                    <span className="text-xs text-[#0E2F27]/55">{formatDate(inv.issue_date)}</span>
+                    <span className="text-xs text-ink-3">{formatDate(inv.issue_date)}</span>
                     <StatusBadge status={inv.status} />
                     <span className="tabular-nums text-sm">{peso(inv.total)}</span>
                   </span>
@@ -496,7 +496,7 @@ export default async function ProjectDetailPage({ params }: { params: Promise<{ 
       <section className="mt-8">
         <h2 className={`${display.className} mb-3 text-xl font-extrabold tracking-tight`}>Recent time</h2>
         {entries.length === 0 ? (
-          <div className={`${card} p-6 text-sm text-[#0E2F27]/65`}>No time tracked for this project yet.</div>
+          <div className={`${card} p-6 text-sm text-ink-2`}>No time tracked for this project yet.</div>
         ) : (
           <div className={`${card} overflow-hidden`}>
             <div className="overflow-x-auto">
@@ -509,23 +509,23 @@ export default async function ProjectDetailPage({ params }: { params: Promise<{ 
                     <th className={th}>Invoice</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-[#0E2F27]/10">
+                <tbody className="divide-y divide-line">
                   {entries.slice(0, 12).map((e) => (
                     <tr key={e.id} className={rowHover}>
-                      <td className="px-5 py-3 text-[#0E2F27]/65">{formatDate(e.start_time)}</td>
+                      <td className="px-5 py-3 text-ink-2">{formatDate(e.start_time)}</td>
                       <td className="px-5 py-3">{taskTitle.get(e.task_id) ?? '—'}</td>
                       <td className="px-5 py-3 tabular-nums">
                         {e.end_time ? (
                           hoursFromMinutes(e.duration_minutes)
                         ) : e.paused_at ? (
-                          <span className="text-[#8a6412]">Paused</span>
+                          <span className="text-mango-deep">Paused</span>
                         ) : (
-                          <span className="text-[#1F6B52]">Running…</span>
+                          <span className="text-sprout-deep">Running…</span>
                         )}
                       </td>
-                      <td className="px-5 py-3 text-[#0E2F27]/65">
+                      <td className="px-5 py-3 text-ink-2">
                         {e.invoice_id ? (
-                          <span className="text-[#1F6B52]">Invoiced</span>
+                          <span className="text-sprout-deep">Invoiced</span>
                         ) : e.billable ? (
                           'Unbilled'
                         ) : (
@@ -543,8 +543,8 @@ export default async function ProjectDetailPage({ params }: { params: Promise<{ 
 
       <section className={`${card} mt-8 flex flex-col gap-3 p-5 sm:flex-row sm:items-center sm:justify-between`}>
         <div>
-          <h2 className="text-sm font-semibold text-[#0E2F27]/70">Danger zone</h2>
-          <p className="mt-1 text-sm text-[#0E2F27]/65">Deleting a project removes its tasks and tracked time.</p>
+          <h2 className="text-sm font-semibold text-ink-2">Danger zone</h2>
+          <p className="mt-1 text-sm text-ink-2">Deleting a project removes its tasks and tracked time.</p>
         </div>
         <ConfirmAction
           action={deleteProject}

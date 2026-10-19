@@ -7,7 +7,7 @@ export function AdminLogo({ badge = true }: { badge?: boolean }) {
       <LogoMark size={30} />
       <span className={`${display.className} text-xl font-extrabold tracking-tight`}>WorkSprout</span>
       {badge && (
-        <span className="rounded-full bg-[#0E2F27] px-2.5 py-0.5 text-xs font-semibold text-white">Admin</span>
+        <span className="rounded-full bg-ink px-2.5 py-0.5 text-xs font-semibold text-white">Admin</span>
       )}
     </span>
   )

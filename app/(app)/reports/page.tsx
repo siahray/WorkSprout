@@ -20,9 +20,9 @@ function Stat({ label, value, hint, accent }: { label: string; value: string; hi
   return (
     <div className={`${card} relative overflow-hidden p-5`}>
       <span className={`absolute inset-x-0 top-0 h-1 ${accent}`} aria-hidden="true" />
-      <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-[#0E2F27]/50">{label}</p>
+      <p className="text-meta font-medium text-ink-3">{label}</p>
       <p className={`${display.className} mt-2 text-2xl font-extrabold leading-none tabular-nums`}>{value}</p>
-      {hint && <p className="mt-2 text-xs text-[#0E2F27]/55">{hint}</p>}
+      {hint && <p className="mt-2 text-xs text-ink-3">{hint}</p>}
     </div>
   )
 }
@@ -39,11 +39,11 @@ function SectionHead({
   return (
     <div className="mb-4 flex items-end justify-between gap-4">
       <div>
-        <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-[#1F6B52]">{eyebrow}</p>
+        <p className="text-meta font-medium text-sprout-deep">{eyebrow}</p>
         <h2 className={`${display.className} mt-1 text-xl font-extrabold tracking-tight`}>{title}</h2>
       </div>
       {csvHref && (
-        <Link href={csvHref} className={`text-sm font-semibold text-[#1F6B52] hover:underline ${focus}`}>
+        <Link href={csvHref} className={`text-sm font-semibold text-sprout-deep hover:underline ${focus}`}>
           Export CSV
         </Link>
       )}
@@ -120,7 +120,7 @@ export default async function ReportsPage({
           <Link
             key={preset.label}
             href={`/reports?from=${preset.from}&to=${preset.to}${clientFilter ? `&client=${clientFilter}` : ''}`}
-            className={`${btnGhost} !px-3 !py-1.5 text-xs ${focus}`}
+            className={`${btnGhost} px-3! py-1.5! text-xs ${focus}`}
           >
             {preset.label}
           </Link>
@@ -138,7 +138,7 @@ export default async function ReportsPage({
           description="Profit and loss, cash flow, and taxes for any period."
         />
         {filterCard}
-        <div className={`${card} mt-4 p-8 text-center text-sm text-[#0E2F27]/65`}>
+        <div className={`${card} mt-4 p-8 text-center text-sm text-ink-2`}>
           Couldn’t load the report data. Check your connection and try again — nothing below is
           rendered from a failed query.
         </div>
@@ -168,7 +168,7 @@ export default async function ReportsPage({
 
       {filterCard}
 
-      <p className="mt-4 text-sm text-[#0E2F27]/55">
+      <p className="mt-4 text-sm text-ink-3">
         {formatDate(range.from)} – {formatDate(range.to)} · {clientName ? `Client: ${clientName}` : 'All clients'}
       </p>
 
@@ -188,14 +188,14 @@ export default async function ReportsPage({
               csvHref={csvHref('pnl')}
             />
             <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-              <Stat label="Income" value={peso(pnl.income)} hint="Invoiced in period" accent="bg-[#2E9E6B]" />
-              <Stat label="Expenses" value={peso(pnl.expenses)} hint="Spent in period" accent="bg-[#F4B63F]" />
-              <Stat label="Net" value={peso(pnl.net)} accent="bg-[#0E2F27]/25" />
+              <Stat label="Income" value={peso(pnl.income)} hint="Invoiced in period" accent="bg-sprout" />
+              <Stat label="Expenses" value={peso(pnl.expenses)} hint="Spent in period" accent="bg-mango" />
+              <Stat label="Net" value={peso(pnl.net)} accent="bg-ink/25" />
               <Stat
                 label="Margin"
                 value={pnl.margin === null ? '—' : formatPercent(pnl.margin)}
                 hint="Net against income"
-                accent="bg-[#0E2F27]/10"
+                accent="bg-ink/10"
               />
             </div>
             {pnl.rows.length > 0 ? (
@@ -211,7 +211,7 @@ export default async function ReportsPage({
                         <th className={`${th} text-right`}>Margin</th>
                       </tr>
                     </thead>
-                    <tbody className="divide-y divide-[#0E2F27]/10">
+                    <tbody className="divide-y divide-line">
                       {pnl.rows.map((row) => (
                         <tr key={row.key} className={rowHover}>
                           <td className="px-5 py-3.5 font-medium">{row.label}</td>
@@ -219,12 +219,12 @@ export default async function ReportsPage({
                           <td className="px-5 py-3.5 text-right tabular-nums">{peso(row.expenses)}</td>
                           <td
                             className={`px-5 py-3.5 text-right tabular-nums ${
-                              row.net < 0 ? 'font-medium text-red-700' : 'font-medium'
+                              row.net < 0 ? 'font-medium text-danger' : 'font-medium'
                             }`}
                           >
                             {peso(row.net)}
                           </td>
-                          <td className="px-5 py-3.5 text-right tabular-nums text-[#0E2F27]/65">
+                          <td className="px-5 py-3.5 text-right tabular-nums text-ink-2">
                             {row.margin === null ? '—' : formatPercent(row.margin)}
                           </td>
                         </tr>
@@ -234,7 +234,7 @@ export default async function ReportsPage({
                 </div>
               </div>
             ) : (
-              <p className="mt-4 text-sm text-[#0E2F27]/55">
+              <p className="mt-4 text-sm text-ink-3">
                 {clientName
                   ? `No income or expenses attributed to ${clientName} in this period.`
                   : 'No client-attributed activity in this period.'}
@@ -256,27 +256,27 @@ export default async function ReportsPage({
                       <th className={`${th} text-right`}>Net</th>
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-[#0E2F27]/10">
+                  <tbody className="divide-y divide-line">
                     {cashflow.buckets.map((bucket) => (
                       <tr key={bucket.key} className={rowHover}>
                         <td className="px-5 py-3.5 font-medium whitespace-nowrap">{monthLabel(bucket.key)}</td>
-                        <td className="px-5 py-3.5 text-right tabular-nums text-[#1F6B52]">
+                        <td className="px-5 py-3.5 text-right tabular-nums text-sprout-deep">
                           {peso(bucket.income)}
                         </td>
-                        <td className="px-5 py-3.5 text-right tabular-nums text-[#8a6412]">
+                        <td className="px-5 py-3.5 text-right tabular-nums text-mango-deep">
                           {peso(bucket.expenses)}
                         </td>
                         <td className="px-5 py-3.5">
                           <div className="flex w-28 flex-col gap-1">
-                            <div className="h-1.5 overflow-hidden rounded-full bg-[#0E2F27]/10">
+                            <div className="h-1.5 overflow-hidden rounded-full bg-ink/10">
                               <div
-                                className="h-full rounded-full bg-[#2E9E6B]"
+                                className="h-full rounded-full bg-sprout"
                                 style={{ width: `${maxFlow ? Math.round((bucket.income / maxFlow) * 100) : 0}%` }}
                               />
                             </div>
-                            <div className="h-1.5 overflow-hidden rounded-full bg-[#0E2F27]/10">
+                            <div className="h-1.5 overflow-hidden rounded-full bg-ink/10">
                               <div
-                                className="h-full rounded-full bg-[#F4B63F]"
+                                className="h-full rounded-full bg-mango"
                                 style={{ width: `${maxFlow ? Math.round((bucket.expenses / maxFlow) * 100) : 0}%` }}
                               />
                             </div>
@@ -284,27 +284,27 @@ export default async function ReportsPage({
                         </td>
                         <td
                           className={`px-5 py-3.5 text-right tabular-nums ${
-                            bucket.net < 0 ? 'font-medium text-red-700' : 'font-medium'
+                            bucket.net < 0 ? 'font-medium text-danger' : 'font-medium'
                           }`}
                         >
                           {peso(bucket.net)}
                         </td>
                       </tr>
                     ))}
-                    <tr className="bg-[#F4F8F5]">
-                      <th className="px-5 py-2.5 text-left text-[11px] font-semibold uppercase tracking-[0.12em] text-[#0E2F27]/55">
+                    <tr className="bg-canvas">
+                      <th className="px-5 py-2.5 text-left text-meta font-medium text-ink-3">
                         Total
                       </th>
-                      <td className="px-5 py-2.5 text-right font-semibold tabular-nums text-[#1F6B52]">
+                      <td className="px-5 py-2.5 text-right font-semibold tabular-nums text-sprout-deep">
                         {peso(cashflow.income)}
                       </td>
-                      <td className="px-5 py-2.5 text-right font-semibold tabular-nums text-[#8a6412]">
+                      <td className="px-5 py-2.5 text-right font-semibold tabular-nums text-mango-deep">
                         {peso(cashflow.expenses)}
                       </td>
                       <td />
                       <td
                         className={`px-5 py-2.5 text-right font-bold tabular-nums ${
-                          cashflow.net < 0 ? 'text-red-700' : ''
+                          cashflow.net < 0 ? 'text-danger' : ''
                         }`}
                       >
                         {peso(cashflow.net)}
@@ -330,19 +330,19 @@ export default async function ReportsPage({
                         <th className={`${th} text-right`}>Tax</th>
                       </tr>
                     </thead>
-                    <tbody className="divide-y divide-[#0E2F27]/10">
+                    <tbody className="divide-y divide-line">
                       {tax.lines.map((line) => (
                         <tr key={`${line.label}|${line.rate}`} className={rowHover}>
                           <td className="px-5 py-3.5 font-medium">{line.label}</td>
-                          <td className="px-5 py-3.5 text-right tabular-nums text-[#0E2F27]/65">
+                          <td className="px-5 py-3.5 text-right tabular-nums text-ink-2">
                             {formatPercent(line.rate)}
                           </td>
                           <td className="px-5 py-3.5 text-right tabular-nums">{peso(line.sales)}</td>
                           <td className="px-5 py-3.5 text-right tabular-nums font-medium">{peso(line.tax)}</td>
                         </tr>
                       ))}
-                      <tr className="bg-[#F4F8F5]">
-                        <th className="px-5 py-2.5 text-left text-[11px] font-semibold uppercase tracking-[0.12em] text-[#0E2F27]/55">
+                      <tr className="bg-canvas">
+                        <th className="px-5 py-2.5 text-left text-meta font-medium text-ink-3">
                           Total
                         </th>
                         <td />
@@ -356,9 +356,9 @@ export default async function ReportsPage({
                 </div>
               </div>
             ) : (
-              <p className="text-sm text-[#0E2F27]/55">No taxed invoices issued in this period.</p>
+              <p className="text-sm text-ink-3">No taxed invoices issued in this period.</p>
             )}
-            <p className="mt-3 text-xs text-[#0E2F27]/55">
+            <p className="mt-3 text-xs text-ink-3">
               Output tax on invoices issued in the period — includes {peso(tax.untaxedSales)} of sales with
               no tax applied. BIR pre-filled forms aren’t generated yet; this summary is the filing input.
             </p>

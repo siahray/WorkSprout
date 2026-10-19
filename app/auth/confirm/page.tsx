@@ -66,13 +66,13 @@ export default function ConfirmPage() {
         <div className="mx-auto w-full max-w-md px-6">
           <div
             role="status"
-            className="rounded-2xl border border-[#0E2F27]/12 bg-white p-8 text-center shadow-[0_24px_50px_-28px_rgba(14,47,39,0.45)]"
+            className="rounded-panel border border-line bg-panel p-8 text-center shadow-overlay"
           >
-            <span className="inline-flex items-center justify-center rounded-2xl bg-[#0E2F27] p-3">
+            <span className="inline-flex items-center justify-center rounded-panel bg-ink p-3">
               <LogoMark size={22} className="ws-pulse" />
             </span>
             <h1 className="mt-4 text-2xl font-extrabold tracking-tight">Checking your link&hellip;</h1>
-            <p className="mt-2 text-[#0E2F27]/65">
+            <p className="mt-2 text-ink-2">
               One moment while we verify it and sign you in.
             </p>
           </div>

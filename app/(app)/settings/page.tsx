@@ -45,7 +45,7 @@ export default async function SettingsPage() {
   return (
     <div className="mx-auto max-w-3xl">
       <PageHeader title="Settings" description="Business details and taxes used on your invoices.">
-        <span className={`${card} px-3 py-1.5 text-sm text-[#0E2F27]/70`}>{claimsData?.claims?.email}</span>
+        <span className={`${card} px-3 py-1.5 text-sm text-ink-2`}>{claimsData?.claims?.email}</span>
       </PageHeader>
       <div className="space-y-10">
         <section className="space-y-4">
@@ -58,7 +58,7 @@ export default async function SettingsPage() {
           <div className={`${card} space-y-5 p-6`}>
             <div>
               <h3 className="text-lg font-bold tracking-tight">Password</h3>
-              <p className="mt-1 text-sm text-[#0E2F27]/65">Change the password you use to sign in.</p>
+              <p className="mt-1 text-sm text-ink-2">Change the password you use to sign in.</p>
             </div>
             <PasswordForm />
           </div>
@@ -76,7 +76,7 @@ export default async function SettingsPage() {
           <div className={`${card} space-y-5 p-6`}>
             <div>
               <h3 className="text-lg font-bold tracking-tight">Send feedback</h3>
-              <p className="mt-1 text-sm text-[#0E2F27]/65">
+              <p className="mt-1 text-sm text-ink-2">
                 Found a bug or have an idea? We read every message during the beta.
               </p>
             </div>

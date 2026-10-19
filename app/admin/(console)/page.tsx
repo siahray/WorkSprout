@@ -28,8 +28,8 @@ function matches(signup: SignupRow, needle: string) {
 
 function Stat({ label: statLabel, value }: { label: string; value: string | number }) {
   return (
-    <div className="rounded-xl border border-[#0E2F27]/12 bg-white p-5">
-      <p className="text-sm text-[#0E2F27]/60">{statLabel}</p>
+    <div className="rounded-control border border-line bg-panel p-5">
+      <p className="text-sm text-ink-2">{statLabel}</p>
       <p className={`${display.className} mt-1 text-3xl font-extrabold tabular-nums`}>{value}</p>
     </div>
   )

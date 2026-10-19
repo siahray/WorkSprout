@@ -56,7 +56,7 @@ export function FeedbackActions({ id, status }: { id: string; status: string }) 
       </ConfirmAction>
 
       {state.error && (
-        <span role="alert" className="text-xs text-red-600">
+        <span role="alert" className="text-xs text-danger">
           {state.error}
         </span>
       )}

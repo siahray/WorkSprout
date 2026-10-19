@@ -82,9 +82,9 @@ function Stat({ label, value, hint, accent }: { label: string; value: string; hi
   return (
     <div className={`${card} relative overflow-hidden p-5`}>
       <span className={`absolute inset-x-0 top-0 h-1 ${accent}`} aria-hidden="true" />
-      <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-[#0E2F27]/50">{label}</p>
+      <p className="text-meta font-medium text-ink-3">{label}</p>
       <p className={`${display.className} mt-2 text-[1.75rem] font-extrabold leading-none tabular-nums`}>{value}</p>
-      {hint && <p className="mt-2 text-xs text-[#0E2F27]/55">{hint}</p>}
+      {hint && <p className="mt-2 text-xs text-ink-3">{hint}</p>}
     </div>
   )
 }
@@ -251,19 +251,19 @@ export default async function TimePage({
           label="Unbilled"
           value={hoursFromMinutes(unbilledMinutes)}
           hint="Billable, not yet invoiced"
-          accent="bg-[#F4B63F]"
+          accent="bg-mango"
         />
         <Stat
           label="Logged"
           value={hoursFromMinutes(totalMinutes)}
           hint={filterName ? `For ${filterName}` : 'All time'}
-          accent="bg-[#2E9E6B]"
+          accent="bg-sprout"
         />
         <Stat
           label="Entries"
           value={String(totals.entries ?? 0)}
           hint={filterName ? `For ${filterName}` : 'Total time entries'}
-          accent="bg-[#0E2F27]/10"
+          accent="bg-ink/10"
         />
       </div>
 
@@ -288,16 +288,16 @@ export default async function TimePage({
                 : 'Recent time'}
           </h2>
           <div className="flex flex-wrap items-center gap-2">
-            <div className="flex rounded-xl border border-[#0E2F27]/15 p-0.5 text-xs font-semibold">
+            <div className="flex rounded-control border border-line p-0.5 text-xs font-semibold">
               <Link
                 href={timeHref({ view: 'list', project: projectParam })}
-                className={`rounded-lg px-3 py-1.5 ${!isTimesheet ? 'bg-[#0E2F27] text-white' : 'text-[#0E2F27]/65 hover:text-[#0E2F27]'} ${focus}`}
+                className={`rounded-control px-3 py-1.5 ${!isTimesheet ? 'bg-ink text-white' : 'text-ink-2 hover:text-ink'} ${focus}`}
               >
                 List
               </Link>
               <Link
                 href={timeHref({ view: 'timesheet', project: projectParam, period, start: range.from })}
-                className={`rounded-lg px-3 py-1.5 ${isTimesheet ? 'bg-[#0E2F27] text-white' : 'text-[#0E2F27]/65 hover:text-[#0E2F27]'} ${focus}`}
+                className={`rounded-control px-3 py-1.5 ${isTimesheet ? 'bg-ink text-white' : 'text-ink-2 hover:text-ink'} ${focus}`}
               >
                 Timesheet
               </Link>
@@ -309,7 +309,7 @@ export default async function TimePage({
                     ? `/time/export?view=timesheet&period=${period}&start=${range.from}${projectParam ? `&project=${projectParam}` : ''}`
                     : `/time/export${projectParam ? `?project=${projectParam}` : ''}`
                 }
-                className={`${btnGhost} !px-3 !py-1.5 text-xs ${focus}`}
+                className={`${btnGhost} px-3! py-1.5! text-xs ${focus}`}
               >
                 Export CSV
               </Link>
@@ -319,12 +319,12 @@ export default async function TimePage({
         {isTimesheet ? (
           timesheet && timesheet.rows.length > 0 ? (
             <div className={`${card} overflow-hidden`}>
-              <div className="flex flex-wrap items-center justify-between gap-2 border-b border-[#0E2F27]/10 px-5 py-3">
+              <div className="flex flex-wrap items-center justify-between gap-2 border-b border-line px-5 py-3">
                 <div className="flex items-center gap-1">
                   <Link
                     href={timeHref({ view: 'timesheet', project: projectParam, period, start: shiftStart(-1) })}
                     aria-label={`Previous ${period === 'week' ? 'week' : 'month'}`}
-                    className={`${btnGhost} !px-2.5 !py-1.5 text-xs ${focus}`}
+                    className={`${btnGhost} px-2.5! py-1.5! text-xs ${focus}`}
                   >
                     ←
                   </Link>
@@ -332,22 +332,22 @@ export default async function TimePage({
                     <Link
                       href={timeHref({ view: 'timesheet', project: projectParam, period, start: shiftStart(1) })}
                       aria-label={`Next ${period === 'week' ? 'week' : 'month'}`}
-                      className={`${btnGhost} !px-2.5 !py-1.5 text-xs ${focus}`}
+                      className={`${btnGhost} px-2.5! py-1.5! text-xs ${focus}`}
                     >
                       →
                     </Link>
                   )}
                 </div>
-                <div className="flex rounded-xl border border-[#0E2F27]/15 p-0.5 text-xs font-semibold">
+                <div className="flex rounded-control border border-line p-0.5 text-xs font-semibold">
                   <Link
                     href={timeHref({ view: 'timesheet', project: projectParam, period: 'week', start: range.from })}
-                    className={`rounded-lg px-3 py-1.5 ${period === 'week' ? 'bg-[#0E2F27] text-white' : 'text-[#0E2F27]/65 hover:text-[#0E2F27]'} ${focus}`}
+                    className={`rounded-control px-3 py-1.5 ${period === 'week' ? 'bg-ink text-white' : 'text-ink-2 hover:text-ink'} ${focus}`}
                   >
                     Week
                   </Link>
                   <Link
                     href={timeHref({ view: 'timesheet', project: projectParam, period: 'month', start: range.from })}
-                    className={`rounded-lg px-3 py-1.5 ${period === 'month' ? 'bg-[#0E2F27] text-white' : 'text-[#0E2F27]/65 hover:text-[#0E2F27]'} ${focus}`}
+                    className={`rounded-control px-3 py-1.5 ${period === 'month' ? 'bg-ink text-white' : 'text-ink-2 hover:text-ink'} ${focus}`}
                   >
                     Month
                   </Link>
@@ -366,14 +366,14 @@ export default async function TimePage({
                       <th className={`${th} text-right`}>Total</th>
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-[#0E2F27]/10">
+                  <tbody className="divide-y divide-line">
                     {timesheet.rows.map((row) => (
                       <tr key={row.key} className={rowHover}>
                         <td className="px-5 py-2.5 font-medium whitespace-nowrap">{row.label}</td>
                         {row.cells.map((minutes, index) => (
                           <td
                             key={timesheet.days[index]}
-                            className={`px-3 py-2.5 text-right tabular-nums ${minutes ? '' : 'text-[#0E2F27]/30'}`}
+                            className={`px-3 py-2.5 text-right tabular-nums ${minutes ? '' : 'text-ink-4'}`}
                           >
                             {minutes ? cellHours(minutes) : '—'}
                           </td>
@@ -383,8 +383,8 @@ export default async function TimePage({
                         </td>
                       </tr>
                     ))}
-                    <tr className="bg-[#F4F8F5]">
-                      <th className="px-5 py-2.5 text-left text-[11px] font-semibold uppercase tracking-[0.12em] text-[#0E2F27]/55">
+                    <tr className="bg-canvas">
+                      <th className="px-5 py-2.5 text-left text-meta font-medium text-ink-3">
                         Total
                       </th>
                       {timesheet.dayTotals.map((minutes, index) => (
@@ -399,7 +399,7 @@ export default async function TimePage({
                   </tbody>
                 </table>
               </div>
-              <div className="flex flex-wrap items-center justify-between gap-2 border-t border-[#0E2F27]/10 px-5 py-3 text-xs text-[#0E2F27]/55">
+              <div className="flex flex-wrap items-center justify-between gap-2 border-t border-line px-5 py-3 text-xs text-ink-3">
                 <span>
                   {hoursFromMinutes(timesheet.billableMinutes)} billable ·{' '}
                   {hoursFromMinutes(timesheet.total - timesheet.billableMinutes)} not billable
@@ -408,7 +408,7 @@ export default async function TimePage({
               </div>
             </div>
           ) : (
-            <div className={`${card} p-8 text-center text-sm text-[#0E2F27]/65`}>
+            <div className={`${card} p-8 text-center text-sm text-ink-2`}>
               No time logged in this period. Use the arrows to browse back, or log an entry above.
             </div>
           )
@@ -430,37 +430,37 @@ export default async function TimePage({
                     <th className={th} />
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-[#0E2F27]/10">
+                <tbody className="divide-y divide-line">
                   {entries.map((entry) => {
                     const info = taskInfo.get(entry.task_id)
                     return (
                       <tr key={entry.id} className={rowHover}>
-                        <td className="px-5 py-3 whitespace-nowrap text-[#0E2F27]/65">{formatDate(entry.start_time)}</td>
+                        <td className="px-5 py-3 whitespace-nowrap text-ink-2">{formatDate(entry.start_time)}</td>
                         <td className="px-5 py-3">
                           <span className="font-medium">{info?.title ?? '—'}</span>
-                          {info && <p className="text-xs text-[#0E2F27]/55">{info.projectName}</p>}
+                          {info && <p className="text-xs text-ink-3">{info.projectName}</p>}
                         </td>
                         <td className="px-5 py-3 tabular-nums">{hoursFromMinutes(entry.duration_minutes)}</td>
                         <td className="px-5 py-3">
                           {entry.invoice_id ? (
-                            <span className="text-[#1F6B52]">Invoiced</span>
+                            <span className="text-sprout-deep">Invoiced</span>
                           ) : entry.billable ? (
-                            <span className="text-[#8a6412]">Unbilled</span>
+                            <span className="text-mango-deep">Unbilled</span>
                           ) : (
-                            <span className="text-[#0E2F27]/55">Not billable</span>
+                            <span className="text-ink-3">Not billable</span>
                           )}
                         </td>
                         <td className="px-5 py-3">
                           {entry.invoice_id === null && (
                             <span className="flex items-center justify-end gap-1">
-                              <Link href={`/time/${entry.id}/edit`} className={`${btnGhost} !px-2 !py-1 text-xs`}>
+                              <Link href={`/time/${entry.id}/edit`} className={`${btnGhost} px-2! py-1! text-xs`}>
                                 Edit
                               </Link>
                               <ConfirmAction
                                 action={deleteTimeEntry}
                                 id={entry.id}
                                 message="Delete this time entry?"
-                                className={`${btnGhost} !px-2 !py-1 text-xs text-red-700 hover:text-red-800`}
+                                className={`${btnGhost} px-2! py-1! text-xs text-danger hover:bg-danger-wash`}
                               >
                                 Delete
                               </ConfirmAction>

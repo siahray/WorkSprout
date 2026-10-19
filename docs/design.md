@@ -25,7 +25,7 @@ canvas that produces translucent grey-green, which reads muddy and drops below
 Meaning colours: `sprout` is "do this", `mango` is "look here", `danger` is void
 or negative. Each has a `-wash` tint for chips and alerts (`sprout-wash`,
 `mango-wash`, `danger-wash`). `sprout-deep` and `mango-deep` are the readable
-text weights of those hues.
+text weights of those hues; `mango-strong` is Mango's hover weight.
 
 Two rules:
 
@@ -74,18 +74,35 @@ disabled under `prefers-reduced-motion`.
 
 ## Sweeping the remaining routes
 
-The rest of the app still carries the old vocabulary. When touching a page:
+The sweep is done: every route and component draws from the token layer, with one
+exception — `app/page.tsx` (the marketing page), held back while its pending local
+edit lands. The checklist, for a new page or a stray value:
 
 - `text-[#0E2F27]/NN` → the ramp step with adequate contrast (`ink-2`/`ink-3`).
 - `rounded-2xl border border-[#0E2F27]/10 bg-white shadow-[…]` → `card`.
 - `divide-[#0E2F27]/10` → `divide-line`; `border-[#0E2F27]/10` → `border-line`.
+  A hover border, or a checkbox at `/30`, → `border-ink-4`.
 - `text-[#1F6B52]` links → `text-sprout-deep`; `bg-[#2E9E6B]`/`bg-[#F4B63F]` →
   `bg-sprout`/`bg-mango`.
 - `text-[11px] uppercase tracking-[0.12em]` labels → `meta` (`PageHeader`'s
   `eyebrow` prop already renders sentence case).
 - `text-sm` body copy → `text-body`; `text-xs` → `text-meta` or `text-small`.
+- A local button, field, label, or error line → the export in `lib/ui.ts`. There
+  is one field, one label, one error line, and one Mango call to action.
 
-The public surfaces (`app/page.tsx`, `app/login`, `app/signup`,
-`app/reset-password`, `components/auth-shell.tsx`, `app/admin/*`) still load
-**Figtree** as `body` from `lib/fonts.ts`. Unify them on Geist and delete the
-Figtree import once `app/page.tsx`'s pending edit has landed.
+Body text stays at 14px inside tables, so `text-sm` survives there on purpose.
+
+## Loading and failure
+
+Two surfaces are what make the app feel finished rather than merely styled:
+
+- `app/(app)/loading.tsx` wraps every workspace page in a Suspense boundary, so a
+  click paints the shape of the next screen instead of holding the old one still
+  until the server answers. `/dashboard` has its own skeleton because it opens on
+  the ledger strip. Both are built from `components/ui/skeleton.tsx`.
+- `app/(app)/error.tsx` is the workspace error boundary: it says what happened,
+  offers the retry, and keeps the frame around the message. This version of Next
+  passes `retry` to an error boundary — not the older `reset`.
+
+Body copy is Geist everywhere. Bricolage (`display`) is the only other face, and
+it is spent on titles, figures, and the invoice.
