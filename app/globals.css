@@ -1,5 +1,17 @@
 @import "tailwindcss";
 
+/* ── The ledger system ────────────────────────────────────────────────────────
+   WorkSprout's brand is four colours: Ink, Sprout, Mango, Sampaguita. What the
+   app was missing was a system between them — hierarchy was being drawn by
+   fading Ink, so secondary text landed on a green-tinted canvas as translucent
+   grey-green at 50–75%, which reads soft and muddy rather than crisp.
+
+   So: a five-step Ink ramp (one hue, mixed toward the canvas, not toward grey),
+   three structural colours, and a type scale where weight and size carry
+   hierarchy instead of alpha. Money and minutes are the subject of this product,
+   so figures are tabular and right-aligned, and everything around them is quiet.
+   ────────────────────────────────────────────────────────────────────────── */
+
 :root {
   --background: #f4f8f5;
   --foreground: #0e2f27;
@@ -7,6 +19,65 @@
   --sprout: #2e9e6b;
   --mango: #f4b63f;
   --sampaguita: #f4f8f5;
+}
+
+@theme {
+  /* Ink ramp. Contrast against white: 13.6, 7.9, 5.3, and the last is for
+     decoration and disabled states only — it never carries meaning alone. */
+  --color-ink: #0e2f27;
+  --color-ink-deep: #09211b;
+  --color-ink-2: #3a5750;
+  --color-ink-3: #57706a;
+  --color-ink-4: #8ca09a;
+
+  /* Structure. Hairlines are a real colour, not Ink at 10% — that washes out
+     against the canvas and vanishes in print. */
+  --color-line: #dce4e0;
+  --color-line-strong: #c6d2cc;
+
+  /* Surfaces. */
+  --color-canvas: #f4f8f5;
+  --color-panel: #ffffff;
+
+  /* Meaning. Sprout is "do this", Mango is "look here", and nothing else in
+     the interface is coloured. */
+  --color-sprout: #2e9e6b;
+  --color-sprout-deep: #1f6b52;
+  --color-sprout-wash: #eaf6f0;
+  --color-mango: #f4b63f;
+  --color-mango-deep: #8a6412;
+  --color-mango-wash: #fdf4e1;
+  --color-danger: #a02b20;
+  --color-danger-wash: #fbeeec;
+
+  /* Type scale. 15px body, not 14px: the app had been set almost entirely in
+     text-sm, which left no scale to build hierarchy with. */
+  --text-meta: 0.75rem;
+  --text-meta--line-height: 1.4;
+  --text-small: 0.8125rem;
+  --text-small--line-height: 1.45;
+  --text-body: 0.9375rem;
+  --text-body--line-height: 1.55;
+  --text-lead: 1.0625rem;
+  --text-lead--line-height: 1.5;
+  --text-title: 1.375rem;
+  --text-title--line-height: 1.2;
+  --text-page: 1.75rem;
+  --text-page--line-height: 1.08;
+  --text-figure: 2.125rem;
+  --text-figure--line-height: 1;
+
+  /* One radius for panels, one for controls, one for chips. Panels used to be
+     rounded-2xl with the same soft shadow under all of them. */
+  --radius-panel: 14px;
+  --radius-control: 10px;
+  --radius-chip: 6px;
+
+  /* Depth. A panel sits on the paper with a hairline and almost no shadow; it
+     only lifts when it is the thing you are pointing at. */
+  --shadow-panel: 0 1px 2px rgba(9, 33, 27, 0.04);
+  --shadow-raised: 0 2px 4px rgba(9, 33, 27, 0.05), 0 14px 26px -18px rgba(9, 33, 27, 0.45);
+  --shadow-overlay: 0 24px 50px -12px rgba(9, 33, 27, 0.4);
 }
 
 @theme inline {
@@ -79,6 +150,9 @@ body {
   background: var(--background);
   color: var(--foreground);
   font-family: var(--font-geist-sans), Arial, Helvetica, sans-serif;
+  /* Figures line up in columns wherever they appear, without every caller
+     having to remember tabular-nums. */
+  font-variant-numeric: tabular-nums;
 }
 
 ::selection {
@@ -87,8 +161,8 @@ body {
 }
 
 dialog::backdrop {
-  background: rgba(14, 47, 39, 0.45);
-  backdrop-filter: blur(2px);
+  background: rgba(9, 33, 27, 0.5);
+  backdrop-filter: blur(3px);
 }
 
 dialog[open] {

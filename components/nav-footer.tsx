@@ -16,18 +16,18 @@ export function NavFooter({
 }) {
   return (
     <>
-      <p className="truncate text-sm font-semibold text-white">{name || email}</p>
-      <p className="truncate text-xs text-white/50">{email}</p>
+      <p className="truncate text-body font-semibold text-white">{name || email}</p>
+      <p className="truncate text-meta text-white/45">{email}</p>
       <Link
         href="/feedback"
         onClick={onNavigate}
-        className={`mt-3 inline-flex w-full items-center justify-center gap-2 rounded-lg bg-[#F4B63F] px-3 py-2 text-sm font-semibold text-[#0E2F27] transition-colors hover:bg-[#f5c15e] active:translate-y-px ${focus}`}
+        className={`mt-3 inline-flex w-full items-center justify-center gap-2 rounded-control bg-mango px-3 py-2 text-small font-semibold text-ink transition-colors hover:bg-mango/90 active:translate-y-px ${focus}`}
       >
         Send feedback
       </Link>
       <form action={logout} className="mt-1">
         <button
-          className={`inline-flex w-full items-center justify-center gap-2 rounded-lg px-3 py-2 text-sm font-medium text-white/70 transition-colors hover:bg-white/5 hover:text-white ${focus}`}
+          className={`inline-flex w-full items-center justify-center gap-2 rounded-control px-3 py-2 text-small font-medium text-white/60 transition-colors hover:bg-white/[0.06] hover:text-white ${focus}`}
         >
           Sign out
         </button>

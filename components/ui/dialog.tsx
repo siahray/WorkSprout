@@ -46,7 +46,7 @@ export function Dialog({
       onClick={(event) => {
         if (event.target === event.currentTarget) onOpenChange(false)
       }}
-      className={`m-auto w-[calc(100%-2rem)] ${SIZES[size]} max-h-[calc(100dvh-3rem)] overflow-y-auto rounded-2xl border border-[#0E2F27]/10 bg-white p-0 text-[#0E2F27] shadow-[0_24px_50px_-12px_rgba(14,47,39,0.45)]`}
+      className={`m-auto w-[calc(100%-2rem)] ${SIZES[size]} max-h-[calc(100dvh-3rem)] overflow-y-auto rounded-panel border border-line bg-panel p-0 text-ink shadow-overlay`}
     >
       {children}
     </dialog>

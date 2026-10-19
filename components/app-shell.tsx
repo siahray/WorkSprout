@@ -1,6 +1,5 @@
 import Link from 'next/link'
 import type { ReactNode } from 'react'
-import { body } from '@/lib/fonts'
 import { Logo } from '@/components/logo'
 import { MobileNav } from '@/components/mobile-nav'
 import { NavFooter } from '@/components/nav-footer'
@@ -9,12 +8,7 @@ import { PageTransition } from '@/components/page-transition'
 import { ActiveTimer, type ActiveTimerInfo } from '@/components/active-timer'
 import { TimerSync } from '@/components/timer-sync'
 import { logout } from '@/app/(app)/actions'
-import { focus } from '@/lib/ui'
-
-const weave = {
-  backgroundImage:
-    'repeating-linear-gradient(45deg, rgba(255,255,255,.04) 0 2px, transparent 2px 16px), repeating-linear-gradient(-45deg, rgba(255,255,255,.04) 0 2px, transparent 2px 16px)',
-}
+import { focus, railSurface } from '@/lib/ui'
 
 export function AppShell({
   email,
@@ -28,23 +22,25 @@ export function AppShell({
   children: ReactNode
 }) {
   return (
-    <div className={`${body.className} min-h-screen bg-[#F4F8F5] text-[#0E2F27]`}>
+    <div className="min-h-screen bg-canvas text-ink">
       <TimerSync running={active != null} />
       <div className="lg:grid lg:grid-cols-[260px_1fr]">
-        <aside className="sticky top-0 hidden h-screen flex-col bg-[#0E2F27] lg:flex print:hidden" style={weave}>
-          <div className="px-5 py-6">
+        {/* The rail carries no section label: there is one group of links, so a
+            label above it would be decoration. */}
+        <aside
+          className="sticky top-0 hidden h-screen flex-col bg-ink lg:flex print:hidden"
+          style={railSurface}
+        >
+          <div className="px-5 pb-5 pt-6">
             <Link
               href="/dashboard"
-              className={`inline-flex rounded-lg text-white ${focus}`}
+              className={`inline-flex rounded-control text-white ${focus}`}
               aria-label="WorkSprout dashboard"
             >
-              <Logo size={34} />
+              <Logo size={32} />
             </Link>
           </div>
-          <nav className="flex-1 px-3 py-2">
-            <p className="px-3 pb-2 text-[11px] font-semibold uppercase tracking-[0.18em] text-white/40">
-              Workspace
-            </p>
+          <nav className="flex-1 px-3">
             <NavLinks />
           </nav>
           <div className="border-t border-white/10 p-4">
@@ -53,16 +49,16 @@ export function AppShell({
         </aside>
 
         <div className="flex min-h-screen flex-col">
-          <header className="sticky top-0 z-20 border-b border-[#0E2F27]/10 bg-[#F4F8F5]/85 backdrop-blur print:hidden">
-            <div className="flex items-center gap-3 px-4 py-3 sm:px-6">
+          <header className="sticky top-0 z-20 border-b border-line bg-canvas/80 backdrop-blur-md print:hidden">
+            <div className="flex items-center gap-3 px-5 py-3 sm:px-8 lg:px-12">
               <Link href="/dashboard" className={`lg:hidden ${focus}`} aria-label="WorkSprout dashboard">
-                <Logo size={30} />
+                <Logo size={28} />
               </Link>
               <div className="ml-auto flex items-center gap-3">
                 <ActiveTimer active={active} />
                 <form action={logout} className="hidden sm:block">
                   <button
-                    className={`inline-flex items-center justify-center gap-2 rounded-lg px-3 py-2 text-sm font-medium text-[#0E2F27]/70 transition-colors hover:bg-[#0E2F27]/5 hover:text-[#0E2F27] ${focus}`}
+                    className={`rounded-control px-3 py-2 text-small font-medium text-ink-2 transition-colors hover:bg-ink/5 hover:text-ink ${focus}`}
                   >
                     Sign out
                   </button>
@@ -72,7 +68,7 @@ export function AppShell({
             </div>
           </header>
 
-          <main className="mx-auto w-full max-w-7xl flex-1 px-4 py-8 sm:px-6 lg:px-10 print:max-w-none print:p-0">
+          <main className="mx-auto w-full max-w-[1400px] flex-1 px-5 py-9 sm:px-8 lg:px-12 lg:py-10 print:max-w-none print:p-0">
             <PageTransition>{children}</PageTransition>
           </main>
         </div>
