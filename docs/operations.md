@@ -164,7 +164,7 @@ existing tables.
 
 | Where | What | Why |
 |---|---|---|
-| Supabase → Auth → URL Configuration | `https://<site>/auth/callback` in Redirect URLs | Password-reset emails break without it. |
+| Supabase → Auth → URL Configuration | `https://<site>/auth/confirm` in Redirect URLs | Password-reset links point here. A redirect that is *not* listed is silently replaced by the Site URL, which shows up as reset links landing on the home page; `RecoveryLinkCatcher` rescues that, but the entry is the real fix. Note the wildcard does not cover the port: `http://localhost:3000/*` was measured as **not** matching `http://localhost:3000/auth/confirm`. |
 | Vercel env | `SUPABASE_SERVICE_ROLE_KEY` | Enables `/api/v1` (returns `503 not_configured` without it). |
 | Vercel env | `RESEND_API_KEY` + `EMAIL_FROM` | Invoice email; off until both are set. |
 | GitHub repo secrets | `SUPABASE_ACCESS_TOKEN` | Activates the drift check above. |
