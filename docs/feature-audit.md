@@ -1,7 +1,7 @@
 # WorkSprout — Feature Audit & Automation Readiness
 
-**Date:** 18 October 2026
-**Branches:** PRs #18–#29 merged. Open: `feat/archive-clients`.
+**Date:** 19 October 2026
+**Branches:** PRs #18–#30 merged. Open: `feat/pagination-search`.
 **Method:** static inventory of `app/**` routes, server actions, route handlers, `supabase/migrations/*.sql`, database functions and triggers, and CI workflows. No runtime walkthrough.
 
 Legend: ✅ built · ⚠️ partial · ❌ absent
@@ -123,7 +123,9 @@ The event log follows it: `events` is written by an `after insert or update or d
 - ✅ RLS on user tables, `updated_at` triggers, admin audit log, three CI workflows
 - ⚠️ **Tests of any kind** — a `bun test` harness now exists (see the changelog) with 50 tests, covering the API layer, the form-idempotency helper, and the pure money paths: tax math, timer elapsed, money parsing, formatting. Still nothing exercises the server actions end-to-end or asserts against a real database.
 - ✅ CI runs a real test step (was: nothing to run)
-- ❌ Rate limiting, pagination (lists load fully), search on expenses/invoices
+- ❌ Rate limiting (deferred with the dormant API layer)
+- ⚠️ Pagination — invoices, expenses, and time entries fetch 50 rows per page with a Previous/Next footer, and an out-of-range `?page=` redirects to the last real page. The bounded workspace lists (clients, projects) and every picker still load in full by design.
+- ✅ Search on expenses and invoices — server-side `?q=`, sanitised so free text cannot break the PostgREST filter, starting back at page 1 on every new query
 - ❌ Observability beyond `console.error`
 - ✅ Migration baseline — `config.toml` now exists and every migration is recorded in the remote history (0 pending). Still no drift check in CI.
 - ❌ Backups/restore runbook
@@ -186,13 +188,13 @@ Ordered by dependency, not preference.
 
 **Database functions / RPCs**
 
-`handle_new_user`, `add_manual_entry`, `update_manual_entry`, `admin_is_admin`, `admin_list_users`, `admin_set_admin_role`, `admin_set_user_banned`, `admin_usage_stats`, `call_public`, `invoice_public`, `hook_restrict_beta_signup`, `is_beta_signup`, `pause_timer`, `resume_timer`, `start_timer`, `stop_timer`, `set_updated_at`, `record_event`
+`handle_new_user`, `add_manual_entry`, `update_manual_entry`, `admin_is_admin`, `admin_list_users`, `admin_set_admin_role`, `admin_set_user_banned`, `admin_usage_stats`, `call_public`, `invoice_public`, `hook_restrict_beta_signup`, `is_beta_signup`, `pause_timer`, `resume_timer`, `start_timer`, `stop_timer`, `set_updated_at`, `record_event`, `invoice_outstanding`, `expense_totals`, `time_totals`
 
 **Database triggers**
 
 `record_event` on `invoices`, `payments`, `calls`, `clients`, `expenses` (`after insert or update or delete`, `security definer`). One `set_updated_at` trigger per mutable table.
 
-**Explicitly not present:** webhook delivery or a retry worker, pg_cron or queue usage, realtime subscriptions, rate limiting, pagination, any test file.
+**Explicitly not present:** webhook delivery or a retry worker, pg_cron or queue usage, realtime subscriptions, rate limiting (deferred with the API layer).
 
 ---
 
@@ -342,6 +344,16 @@ Receipts attach from the saved expense's row, not inside the add-expense form: t
 | Server-side guards | `createProject`, `createInvoice`, `updateInvoice` (only when *switching* to an archived client), and the shared `scheduleCall` — app form and integration API alike — refuse archived clients. Pickers are the convenience; the actions are the rule. `createProject` also gained the client-existence probe it never had: the read is RLS-scoped, so it now rejects ids owned by other users too, which the bare FK insert previously allowed. |
 
 Archiving does not cascade: projects, invoices, time, and expenses are untouched, and the dashboard counts active clients only. To bill or schedule for an archived client, restore first — the error says so. The disproven claim at the old line 67 ("delete is destructive and cascading" as the *only* option) is replaced above: delete is still destructive, but it is no longer the only option.
+
+### Pagination & search (branch `feat/pagination-search`)
+
+| Change | Notes |
+|---|---|
+| Paginated lists | Invoices, expenses, and time entries fetch 50 rows per page (`.range()` + `count: 'exact'`) with a Previous/Next footer inside the table card; a `?page=` beyond the end redirects to the last real page instead of rendering an empty table. Page math lives in `lib/pagination.ts`, pinned by `test/pagination-simple.test.ts`. Clients and projects still load in full — they are bounded per account, and pickers need every option anyway. |
+| Search on expenses and invoices | A GET form (same pattern as the admin console) filtering server-side: invoices on number + client name, expenses on description + note + category. Every new search drops back to page 1, pagination links carry the query along, and zero-result states offer a Clear link. |
+| Filter-safe search text | `sanitizeSearch` (`lib/search.ts`) swaps `, ( ) \`, and control characters for LIKE's `_` wildcard before the term enters an `.or()` — a raw comma fails PostgREST's filter parsing (PGRST100) and turns the whole page into a 400, verified live — and the wildcard still matches the original text, so "Smith, John" finds "Smith, John". Dots, spaces, hyphens, and other punctuation were probed too and pass through untouched. |
+| Stats moved into SQL | Migration `20261019100000_list_stats.sql`: `invoice_outstanding()`, `expense_totals(date)`, and `time_totals(uuid)` aggregate in Postgres under the caller's own RLS, so the headers keep reporting true totals (outstanding balance, all-time spend, unbilled hours) now that a page only ever receives one 50-row slice. Applied remotely via `supabase db push`. |
+| Time page project filter | Moved from in-memory filtering to a `tasks!inner` join in the query — the old "fetch every entry, then filter" approach cannot survive pagination. A malformed `?project=` (not even a UUID) is now treated as no filter instead of handing PostgREST a cast it rejects. |
 
 ### Audit corrections
 
