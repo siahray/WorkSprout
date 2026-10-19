@@ -2,6 +2,8 @@ import Link from 'next/link'
 import type { ReactNode } from 'react'
 import { body } from '@/lib/fonts'
 import { Logo } from '@/components/logo'
+import { MobileNav } from '@/components/mobile-nav'
+import { NavFooter } from '@/components/nav-footer'
 import { NavLinks } from '@/components/nav-links'
 import { PageTransition } from '@/components/page-transition'
 import { ActiveTimer, type ActiveTimerInfo } from '@/components/active-timer'
@@ -46,21 +48,7 @@ export function AppShell({
             <NavLinks />
           </nav>
           <div className="border-t border-white/10 p-4">
-            <p className="truncate text-sm font-semibold text-white">{name || email}</p>
-            <p className="truncate text-xs text-white/50">{email}</p>
-            <Link
-              href="/feedback"
-              className={`mt-3 inline-flex w-full items-center justify-center gap-2 rounded-lg bg-[#F4B63F] px-3 py-2 text-sm font-semibold text-[#0E2F27] transition-colors hover:bg-[#f5c15e] active:translate-y-px ${focus}`}
-            >
-              Send feedback
-            </Link>
-            <form action={logout} className="mt-1">
-              <button
-                className={`inline-flex w-full items-center justify-center gap-2 rounded-lg px-3 py-2 text-sm font-medium text-white/70 transition-colors hover:bg-white/5 hover:text-white ${focus}`}
-              >
-                Sign out
-              </button>
-            </form>
+            <NavFooter email={email} name={name} />
           </div>
         </aside>
 
@@ -79,10 +67,8 @@ export function AppShell({
                     Sign out
                   </button>
                 </form>
+                <MobileNav email={email} name={name} />
               </div>
-            </div>
-            <div className="overflow-x-auto border-t border-[#0E2F27]/10 px-2 lg:hidden">
-              <NavLinks variant="bar" />
             </div>
           </header>
 
