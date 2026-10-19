@@ -1,0 +1,53 @@
+# Fails when supabase/migrations and the remote Supabase history disagree:
+# a migration applied by hand in the dashboard, or a local file that was
+# never pushed with `db push`. Runs on pushes/PRs to main plus a weekly
+# schedule, so direct database edits are caught even without a deploy.
+#
+# Gated on the SUPABASE_ACCESS_TOKEN repository secret (create one at
+# https://supabase.com/dashboard/account/tokens). Without the secret the job
+# prints a notice and passes, so CI stays green until it is configured.
+# See docs/operations.md for details.
+name: Migration drift check
+
+on:
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
+  schedule:
+    # Weekly, offset from the ZAP scan's Monday slot.
+    - cron: '30 4 * * 1'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  migration-drift:
+    runs-on: ubuntu-latest
+    env:
+      SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v7
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
+      # No `bun install` needed: the Supabase CLI comes via bunx and
+      # scripts/check-drift.ts has no dependencies.
+      #
+      # The project ref (qjvrmyqvucwnihwrtkuj) is already public — it appears
+      # in NEXT_PUBLIC_SUPABASE_URL inside the client bundle.
+      - name: Compare local migrations with remote history
+        if: env.SUPABASE_ACCESS_TOKEN != ''
+        run: |
+          bunx supabase link --project-ref qjvrmyqvucwnihwrtkuj --yes < /dev/null
+          bunx supabase migration list --project-ref qjvrmyqvucwnihwrtkuj --output-format json < /dev/null > /tmp/migrations.json
+          bun scripts/check-drift.ts /tmp/migrations.json
+
+      - name: Skipped — SUPABASE_ACCESS_TOKEN not configured
+        if: env.SUPABASE_ACCESS_TOKEN == ''
+        run: echo "::notice::Migration drift check skipped. Add a SUPABASE_ACCESS_TOKEN repository secret (from https://supabase.com/dashboard/account/tokens) to enable it."

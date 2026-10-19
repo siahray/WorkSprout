@@ -1,5 +1,6 @@
 'use server'
 
+import { logError } from '@/lib/log'
 import { revalidatePath } from 'next/cache'
 import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
@@ -76,7 +77,7 @@ export async function createProject(_prev: FormState, formData: FormData): Promi
     .single()
 
   if (error || !inserted) {
-    console.error('create project failed:', error?.message)
+    logError('create project failed', { error })
     return { error: 'Could not save the project — please try again.' }
   }
 
@@ -106,7 +107,7 @@ export async function updateProject(_prev: FormState, formData: FormData): Promi
     .eq('id', id)
 
   if (error) {
-    console.error('update project failed:', error.message)
+    logError('update project failed', { error })
     return { error: 'Could not save the project — please try again.' }
   }
 
@@ -127,7 +128,7 @@ export async function deleteProject(_prev: FormState, formData: FormData): Promi
   const { error } = await supabase.from('projects').delete().eq('id', id)
 
   if (error) {
-    console.error('delete project failed:', error.message)
+    logError('delete project failed', { error })
     return { error: 'Could not delete the project — please try again.' }
   }
 
@@ -161,7 +162,7 @@ export async function addPhase(_prev: FormState, formData: FormData): Promise<Fo
   })
 
   if (error) {
-    console.error('add phase failed:', error.message)
+    logError('add phase failed', { error })
     return { error: 'Could not add the phase. Please try again.' }
   }
 
@@ -180,7 +181,7 @@ export async function deletePhase(_prev: FormState, formData: FormData): Promise
   const { error } = await supabase.from('phases').delete().eq('id', id)
 
   if (error) {
-    console.error('delete phase failed:', error.message)
+    logError('delete phase failed', { error })
     return { error: 'Could not delete the phase. Please try again.' }
   }
 
@@ -217,7 +218,7 @@ export async function addTask(_prev: FormState, formData: FormData): Promise<For
   })
 
   if (error) {
-    console.error('add task failed:', error.message)
+    logError('add task failed', { error })
     return { error: 'Could not add the task — please try again.' }
   }
 
@@ -232,7 +233,7 @@ export async function setTaskStatus(id: string, status: string): Promise<void> {
 
   const supabase = await createClient()
   const { error } = await supabase.from('tasks').update({ status }).eq('id', id)
-  if (error) console.error('set task status failed:', error.message)
+  if (error) logError('set task status failed', { error })
 
   revalidatePath('/projects')
   revalidatePath('/time')
@@ -247,7 +248,7 @@ export async function deleteTask(_prev: FormState, formData: FormData): Promise<
   const { error } = await supabase.from('tasks').delete().eq('id', id)
 
   if (error) {
-    console.error('delete task failed:', error.message)
+    logError('delete task failed', { error })
     return { error: 'Could not delete the task — please try again.' }
   }
 
@@ -285,7 +286,7 @@ export async function addSubtask(_prev: FormState, formData: FormData): Promise<
   })
 
   if (error) {
-    console.error('add subtask failed:', error.message)
+    logError('add subtask failed', { error })
     return { error: 'Could not add the subtask - please try again.' }
   }
 
@@ -300,7 +301,7 @@ export async function setSubtaskStatus(id: string, status: string): Promise<void
   const supabase = await createClient()
   const { data } = await supabase.from('subtasks').select('project_id').eq('id', id).maybeSingle()
   const { error } = await supabase.from('subtasks').update({ status }).eq('id', id)
-  if (error) console.error('set subtask status failed:', error.message)
+  if (error) logError('set subtask status failed', { error })
 
   if (data?.project_id) {
     revalidatePath(`/projects/${data.project_id}`)
@@ -319,7 +320,7 @@ export async function deleteSubtask(_prev: FormState, formData: FormData): Promi
   const { error } = await supabase.from('subtasks').delete().eq('id', id)
 
   if (error) {
-    console.error('delete subtask failed:', error.message)
+    logError('delete subtask failed', { error })
     return { error: 'Could not delete the subtask - please try again.' }
   }
 
@@ -358,7 +359,7 @@ async function writeOrder(
     if (byId.get(id) === index) continue
     const { error } = await supabase.from(table).update({ position: index }).eq('id', id)
     if (error) {
-      console.error(`reorder ${table} failed:`, error.message)
+      logError(`reorder ${table} failed`, { error })
       return 'Could not reorder — please try again.'
     }
   }
@@ -384,7 +385,7 @@ export async function updatePhase(_prev: FormState, formData: FormData): Promise
     .maybeSingle()
 
   if (error) {
-    console.error('update phase failed:', error.message)
+    logError('update phase failed', { error })
     return { error: 'Could not rename the phase. Please try again.' }
   }
   if (!data) return { error: 'That phase could not be found.' }
@@ -450,7 +451,7 @@ export async function updateTask(_prev: FormState, formData: FormData): Promise<
     .maybeSingle()
 
   if (error) {
-    console.error('update task failed:', error.message)
+    logError('update task failed', { error })
     return { error: 'Could not rename the task. Please try again.' }
   }
   if (!data) return { error: 'That task could not be found.' }
@@ -520,7 +521,7 @@ export async function updateSubtask(_prev: FormState, formData: FormData): Promi
     .maybeSingle()
 
   if (error) {
-    console.error('update subtask failed:', error.message)
+    logError('update subtask failed', { error })
     return { error: 'Could not rename the subtask. Please try again.' }
   }
   if (!data) return { error: 'That subtask could not be found.' }

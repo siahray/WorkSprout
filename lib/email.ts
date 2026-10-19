@@ -1,6 +1,8 @@
 // Transactional email via Resend's REST API. We deliberately avoid an SDK —
 // the whole surface is one POST, and it keeps the dependency tree tiny.
 
+import { logError } from '@/lib/log'
+
 export type EmailAttachment = {
   filename: string
   // Base64-encoded file contents, as Resend expects.
@@ -58,14 +60,14 @@ export async function sendEmail(input: SendEmailInput): Promise<SendEmailResult>
 
     if (!res.ok) {
       const detail = await res.text().catch(() => '')
-      console.error('resend send failed:', res.status, detail)
+      logError('resend send failed', { status: res.status, detail })
       return { ok: false, error: 'The email provider rejected the message — please try again.' }
     }
 
     const data = (await res.json().catch(() => ({}))) as { id?: string }
     return { ok: true, id: data.id }
   } catch (error) {
-    console.error('resend send error:', error)
+    logError('resend send error', { error })
     return { ok: false, error: 'Could not reach the email provider — please try again.' }
   }
 }

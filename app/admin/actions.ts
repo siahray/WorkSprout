@@ -1,5 +1,6 @@
 'use server'
 
+import { logError } from '@/lib/log'
 import { headers } from 'next/headers'
 import { revalidatePath } from 'next/cache'
 import { redirect } from 'next/navigation'
@@ -39,7 +40,7 @@ export async function sendInvite(_prevState: InviteState, formData: FormData): P
   )
 
   if (recordError) {
-    console.error('invite record failed:', recordError.message)
+    logError('invite record failed', { error: recordError })
     return { error: 'Could not record the invite — please try again.', email }
   }
 
@@ -58,7 +59,7 @@ export async function sendInvite(_prevState: InviteState, formData: FormData): P
     if (error.code === 'over_email_send_rate_limit' || /rate limit/i.test(error.message)) {
       return { error: 'Too many invites just now — wait a few minutes and try again.', email }
     }
-    console.error('invite email failed:', error.message)
+    logError('invite email failed', { error })
     return { error: 'Could not send the invite email — please try again.', email }
   }
 

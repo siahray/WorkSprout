@@ -1,5 +1,6 @@
 'use server'
 
+import { logError } from '@/lib/log'
 import { revalidatePath } from 'next/cache'
 import { createClient } from '@/lib/supabase/server'
 import { isUuid, text, type FormState } from '@/lib/validation'
@@ -46,7 +47,7 @@ export async function deleteSignup(_prev: FormState, formData: FormData): Promis
 
   const { error } = await session.supabase.from('beta_signups').delete().eq('id', id)
   if (error) {
-    console.error('delete signup failed:', error.message)
+    logError('delete signup failed', { error })
     return { error: 'Could not delete the signup — please try again.' }
   }
 
@@ -69,7 +70,7 @@ export async function bulkDeleteSignups(_prev: FormState, formData: FormData): P
 
   const { error } = await session.supabase.from('beta_signups').delete().in('id', ids)
   if (error) {
-    console.error('bulk delete signups failed:', error.message)
+    logError('bulk delete signups failed', { error })
     return { error: 'Could not delete the selected signups — please try again.' }
   }
 
@@ -102,7 +103,7 @@ export async function setUserRole(_prev: FormState, formData: FormData): Promise
     p_is_admin: makeAdmin,
   })
   if (error) {
-    console.error('set admin role failed:', error.message)
+    logError('set admin role failed', { error })
     return { error: friendly(error.message) }
   }
 
@@ -130,7 +131,7 @@ export async function setUserBanned(_prev: FormState, formData: FormData): Promi
     p_banned: ban,
   })
   if (error) {
-    console.error('set user banned failed:', error.message)
+    logError('set user banned failed', { error })
     return { error: friendly(error.message) }
   }
 
@@ -273,7 +274,7 @@ export async function updateFeedbackStatus(_prev: FormState, formData: FormData)
 
   const { error } = await session.supabase.from('feedback').update({ status }).eq('id', id)
   if (error) {
-    console.error('update feedback failed:', error.message)
+    logError('update feedback failed', { error })
     return { error: 'Could not update the feedback — please try again.' }
   }
 
@@ -297,7 +298,7 @@ export async function deleteFeedback(_prev: FormState, formData: FormData): Prom
 
   const { error } = await session.supabase.from('feedback').delete().eq('id', id)
   if (error) {
-    console.error('delete feedback failed:', error.message)
+    logError('delete feedback failed', { error })
     return { error: 'Could not delete the feedback — please try again.' }
   }
 

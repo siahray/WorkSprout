@@ -1,3 +1,4 @@
+import { logError } from '@/lib/log'
 import { createClient } from '@/lib/supabase/server'
 import { ATTACHMENT_BUCKET } from '@/lib/attachments'
 import { isUuid } from '@/lib/validation'
@@ -30,7 +31,7 @@ export async function GET(request: Request, { params }: { params: Promise<{ id: 
     .createSignedUrl(attachment.path, 60, download ? { download: attachment.name } : undefined)
 
   if (error || !signed) {
-    console.error('sign attachment failed:', error?.message)
+    logError('sign attachment failed', { error })
     return new Response('Could not open that file — please try again.', { status: 500 })
   }
 

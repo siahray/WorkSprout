@@ -1,5 +1,6 @@
 'use server'
 
+import { logError } from '@/lib/log'
 import { revalidatePath } from 'next/cache'
 import { createClient } from '@/lib/supabase/server'
 import { isUuid, optionalText, text, type FormState } from '@/lib/validation'
@@ -26,7 +27,7 @@ export async function startTimer(taskId: string): Promise<{ error?: string }> {
 
   const { error } = await supabase.rpc('start_timer', { p_task_id: taskId })
   if (error) {
-    console.error('start_timer failed:', error.message)
+    logError('start_timer failed', { error })
     return { error: timerError(error.message) }
   }
 
@@ -40,7 +41,7 @@ export async function pauseTimer(entryId: string): Promise<{ error?: string }> {
   const supabase = await createClient()
   const { error } = await supabase.rpc('pause_timer', { p_id: entryId })
   if (error) {
-    console.error('pause_timer failed:', error.message)
+    logError('pause_timer failed', { error })
     return { error: 'Could not pause the timer — refresh and try again.' }
   }
 
@@ -54,7 +55,7 @@ export async function resumeTimer(entryId: string): Promise<{ error?: string }> 
   const supabase = await createClient()
   const { error } = await supabase.rpc('resume_timer', { p_id: entryId })
   if (error) {
-    console.error('resume_timer failed:', error.message)
+    logError('resume_timer failed', { error })
     return { error: 'Could not resume the timer — refresh and try again.' }
   }
 
@@ -67,7 +68,7 @@ export async function stopTimer(entryId: string): Promise<void> {
 
   const supabase = await createClient()
   const { error } = await supabase.rpc('stop_timer', { p_id: entryId })
-  if (error) console.error('stop_timer failed:', error.message)
+  if (error) logError('stop_timer failed', { error })
 
   revalidatePath('/', 'layout')
 }
@@ -99,7 +100,7 @@ export async function addManualEntry(_prev: FormState, formData: FormData): Prom
   })
 
   if (error) {
-    console.error('add_manual_entry failed:', error.message)
+    logError('add_manual_entry failed', { error })
     return { error: timerError(error.message) }
   }
 
@@ -132,7 +133,7 @@ export async function updateManualEntry(_prev: FormState, formData: FormData): P
   })
 
   if (error) {
-    console.error('update_manual_entry failed:', error.message)
+    logError('update_manual_entry failed', { error })
     return { error: timerError(error.message) }
   }
 
@@ -153,7 +154,7 @@ export async function deleteTimeEntry(_prev: FormState, formData: FormData): Pro
     .is('invoice_id', null)
 
   if (error) {
-    console.error('delete time entry failed:', error.message)
+    logError('delete time entry failed', { error })
     return { error: 'Could not delete the time entry — it may already be invoiced.' }
   }
 

@@ -1,5 +1,6 @@
 'use server'
 
+import { logError } from '@/lib/log'
 import { createClient } from '@/lib/supabase/server'
 import { optionalText, text, type FormState } from '@/lib/validation'
 
@@ -22,7 +23,7 @@ export async function submitFeedback(_prev: FormState, formData: FormData): Prom
   })
 
   if (error) {
-    console.error('submit feedback failed:', error.message)
+    logError('submit feedback failed', { error })
     return { error: 'Could not send your feedback — please try again.' }
   }
 

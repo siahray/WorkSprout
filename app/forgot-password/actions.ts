@@ -1,5 +1,6 @@
 'use server'
 
+import { logError } from '@/lib/log'
 import { createClient } from '@/lib/supabase/server'
 import { siteUrl } from '@/lib/site'
 
@@ -35,7 +36,7 @@ export async function requestPasswordReset(
     if (/rate limit/i.test(error.message)) {
       return { error: 'Too many requests — wait a minute and try again.', email }
     }
-    console.error('password reset request failed:', error.message)
+    logError('password reset request failed', { error })
   }
 
   return { sent: true, email }

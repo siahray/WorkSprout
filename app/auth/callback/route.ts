@@ -1,3 +1,4 @@
+import { logError } from '@/lib/log'
 import { NextResponse, type NextRequest } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { siteUrl } from '@/lib/site'
@@ -19,7 +20,7 @@ export async function GET(request: NextRequest) {
     const supabase = await createClient()
     const { error } = await supabase.auth.exchangeCodeForSession(code)
     if (!error) return NextResponse.redirect(`${origin}${safeNext}`)
-    console.error('auth code exchange failed:', error.message)
+    logError('auth code exchange failed', { error })
   }
 
   // A bad or expired code still deserves a way forward rather than a dead end.

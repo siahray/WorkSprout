@@ -1,5 +1,6 @@
 'use server'
 
+import { logError } from '@/lib/log'
 import { revalidatePath } from 'next/cache'
 import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
@@ -82,7 +83,7 @@ export async function createInvoice(_prev: FormState, formData: FormData): Promi
       )
       .in('id', allEntryIds)
     if (error) {
-      console.error('load invoice time entries failed:', error.message)
+      logError('load invoice time entries failed', { error })
       return { error: 'Could not read the tracked time — please try again.' }
     }
     for (const row of (entries ?? []) as unknown as EntryRateRow[]) {
@@ -225,7 +226,7 @@ export async function createInvoice(_prev: FormState, formData: FormData): Promi
 
     if (error) {
       if (error.code === '23505') continue
-      console.error('create invoice failed:', error.message)
+      logError('create invoice failed', { error })
       await releaseFormClaim(supabase, userId, submissionKey)
       return { error: 'Could not save the invoice — please try again.' }
     }
@@ -242,7 +243,7 @@ export async function createInvoice(_prev: FormState, formData: FormData): Promi
     .insert(items.map((item) => ({ ...item, invoice_id: invoiceId })))
 
   if (itemsError) {
-    console.error('create invoice items failed:', itemsError.message)
+    logError('create invoice items failed', { error: itemsError })
     await supabase.from('invoices').delete().eq('id', invoiceId)
     await releaseFormClaim(supabase, userId, submissionKey)
     return { error: 'Could not save the invoice lines — please try again.' }
@@ -253,7 +254,7 @@ export async function createInvoice(_prev: FormState, formData: FormData): Promi
       .from('time_entries')
       .update({ invoice_id: invoiceId })
       .in('id', linkedEntryIds)
-    if (linkError) console.error('link time entries failed:', linkError.message)
+    if (linkError) logError('link time entries failed', { error: linkError })
   }
 
   await storeFormResponse(supabase, userId, submissionKey, { invoiceId })
@@ -378,7 +379,7 @@ export async function updateInvoice(_prev: FormState, formData: FormData): Promi
         })),
       )
     }
-    console.error('update invoice lines failed:', reason)
+    logError('update invoice lines failed', { error: reason })
   }
 
   const { error: headerError } = await supabase
@@ -396,7 +397,7 @@ export async function updateInvoice(_prev: FormState, formData: FormData): Promi
     .eq('id', id)
 
   if (headerError) {
-    console.error('update invoice failed:', headerError.message)
+    logError('update invoice failed', { error: headerError })
     return { error: 'Could not save the invoice — please try again.' }
   }
 
@@ -469,7 +470,7 @@ export async function sendInvoice(_prev: FormState, formData: FormData): Promise
     const bytes = await buildInvoicePdf(snapshot)
     pdfBase64 = Buffer.from(bytes).toString('base64')
   } catch (error) {
-    console.error('render invoice pdf failed:', error)
+    logError('render invoice pdf failed', { error })
     return { error: 'Could not prepare the PDF — please try again.' }
   }
 
@@ -492,7 +493,7 @@ export async function sendInvoice(_prev: FormState, formData: FormData): Promise
       ...(row.status === 'draft' ? { status: 'sent' as const } : {}),
     })
     .eq('id', id)
-  if (updateError) console.error('record invoice send failed:', updateError.message)
+  if (updateError) logError('record invoice send failed', { error: updateError })
 
   revalidatePath(`/invoices/${id}`)
   revalidatePath('/invoices')
@@ -506,7 +507,7 @@ export async function markInvoiceSent(_prev: FormState, formData: FormData): Pro
   const supabase = await createClient()
   const { error } = await supabase.from('invoices').update({ status: 'sent' }).eq('id', id).eq('status', 'draft')
   if (error) {
-    console.error('mark invoice sent failed:', error.message)
+    logError('mark invoice sent failed', { error })
     return { error: 'Could not update the invoice — please try again.' }
   }
 
@@ -522,7 +523,7 @@ export async function voidInvoice(_prev: FormState, formData: FormData): Promise
   const supabase = await createClient()
   const { error } = await supabase.from('invoices').update({ status: 'void' }).eq('id', id)
   if (error) {
-    console.error('void invoice failed:', error.message)
+    logError('void invoice failed', { error })
     return { error: 'Could not void the invoice — please try again.' }
   }
 
@@ -551,7 +552,7 @@ export async function deleteInvoice(_prev: FormState, formData: FormData): Promi
 
   const { error } = await supabase.from('invoices').delete().eq('id', id).eq('status', 'draft')
   if (error) {
-    console.error('delete invoice failed:', error.message)
+    logError('delete invoice failed', { error })
     return { error: 'Could not delete the invoice — please try again.' }
   }
 
@@ -607,7 +608,7 @@ export async function addPayment(_prev: FormState, formData: FormData): Promise<
   })
 
   if (error) {
-    console.error('add payment failed:', error.message)
+    logError('add payment failed', { error })
     // Hand the key back so the form can be corrected and tried again.
     await releaseFormClaim(supabase, userId, submissionKey)
     return { error: 'Could not record the payment — please try again.' }
@@ -653,7 +654,7 @@ export async function updatePayment(_prev: FormState, formData: FormData): Promi
     .maybeSingle()
 
   if (error) {
-    console.error('update payment failed:', error.message)
+    logError('update payment failed', { error })
     return { error: 'Could not save the payment — please try again.' }
   }
   if (!updated) return { error: 'That payment could not be found.' }
@@ -673,7 +674,7 @@ export async function deletePayment(_prev: FormState, formData: FormData): Promi
   const { error } = await supabase.from('payments').delete().eq('id', id)
 
   if (error) {
-    console.error('delete payment failed:', error.message)
+    logError('delete payment failed', { error })
     return { error: 'Could not delete the payment — please try again.' }
   }
 

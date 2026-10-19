@@ -1,5 +1,6 @@
 import type { SupabaseClient } from '@supabase/supabase-js'
 import { ATTACHMENT_BUCKET } from '@/lib/attachments'
+import { logError } from '@/lib/log'
 
 // Best-effort removal of Storage objects for attachment rows that are going away.
 // Deleting the DB row does not remove the underlying object, so callers must do
@@ -12,7 +13,7 @@ export async function removeAttachmentObjects(
   if (unique.length === 0) return
 
   const { error } = await client.storage.from(ATTACHMENT_BUCKET).remove(unique)
-  if (error) console.error('remove attachment objects failed:', error.message)
+  if (error) logError('remove attachment objects failed', { error })
 }
 
 // Fetches the storage paths for every attachment of a parent, used before the

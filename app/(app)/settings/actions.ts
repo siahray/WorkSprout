@@ -1,5 +1,6 @@
 'use server'
 
+import { logError } from '@/lib/log'
 import { revalidatePath } from 'next/cache'
 import { createClient } from '@/lib/supabase/server'
 import { generateApiKey } from '@/lib/api-keys'
@@ -50,7 +51,7 @@ export async function updateProfile(_prev: FormState, formData: FormData): Promi
     .eq('id', userId)
 
   if (error) {
-    console.error('update profile failed:', error.message)
+    logError('update profile failed', { error })
     return { error: 'Could not save your settings — please try again.' }
   }
 
@@ -81,7 +82,7 @@ export async function changePassword(_prev: FormState, formData: FormData): Prom
     if (verifyError.code === 'invalid_credentials' || /invalid login credentials/i.test(verifyError.message)) {
       return { error: 'Your current password is incorrect.' }
     }
-    console.error('password verify failed:', verifyError.message)
+    logError('password verify failed', { error: verifyError })
     return { error: 'Could not verify your current password — please try again.' }
   }
 
@@ -90,7 +91,7 @@ export async function changePassword(_prev: FormState, formData: FormData): Prom
     if (/different|same password/i.test(error.message)) {
       return { error: 'Your new password must differ from your current one.' }
     }
-    console.error('password update failed:', error.message)
+    logError('password update failed', { error })
     return { error: 'Could not update your password — please try again.' }
   }
 
@@ -126,7 +127,7 @@ export async function createApiKey(
     .eq('user_id', userId)
     .is('revoked_at', null)
   if (countError) {
-    console.error('count api keys failed:', countError.message)
+    logError('count api keys failed', { error: countError })
     return { error: 'Could not create the key — please try again.' }
   }
   if ((count ?? 0) >= MAX_ACTIVE_KEYS) {
@@ -141,7 +142,7 @@ export async function createApiKey(
     .select('id')
     .maybeSingle()
   if (error || !inserted) {
-    console.error('create api key failed:', error?.message)
+    logError('create api key failed', { error })
     return { error: 'Could not create the key — please try again.' }
   }
 
@@ -169,7 +170,7 @@ export async function revokeApiKey(id: string): Promise<void> {
     .eq('id', id)
     .eq('user_id', userId)
     .is('revoked_at', null)
-  if (error) console.error('revoke api key failed:', error.message)
+  if (error) logError('revoke api key failed', { error })
 
   revalidatePath('/settings')
 }

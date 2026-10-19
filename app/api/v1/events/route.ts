@@ -1,3 +1,4 @@
+import { logError } from '@/lib/log'
 import type { NextRequest } from 'next/server'
 import { authFailure, authenticate, badRequest } from '@/lib/api-auth'
 import { createAdminClient } from '@/lib/supabase/admin'
@@ -46,7 +47,7 @@ export async function GET(request: NextRequest) {
 
   const { data, error } = await query
   if (error) {
-    console.error('list events failed:', error.message)
+    logError('list events failed', { error })
     return Response.json(
       { error: 'lookup_failed', message: 'Could not read events right now — try again.' },
       { status: 503 },

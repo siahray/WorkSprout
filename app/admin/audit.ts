@@ -1,3 +1,4 @@
+import { logError } from '@/lib/log'
 import type { createClient } from '@/lib/supabase/server'
 
 type ServerClient = Awaited<ReturnType<typeof createClient>>
@@ -20,5 +21,5 @@ export async function recordAdminAction(
     metadata: metadata ?? {},
   })
 
-  if (error) console.error('audit log failed:', error.message)
+  if (error) logError('audit log failed', { error })
 }

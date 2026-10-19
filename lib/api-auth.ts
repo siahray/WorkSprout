@@ -4,6 +4,7 @@
 // then scopes its queries to that user explicitly, because the admin client
 // used here bypasses RLS.
 
+import { logError } from '@/lib/log'
 import type { NextRequest } from 'next/server'
 import { createAdminClient, adminClientConfigured } from '@/lib/supabase/admin'
 import { hashApiKey, looksLikeApiKey } from '@/lib/api-keys'
@@ -66,7 +67,7 @@ export async function authenticate(request: NextRequest): Promise<ApiAuth> {
     .maybeSingle()
 
   if (error) {
-    console.error('api key lookup failed:', error.message)
+    logError('api key lookup failed', { error })
     return {
       ok: false,
       status: 503,
@@ -86,7 +87,7 @@ export async function authenticate(request: NextRequest): Promise<ApiAuth> {
     .from('api_keys')
     .update({ last_used_at: new Date().toISOString() })
     .eq('id', data.id)
-  if (touchError) console.error('api key touch failed:', touchError.message)
+  if (touchError) logError('api key touch failed', { error: touchError })
 
   return {
     ok: true,

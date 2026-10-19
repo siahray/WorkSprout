@@ -1,5 +1,6 @@
 'use server'
 
+import { logError } from '@/lib/log'
 import { revalidatePath } from 'next/cache'
 import { createClient } from '@/lib/supabase/server'
 import { removeAttachmentObjects } from '@/lib/attachments-server'
@@ -95,7 +96,7 @@ export async function recordAttachment(input: RecordInput): Promise<FormState> {
   if (error) {
     // A duplicate path means the row was already recorded; treat as success.
     if (error.code === '23505') return { ok: 'File added.' }
-    console.error('record attachment failed:', error.message)
+    logError('record attachment failed', { error })
     return { error: 'Could not save the file — please try again.' }
   }
 
@@ -119,7 +120,7 @@ export async function deleteAttachment(_prev: FormState, formData: FormData): Pr
   await removeAttachmentObjects(supabase, [attachment.path])
   const { error } = await supabase.from('attachments').delete().eq('id', id)
   if (error) {
-    console.error('delete attachment failed:', error.message)
+    logError('delete attachment failed', { error })
     return { error: 'Could not remove the file — please try again.' }
   }
 

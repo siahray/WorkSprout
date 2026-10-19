@@ -1,5 +1,6 @@
 'use server'
 
+import { logError } from '@/lib/log'
 import { revalidatePath } from 'next/cache'
 import { createClient } from '@/lib/supabase/server'
 import { attachmentPathsForParent, removeAttachmentObjects } from '@/lib/attachments-server'
@@ -44,7 +45,7 @@ export async function createExpense(_prev: FormState, formData: FormData): Promi
   })
 
   if (error) {
-    console.error('create expense failed:', error.message)
+    logError('create expense failed', { error })
     return { error: 'Could not save the expense — please try again.' }
   }
 
@@ -96,7 +97,7 @@ export async function updateExpense(_prev: FormState, formData: FormData): Promi
     .maybeSingle()
 
   if (error) {
-    console.error('update expense failed:', error.message)
+    logError('update expense failed', { error })
     return { error: 'Could not save the expense — please try again.' }
   }
   if (!updated) return { error: 'That expense could not be found.' }
@@ -118,7 +119,7 @@ export async function deleteExpense(_prev: FormState, formData: FormData): Promi
   const { error } = await supabase.from('expenses').delete().eq('id', id)
 
   if (error) {
-    console.error('delete expense failed:', error.message)
+    logError('delete expense failed', { error })
     return { error: 'Could not delete the expense — please try again.' }
   }
 

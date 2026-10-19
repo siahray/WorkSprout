@@ -1,5 +1,6 @@
 'use server'
 
+import { logError } from '@/lib/log'
 import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 
@@ -24,7 +25,7 @@ export async function login(_prevState: LoginState, formData: FormData): Promise
     if (error.code === 'invalid_credentials' || /invalid login credentials/i.test(error.message)) {
       return { error: 'Invalid email or password.', email }
     }
-    console.error('login failed:', error.message)
+    logError('login failed', { error })
     return { error: 'Could not sign you in — please try again.', email }
   }
 

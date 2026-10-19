@@ -1,5 +1,6 @@
 'use server'
 
+import { logError } from '@/lib/log'
 import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 
@@ -34,7 +35,7 @@ export async function signup(_prevState: SignupState, formData: FormData): Promi
     if (verifyError.code === 'otp_expired' || /expired|invalid/i.test(verifyError.message)) {
       return fail('That code is invalid or has expired — ask the WorkSprout team for a new invite.')
     }
-    console.error('otp verify failed:', verifyError.message)
+    logError('otp verify failed', { error: verifyError })
     return fail('Could not verify your code — please try again.')
   }
 
@@ -47,7 +48,7 @@ export async function signup(_prevState: SignupState, formData: FormData): Promi
     if (passwordError.code === 'weak_password' || /password/i.test(passwordError.message)) {
       return fail('Choose a stronger password (at least 8 characters).')
     }
-    console.error('set password failed:', passwordError.message)
+    logError('set password failed', { error: passwordError })
     return fail('Could not set your password — please try again.')
   }
 
@@ -57,7 +58,7 @@ export async function signup(_prevState: SignupState, formData: FormData): Promi
       .from('profiles')
       .update({ full_name: fullName })
       .eq('id', userId)
-    if (profileError) console.error('profile update failed:', profileError.message)
+    if (profileError) logError('profile update failed', { error: profileError })
   }
 
   redirect('/dashboard')
