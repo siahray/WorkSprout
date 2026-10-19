@@ -50,7 +50,7 @@ export function AppShell({
             <p className="truncate text-xs text-white/50">{email}</p>
             <Link
               href="/feedback"
-              className={`mt-3 inline-flex w-full items-center justify-center gap-2 rounded-lg px-3 py-2 text-sm font-medium text-white/70 transition-colors hover:bg-white/5 hover:text-white ${focus}`}
+              className={`mt-3 inline-flex w-full items-center justify-center gap-2 rounded-lg bg-[#F4B63F] px-3 py-2 text-sm font-semibold text-[#0E2F27] transition-colors hover:bg-[#f5c15e] active:translate-y-px ${focus}`}
             >
               Send feedback
             </Link>
