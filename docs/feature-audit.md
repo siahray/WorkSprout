@@ -442,3 +442,30 @@ Verified end-to-end against the dev server with real minted invites and a throwa
 - **The CodeQL workflow could not match configurations on `main`**, so the code-scanning check failed on every pull request. Fixed by the CI change above. Whether `main`'s configuration comes from this workflow or from GitHub's *Default setup* could not be determined without repository-settings access — if both are configured, they will keep conflicting until one is removed.
 - **Password reset was broken twice over, and neither cause was in the app.** Supabase reports a verified recovery link as a `303` whose session sits in the **URL fragment**, which no route handler can read — and it silently redirects to the Site URL instead of the requested URL when that URL is not in the allow-list. Either one alone produces "the link just goes to the landing page". Both are recorded in the hardening section above.
 - **Invite emails asked for a code they did not contain** — found while reading the mailer config for the line above, and fixed in [Invite link](#invite-link-branch-fixinvite-link-flow). `app/signup/actions.ts` finished signup with `verifyOtp({ type: 'email' })`, a code typed by the invitee, but the project's `invite`, `magic_link` and `confirmation` templates all carry only `{{ .ConfirmationURL }}`; `reauthentication` is the only template with `{{ .Token }}`. Since the invitee's account is created when the invite is sent, the link now drives the flow end to end and the code page is gone.
+
+### The ledger look (branches `design/ledger`, `design/sweep`)
+
+Requested as "make the app feel premium enough that people would pay", with the
+brand and its colours unchanged. Both branches are presentation only: no route,
+query, action, or schema moved.
+
+The diagnosis was that hierarchy had been drawn by **fading Ink** — secondary
+text was Ink at 50–75% over a green canvas, which renders as translucent
+grey-green and drops under 4.5:1. So the fix was a system *between* the four
+brand colours, not a different palette.
+
+| Change | Notes |
+|---|---|
+| `app/globals.css` | A five-step Ink ramp mixed toward the canvas rather than toward grey, `line`/`line-strong` hairlines, `canvas`/`panel` surfaces, a real type scale (12/13/15/17/22/28/34), three radii, and three depths, all as `@theme` tokens. The four brand values are byte-identical to before, plus `mango-strong` (`#E9A82A`) which was already in use as Mango's hover. |
+| `lib/ui.ts` | Every shared class string rewritten on the tokens: `panel`/`card`, `meta`, `panelHeader`/`panelTitle`, the button set (`btnPrimary`, `btnAccent`, `btnMango`, `btnSecondary`, `btnGhost`, `btnDanger`), `input`, `tableHead`/`th`/`rowHover`, `alertError`/`alertOk`. |
+| Dashboard, invoices | The two screens restructured first: four stat cards became one hairline-divided strip, the month's figures became a definition list, and invoice rows read as a ledger — tabular figures right-aligned, a balance in Ink when it is owed. |
+| The rest of the app | Swept onto the same tokens: ~63 files, so the ramp, hairlines, radii, and sentence-case meta labels are now one vocabulary everywhere. Five pages that had grown their own field/label/error/CTA strings now import the shared ones. |
+| `lib/fonts.ts` | Figtree retired: the body face is Geist (already set on `<html>`), and Bricolage is kept for page titles, hero figures, and the invoice document. |
+| `app/(app)/loading.tsx`, `dashboard/loading.tsx`, `error.tsx` | New. Before this, a click showed nothing until the server in Sydney answered; now the shape of the next screen paints immediately, and a failed render says so inside the frame instead of looking like a broken product. |
+| `app/(app)/layout.tsx` | The profile and active-timer reads were independent but sequential — one wasted round trip to `ap-southeast-2` on every cold load. Now `Promise.all`. |
+
+Not swept: `app/page.tsx`, the marketing page, which carries a pending local edit
+(Figtree there is now its own copy, so nothing else depends on it).
+
+`docs/design.md` records the tokens, the two colour rules, and the checklist.
+
