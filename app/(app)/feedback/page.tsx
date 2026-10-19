@@ -18,10 +18,10 @@ export default async function FeedbackPage() {
     <>
       <PageHeader
         title="Send feedback"
-        description="Found a bug or have an idea? We read every message during the beta."
+        description="Bugs, ideas, or a thumbs-up — tell us what would make WorkSprout better."
       />
-      <div className={`${card} max-w-2xl p-6`}>
-        <FeedbackForm page="/feedback" />
+      <div className={`${card} max-w-2xl p-8 sm:p-10`}>
+        <FeedbackForm page="/feedback" email={data.claims?.email} />
       </div>
     </>
   )
