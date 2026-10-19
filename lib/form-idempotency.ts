@@ -1,3 +1,4 @@
+import { logError } from '@/lib/log'
 import type { SupabaseClient } from '@supabase/supabase-js'
 
 /**
@@ -56,7 +57,7 @@ export async function claimFormSubmission(
   // so we cannot guarantee a single write — let the mutation run rather than
   // silently dropping the user's payment.
   if (error.code !== '23505') {
-    console.error('form submission claim failed:', error.message)
+    logError('form submission claim failed', { error })
     return { kind: 'claimed' }
   }
 
@@ -95,7 +96,7 @@ export async function storeFormResponse(
     .eq('key', trimmed)
 
   // A failed store only weakens replay; the write itself already happened.
-  if (error) console.error('form submission store failed:', error.message)
+  if (error) logError('form submission store failed', { error })
 }
 
 /**
@@ -117,5 +118,5 @@ export async function releaseFormClaim(
     .eq('user_id', userId)
     .eq('key', trimmed)
 
-  if (error) console.error('form submission release failed:', error.message)
+  if (error) logError('form submission release failed', { error })
 }

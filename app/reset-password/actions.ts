@@ -1,5 +1,6 @@
 'use server'
 
+import { logError } from '@/lib/log'
 import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 
@@ -26,7 +27,7 @@ export async function setNewPassword(_prev: ResetState, formData: FormData): Pro
     if (/different|same password/i.test(error.message)) {
       return { error: 'Choose a password different from your current one.' }
     }
-    console.error('password reset failed:', error.message)
+    logError('password reset failed', { error })
     return { error: 'Could not update your password — please try again.' }
   }
 

@@ -1,5 +1,6 @@
 'use server'
 
+import { logError } from '@/lib/log'
 import { revalidatePath } from 'next/cache'
 import { redirect } from 'next/navigation'
 import { createClient as createSupabaseClient } from '@/lib/supabase/server'
@@ -46,7 +47,7 @@ export async function updateClient(_prev: FormState, formData: FormData): Promis
   const { error } = await supabase.from('clients').update(values).eq('id', id)
 
   if (error) {
-    console.error('update client failed:', error.message)
+    logError('update client failed', { error })
     return { error: 'Could not save the client — please try again.' }
   }
 
@@ -69,7 +70,7 @@ async function setArchived(id: string, archived: boolean): Promise<FormState> {
     .maybeSingle()
 
   if (error) {
-    console.error(`${archived ? 'archive' : 'restore'} client failed:`, error.message)
+    logError(`${archived ? 'archive' : 'restore'} client failed`, { error })
     return { error: 'Could not update that client — please try again.' }
   }
   if (!data) return { error: 'That client could not be found.' }
@@ -111,7 +112,7 @@ export async function deleteClient(_prev: FormState, formData: FormData): Promis
     if (error.code === '23503') {
       return { error: 'This client has invoices. Void or delete those first.' }
     }
-    console.error('delete client failed:', error.message)
+    logError('delete client failed', { error })
     return { error: 'Could not delete the client — please try again.' }
   }
 

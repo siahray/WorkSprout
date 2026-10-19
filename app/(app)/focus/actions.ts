@@ -1,5 +1,6 @@
 'use server'
 
+import { logError } from '@/lib/log'
 import { revalidatePath } from 'next/cache'
 import { createClient } from '@/lib/supabase/server'
 import { nowDateInput } from '@/lib/format'
@@ -39,7 +40,7 @@ export async function createTodo(_prev: FormState, formData: FormData): Promise<
     due_date: dueDate,
   })
   if (error) {
-    console.error('create todo failed:', error.message)
+    logError('create todo failed', { error })
     return { error: 'Could not save the to-do — please try again.' }
   }
 
@@ -69,7 +70,7 @@ export async function toggleTodo(_prev: FormState, formData: FormData): Promise<
     .eq('id', id)
     .eq('user_id', data.claims.sub)
   if (error) {
-    console.error('toggle todo failed:', error.message)
+    logError('toggle todo failed', { error })
     return { error: 'Could not update the to-do — please try again.' }
   }
 
@@ -98,7 +99,7 @@ export async function addToToday(_prev: FormState, formData: FormData): Promise<
     due_date: dueDate,
   })
   if (error) {
-    console.error('add deliverable to today failed:', error.message)
+    logError('add deliverable to today failed', { error })
     return { error: 'Could not add the to-do — please try again.' }
   }
 
@@ -116,7 +117,7 @@ export async function deleteTodo(_prev: FormState, formData: FormData): Promise<
 
   const { error } = await supabase.from('todos').delete().eq('id', id).eq('user_id', data.claims.sub)
   if (error) {
-    console.error('delete todo failed:', error.message)
+    logError('delete todo failed', { error })
     return { error: 'Could not delete the to-do — please try again.' }
   }
 
@@ -165,7 +166,7 @@ export async function deleteCall(_prev: FormState, formData: FormData): Promise<
 
   const { error } = await supabase.from('calls').delete().eq('id', id).eq('user_id', data.claims.sub)
   if (error) {
-    console.error('delete call failed:', error.message)
+    logError('delete call failed', { error })
     return { error: 'Could not delete the call — please try again.' }
   }
 
@@ -185,7 +186,7 @@ export async function setCallStatus(id: string, status: string): Promise<void> {
     .update({ status })
     .eq('id', id)
     .eq('user_id', data.claims.sub)
-  if (error) console.error('set call status failed:', error.message)
+  if (error) logError('set call status failed', { error })
 
   revalidatePath('/focus')
 }
@@ -230,7 +231,7 @@ export async function sendCallInvite(_prev: FormState, formData: FormData): Prom
     .from('calls')
     .update({ invited_at: new Date().toISOString(), invited_to: to })
     .eq('id', id)
-  if (updateError) console.error('record call invite failed:', updateError.message)
+  if (updateError) logError('record call invite failed', { error: updateError })
 
   revalidatePath('/focus')
   return { ok: `Invite emailed to ${to}.` }

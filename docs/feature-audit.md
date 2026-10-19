@@ -1,7 +1,7 @@
 # WorkSprout — Feature Audit & Automation Readiness
 
 **Date:** 19 October 2026
-**Branches:** PRs #18–#30 merged. Open: `feat/pagination-search`.
+**Branches:** PRs #18–#31 merged. Open: `feat/ops-hardening`.
 **Method:** static inventory of `app/**` routes, server actions, route handlers, `supabase/migrations/*.sql`, database functions and triggers, and CI workflows. No runtime walkthrough.
 
 Legend: ✅ built · ⚠️ partial · ❌ absent
@@ -41,7 +41,7 @@ Invoices used to be **immutable** once created — no `updateInvoice`, no line-i
 | Webhook *delivery* | ❌ pull feed only; no push, no retry worker, no signing |
 | Scheduled jobs | ❌ no pg_cron, no queue |
 | Idempotency | ✅ **Both surfaces.** API writes via `Idempotency-Key` + `idempotency_keys` (service-role, RLS deny-all). App mutations via a per-form `submission_key` + `form_submissions` (session-scoped, `auth.uid() = user_id`) — a resubmit of `addPayment` / `createInvoice` replays the first result instead of double-writing. |
-| Tests | ⚠️ `bun test` harness — 50 tests covering API validation and idempotency, the form-idempotency helper, and the **pure money paths**: invoice tax math, timer elapsed, money/quantity parsing, currency and hour formatting. **The server actions and DB writes are still untested.** |
+| Tests | ⚠️ `bun test` harness — 70 tests covering API validation and idempotency, the form-idempotency helper, the drift summariser and log formatter, and the **pure money paths**: invoice tax math, timer elapsed, money/quantity parsing, currency and hour formatting. **The server actions and DB writes are still untested.** |
 | CI | lint + typecheck + tests + build (plus CodeQL + ZAP). The test step runs. |
 
 Every app mutation is still a Next.js server action — a private RPC bound to a session cookie. `/api/v1` is the first surface an external caller can authenticate to, and it can now do two of the things automation needs: read what happened, and create a client or an appointment. The remaining gaps are update/delete, and the rest of the entities.
@@ -120,15 +120,15 @@ The event log follows it: `events` is written by an `after insert or update or d
 - ❌ Any export other than invoice PDF and admin signups CSV
 
 ### Platform / ops
-- ✅ RLS on user tables, `updated_at` triggers, admin audit log, three CI workflows
-- ⚠️ **Tests of any kind** — a `bun test` harness now exists (see the changelog) with 50 tests, covering the API layer, the form-idempotency helper, and the pure money paths: tax math, timer elapsed, money parsing, formatting. Still nothing exercises the server actions end-to-end or asserts against a real database.
+- ✅ RLS on user tables, `updated_at` triggers, admin audit log, four CI workflows (build, ZAP, CodeQL, migration drift)
+- ⚠️ **Tests of any kind** — a `bun test` harness now exists (see the changelog) with 70 tests, covering the API layer, the form-idempotency helper, the drift summariser and log formatter, and the pure money paths: tax math, timer elapsed, money parsing, formatting. Still nothing exercises the server actions end-to-end or asserts against a real database.
 - ✅ CI runs a real test step (was: nothing to run)
 - ❌ Rate limiting (deferred with the dormant API layer)
 - ⚠️ Pagination — invoices, expenses, and time entries fetch 50 rows per page with a Previous/Next footer, and an out-of-range `?page=` redirects to the last real page. The bounded workspace lists (clients, projects) and every picker still load in full by design.
 - ✅ Search on expenses and invoices — server-side `?q=`, sanitised so free text cannot break the PostgREST filter, starting back at page 1 on every new query
-- ❌ Observability beyond `console.error`
-- ✅ Migration baseline — `config.toml` now exists and every migration is recorded in the remote history (0 pending). Still no drift check in CI.
-- ❌ Backups/restore runbook
+- ✅ Observability beyond `console.error` — every server failure path logs one line of JSON through `logError` (`lib/log.ts`; all 89 former `console.error` sites migrated) with a stable `event` key and normalized error details, uncaught server errors (route/action/render/proxy) are captured by `instrumentation.ts`'s `onRequestError`, and `GET /api/health` gives an uptime monitor something to probe. `docs/operations.md` says where to look and how to wire a monitor or Sentry; client-side error capture and an alerting service are the documented extension points, not built.
+- ✅ Migration baseline — `config.toml` exists, every migration is recorded in the remote history (0 pending), and a CI drift check (`.github/workflows/drift.yml` + `scripts/check-drift.ts`) now fails on any local↔remote mismatch, on pushes/PRs plus a weekly schedule. It is gated on the `SUPABASE_ACCESS_TOKEN` repo secret and skips with a notice until that secret is added — see `docs/operations.md`.
+- ⚠️ Backups/restore runbook — `docs/operations.md` documents both dump paths (CLI `db dump` with Docker/Podman, or `pg_dump` over the pooler without), what a dump does and does not contain (Storage object bytes are **not** included), cadence, off-site storage (never in this public repo), and a restore drill. Still ⚠️ because no dump has ever been taken: this machine has no Docker or libpq, the free tier has no automatic backups, and the runbook's dump commands are documented-but-unexercised until the drill is run once.
 
 ---
 
@@ -140,7 +140,7 @@ Ordered by dependency, not preference.
 2. **An authenticated API surface** — ⚠️ **partly done.** `api_keys` authenticate `/api/v1`; the event feed is readable and clients and appointments can be created. Missing: update/delete, and create for projects, time, expenses and invoices. Target: `openapi/work-sprout.v1.yaml`.
 3. ~~**Idempotency**~~ **Done for both surfaces.** The API (`Idempotency-Key`, replayed from `idempotency_keys`) was the urgent case, because a machine retries where a person does not. The app's own money mutations are now covered too: `addPayment` and `createInvoice` carry a per-form `submission_key` checked against `form_submissions`, so a resubmit replays the first result rather than double-writing.
 4. ~~**Event/outbox table** — one `events` table written in the same transaction as mutations.~~ **Done** — `events`, written by triggers, which is a true outbox. It gives a *pull* feed; **push webhooks are not built** and would need a delivery worker plus a scheduler.
-5. **A test harness** — ⚠️ **well started.** `bun test` is wired up and runs in CI, with a fake supabase client. 50 tests now cover API validation, API idempotency, the form-idempotency helper, and the pure money paths the audit worried about — tax math, timer elapsed, money parsing, formatting. What is still missing is integration-level coverage: no test drives a server action end-to-end or asserts against a real database.
+5. **A test harness** — ⚠️ **well started.** `bun test` is wired up and runs in CI, with a fake supabase client. 70 tests now cover API validation, API idempotency, the form-idempotency helper, the drift summariser and log formatter, and the pure money paths the audit worried about — tax math, timer elapsed, money parsing, formatting. What is still missing is integration-level coverage: no test drives a server action end-to-end or asserts against a real database.
 6. **Then** recurring invoices, dunning, reminders — consumers of step 4.
 
 ---
@@ -158,7 +158,7 @@ Ordered by dependency, not preference.
 
 ## Appendix — Evidence
 
-**Route handlers (8)**
+**Route handlers (9)**
 
 | Path | Purpose |
 |---|---|
@@ -166,6 +166,7 @@ Ordered by dependency, not preference.
 | `app/c/[token]/ics/route.ts` | public calendar file |
 | `app/attachments/[id]/route.ts` | signed-URL redirect |
 | `app/admin/(console)/signups-export/route.ts` | admin CSV export |
+| `app/api/health/route.ts` | public liveness probe (no auth) |
 | `app/api/v1/events/route.ts` | integration API — poll the event log |
 | `app/api/v1/me/route.ts` | integration API — verify an API key |
 | `app/api/v1/clients/route.ts` | integration API — create a client |
@@ -355,7 +356,22 @@ Archiving does not cascade: projects, invoices, time, and expenses are untouched
 | Stats moved into SQL | Migration `20261019100000_list_stats.sql`: `invoice_outstanding()`, `expense_totals(date)`, and `time_totals(uuid)` aggregate in Postgres under the caller's own RLS, so the headers keep reporting true totals (outstanding balance, all-time spend, unbilled hours) now that a page only ever receives one 50-row slice. Applied remotely via `supabase db push`. |
 | Time page project filter | Moved from in-memory filtering to a `tasks!inner` join in the query — the old "fetch every entry, then filter" approach cannot survive pagination. A malformed `?project=` (not even a UUID) is now treated as no filter instead of handing PostgREST a cast it rejects. |
 
-### Audit corrections
+### Ops hardening (branch `feat/ops-hardening`)
+
+| Change | Notes |
+|---|---|
+| `lib/log.ts` — structured logger | One line of JSON per event with a stable `event` key and normalized error details (`Error` → `message`/`name`/`stack`, Supabase errors keep `code`/`details`/`hint`, newlines escaped so a failure never splits across log lines). Context keys cannot spoof `level`/`event`. `formatLogRecord` is pure and pinned by `test/log-simple.test.ts`. |
+| All 89 `console.error` sites migrated | Across 26 files in `app/` and `lib/`. The messages people already wrote became the `event` keys, so grepping the old strings still works — the difference is that Vercel can now filter and group on fields instead of us regexing prose. `console.error` survives only inside `logError` itself. |
+| `instrumentation.ts` — `onRequestError` | Uncaught server errors (route handler, server action, RSC render, proxy) were only reaching Next's default stderr. They are now logged as `unhandled request error` with path, method, route type, and React's error digest — which is what identifies an error whose message React stripped. |
+| `app/api/health/route.ts` | Public, unauthenticated liveness probe: `200 {status:"ok", database:"up"}` when a head-count query reaches PostgREST/Postgres (RLS hides the rows; the query still runs — verified live with the anon key), `503` with `down`/`unconfigured` otherwise, `Cache-Control: no-store`. Point a free uptime monitor at it — that is the step which turns downtime into an alert, and it needs an account on your side. |
+| Drift check in CI | `.github/workflows/drift.yml` + `lib/drift.ts` (pure summariser, tested) + `scripts/check-drift.ts` (exit 1 with a per-migration verdict). Runs on pushes/PRs to main plus a weekly schedule, so a dashboard edit is caught without a deploy. Gated on the `SUPABASE_ACCESS_TOKEN` repo secret; without it the job prints a notice and passes. The whole recipe (token env var → `link --yes` → `migration list --output-format json`) was verified end-to-end against the real project from a clean, non-interactive environment; the drift verdicts were exercised with a fake migration file and a doctored JSON input. |
+| `docs/operations.md` — runbook | Where logs live and how they are formatted, the health endpoint and monitor setup, the Sentry extension point, enabling the drift check, and backups/restore. The backup section is blunt about the facts: the free tier takes **no** automatic backups, a dump needs Docker/Podman (`supabase db dump`) or libpq (`pg_dump` over the pooler) — **neither exists on this machine, so no dump has ever been taken** — Storage object bytes are not in a dump, and a dump must never become a commit or CI artifact in this public repo. Includes a restore-drill checklist. |
+
+Suite: 58 → **70 tests**. Test counts quoted elsewhere in the audit were stale at 50 (the pagination batch had taken it to 58) and are refreshed.
+
+Two corrections to earlier assumptions, both from running things instead of trusting memory: `supabase db dump` **requires Docker/Podman** (it failed here with `docker: command not found`; `migration list`/`db push` do not need Docker, but `db dump` does) — the runbook documents both the Docker and the libpq path as a result. And the CLI's credentials live in the macOS keychain, which is exactly why CI must receive `SUPABASE_ACCESS_TOKEN` as a secret rather than inheriting anything local.
+
+
 
 - **"Editing timer-generated entries" was never missing.** `update_manual_entry` only requires a stopped, unbilled entry, and the time list filters out running timers. The ❌ came from inferring behaviour from the function's name instead of reading its SQL.
 - **`invoice_items.time_entry_id` is dormant.** The column exists, is indexed, has `on delete set null` and a comment promising line-level provenance to tracked time — but nothing in `app/` or `lib/` ever writes it. Billing groups many entries into one line, so a single FK cannot express the relationship; the design changed and the column was left behind. Consequence: **you cannot tell which line on an existing invoice came from tracked time.** The editor therefore replaces lines without touching time links, and releasing hours back to the unbilled pool remains void's job.

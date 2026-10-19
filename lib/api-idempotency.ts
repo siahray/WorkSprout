@@ -1,5 +1,6 @@
 import { createHash } from 'node:crypto'
 import type { SupabaseClient } from '@supabase/supabase-js'
+import { logError } from '@/lib/log'
 
 export type IdempotentResult = { status: number; body: unknown }
 
@@ -87,7 +88,7 @@ export async function withIdempotency(
 
   if (reserveError) {
     if (reserveError.code !== '23505') {
-      console.error('idempotency reserve failed:', reserveError.message)
+      logError('idempotency reserve failed', { error: reserveError })
       return errorResponse(503, 'idempotency_failed', 'Could not record the request — try again.')
     }
     return replayOrRefuse(supabase, userId, key, requestHash)
@@ -106,7 +107,7 @@ export async function withIdempotency(
     .eq('user_id', userId)
     .eq('key', key)
   if (saveError) {
-    console.error('idempotency save failed:', saveError.message)
+    logError('idempotency save failed', { error: saveError })
   }
 
   return Response.json(result.body, { status: result.status })

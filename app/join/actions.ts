@@ -1,5 +1,6 @@
 'use server'
 
+import { logError } from '@/lib/log'
 import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 
@@ -33,7 +34,7 @@ export async function joinBeta(_prevState: JoinState, formData: FormData): Promi
     if (error.code === '23505') {
       return fail("You're already on the beta list with this email.")
     }
-    console.error('beta signup failed:', error.message)
+    logError('beta signup failed', { error })
     return fail('Something went wrong — please try again.')
   }
 

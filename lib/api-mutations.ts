@@ -11,6 +11,7 @@
 // service-role client, which BYPASSES RLS and therefore depends entirely on the
 // explicit `user_id` values set here.
 
+import { logError } from '@/lib/log'
 import type { SupabaseClient } from '@supabase/supabase-js'
 import { isEmail, isUuid } from '@/lib/validation'
 
@@ -64,7 +65,7 @@ export async function createClientRecord(
     .single()
 
   if (error || !data) {
-    console.error('create client failed:', error?.message)
+    logError('create client failed', { error })
     return { ok: false, status: 500, error: 'Could not save the client — please try again.' }
   }
 
@@ -145,7 +146,7 @@ export async function scheduleCall(
     .single()
 
   if (error || !data) {
-    console.error('create call failed:', error?.message)
+    logError('create call failed', { error })
     return { ok: false, status: 500, error: 'Could not schedule the call — please try again.' }
   }
 
