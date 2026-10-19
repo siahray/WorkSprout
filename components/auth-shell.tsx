@@ -48,9 +48,7 @@ export function AuthShell({
           className="pointer-events-none absolute -top-32 left-1/2 h-80 w-80 -translate-x-1/2 rounded-full bg-[#2E9E6B]/25 blur-3xl"
           aria-hidden="true"
         />
-        <span className="relative mb-10 rounded-full border border-white/15 bg-white/5 px-3.5 py-1.5 text-xs font-medium text-white/75">
-          Free beta · no card needed
-        </span>
+
         <svg viewBox="0 0 200 220" className="ws-sway relative h-56 w-56" aria-hidden="true">
           <ellipse cx="100" cy="206" rx="46" ry="6" fill="#000" opacity=".25" />
           <path

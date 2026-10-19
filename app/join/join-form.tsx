@@ -63,7 +63,7 @@ export function JoinForm({ initialEmail, source }: { initialEmail: string; sourc
           </span>
           <h1 className={`${display.className} text-3xl font-extrabold tracking-tight`}>Get free beta access</h1>
           <p className="mt-1.5 text-[#0E2F27]/65">
-            Free during the beta. No card needed. Just tell us a bit about you.
+            Free during the beta. Just tell us a bit about you.
           </p>
         </div>
 
