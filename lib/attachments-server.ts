@@ -19,12 +19,14 @@ export async function removeAttachmentObjects(
 // parent row (and its cascading attachment rows) is deleted.
 export async function attachmentPathsForParent(
   client: SupabaseClient,
-  parent: { project_id: string } | { invoice_id: string },
+  parent: { project_id: string } | { invoice_id: string } | { expense_id: string },
 ): Promise<string[]> {
   const { data } =
     'project_id' in parent
       ? await client.from('attachments').select('path').eq('project_id', parent.project_id)
-      : await client.from('attachments').select('path').eq('invoice_id', parent.invoice_id)
+      : 'invoice_id' in parent
+        ? await client.from('attachments').select('path').eq('invoice_id', parent.invoice_id)
+        : await client.from('attachments').select('path').eq('expense_id', parent.expense_id)
 
   return (data ?? []).map((row) => (row as { path: string }).path)
 }

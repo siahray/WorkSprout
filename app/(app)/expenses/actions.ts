@@ -2,6 +2,7 @@
 
 import { revalidatePath } from 'next/cache'
 import { createClient } from '@/lib/supabase/server'
+import { attachmentPathsForParent, removeAttachmentObjects } from '@/lib/attachments-server'
 import { isExpenseCategory } from '@/lib/expenses'
 import { round2 } from '@/lib/tax'
 import { isUuid, money, optionalText, text, type FormState } from '@/lib/validation'
@@ -110,6 +111,10 @@ export async function deleteExpense(_prev: FormState, formData: FormData): Promi
   if (!isUuid(id)) return { error: 'That expense could not be found.' }
 
   const supabase = await createClient()
+
+  // Remove Storage objects before the cascading delete drops their metadata rows.
+  await removeAttachmentObjects(supabase, await attachmentPathsForParent(supabase, { expense_id: id }))
+
   const { error } = await supabase.from('expenses').delete().eq('id', id)
 
   if (error) {

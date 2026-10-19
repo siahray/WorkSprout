@@ -6,7 +6,9 @@ import { PageHeader } from '@/components/ui/page-header'
 import { ConfirmAction } from '@/components/ui/confirm-action'
 import { AddExpenseDialog } from './add-expense-dialog'
 import { EditExpenseDialog } from './edit-expense-dialog'
+import { ReceiptsDialog } from './receipts-dialog'
 import { deleteExpense } from './actions'
+import type { Attachment } from '@/lib/attachments'
 import { categoryBadge } from '@/lib/expenses'
 import { formatDate, nowDateInput, peso } from '@/lib/format'
 import { btnAccent, btnGhost, card, focus, rowHover, tableHead, th } from '@/lib/ui'
@@ -53,6 +55,22 @@ export default async function ExpensesPage() {
 
   const expenses = (expensesRes.data ?? []) as unknown as ExpenseRow[]
   const projects = (projectsRes.data ?? []) as { id: string; name: string }[]
+
+  // Receipts for the rows on this page, grouped per expense for the row dialogs.
+  const expenseIds = expenses.map((expense) => expense.id)
+  const receiptsRes = expenseIds.length
+    ? await supabase
+        .from('attachments')
+        .select('id, expense_id, name, path, mime_type, size_bytes, created_at')
+        .in('expense_id', expenseIds)
+        .order('created_at', { ascending: false })
+    : { data: [] }
+  const receiptsByExpense = new Map<string, Attachment[]>()
+  for (const attachment of (receiptsRes.data ?? []) as unknown as (Attachment & { expense_id: string })[]) {
+    const list = receiptsByExpense.get(attachment.expense_id) ?? []
+    list.push(attachment)
+    receiptsByExpense.set(attachment.expense_id, list)
+  }
 
   const monthStart = monthKey(nowDateInput())
   const thisMonth = expenses.filter((e) => monthKey(e.spent_on) === monthStart)
@@ -158,6 +176,11 @@ export default async function ExpensesPage() {
                             <td className="px-5 py-3.5 text-right tabular-nums">{peso(expense.amount)}</td>
                             <td className="px-5 py-3.5 text-right">
                               <span className="flex items-center justify-end gap-1">
+                                <ReceiptsDialog
+                                  expenseId={expense.id}
+                                  description={expense.description}
+                                  attachments={receiptsByExpense.get(expense.id) ?? []}
+                                />
                                 <EditExpenseDialog
                                   expense={{
                                     id: expense.id,
