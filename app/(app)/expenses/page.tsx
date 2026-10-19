@@ -15,6 +15,7 @@ import { deleteExpense } from './actions'
 import type { Attachment } from '@/lib/attachments'
 import { categoryBadge } from '@/lib/expenses'
 import { clampedPage, pageCount, pageRange, parsePage, listHref } from '@/lib/pagination'
+import { monthKey, monthLabel } from '@/lib/period'
 import { sanitizeSearch } from '@/lib/search'
 import { formatDate, nowDateInput, peso } from '@/lib/format'
 import { btnAccent, btnGhost, btnSecondary, card, focus, rowHover, tableHead, th } from '@/lib/ui'
@@ -33,16 +34,6 @@ type ExpenseRow = {
   note: string | null
   project_id: string | null
   project: { name: string } | null
-}
-
-function monthKey(isoDate: string): string {
-  return isoDate.slice(0, 7)
-}
-
-// "2026-10" -> "October 2026", built from local parts so no timezone can shift it.
-function monthLabel(key: string): string {
-  const [year, month] = key.split('-').map(Number)
-  return new Date(year, month - 1, 1).toLocaleDateString('en-PH', { month: 'long', year: 'numeric' })
 }
 
 export default async function ExpensesPage({
@@ -128,6 +119,14 @@ export default async function ExpensesPage({
         title="Expenses"
         description="Subscriptions, internet, and hardware — the real cost of running your business."
       >
+        {total > 0 && (
+          <Link
+            href={q ? `/expenses/export?q=${encodeURIComponent(q)}` : '/expenses/export'}
+            className={`${btnSecondary} ${focus}`}
+          >
+            Export CSV
+          </Link>
+        )}
         <AddExpenseDialog projects={projects} />
       </PageHeader>
 

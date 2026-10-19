@@ -72,6 +72,14 @@ export default async function InvoicesPage({
         title="Invoices"
         description={outstanding > 0 ? `${peso(outstanding)} outstanding across your clients.` : 'Bill tracked time and fixed fees.'}
       >
+        {total > 0 && (
+          <Link
+            href={q ? `/invoices/export?q=${encodeURIComponent(q)}` : '/invoices/export'}
+            className={`${btnSecondary} ${focus}`}
+          >
+            Export CSV
+          </Link>
+        )}
         <Link href="/invoices/new" className={`${btnPrimary} ${focus}`}>
           New invoice
         </Link>

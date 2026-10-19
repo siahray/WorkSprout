@@ -12,7 +12,16 @@ import { loadProjectOptions } from './data'
 import { addManualEntry, deleteTimeEntry } from './actions'
 import { clampedPage, pageCount, pageRange, parsePage, listHref } from '@/lib/pagination'
 import { isUuid } from '@/lib/validation'
-import { formatDate, hoursFromMinutes } from '@/lib/format'
+import { formatDate, hoursFromMinutes, nowDateInput } from '@/lib/format'
+import {
+  addDays,
+  addMonths,
+  monthKey,
+  monthLabel,
+  resolvePeriodRange,
+  type PeriodKind,
+} from '@/lib/period'
+import { buildTimesheet } from '@/lib/reports'
 import { btnGhost, btnSecondary, card, focus, tableHead, th, rowHover } from '@/lib/ui'
 import { display } from '@/lib/fonts'
 
@@ -29,6 +38,46 @@ type EntryRow = {
   invoice_id: string | null
 }
 
+type MatrixEntry = {
+  start_time: string
+  duration_minutes: number | null
+  billable: boolean
+  task: { project: { name: string } | null } | null
+}
+
+/** Link to the Time page carrying view, filter, and period — never a page number. */
+function timeHref(opts: {
+  view: 'list' | 'timesheet'
+  project?: string | null
+  period?: PeriodKind
+  start?: string
+}): string {
+  const search = new URLSearchParams()
+  if (opts.project) search.set('project', opts.project)
+  if (opts.view === 'timesheet') {
+    search.set('view', 'timesheet')
+    search.set('period', opts.period ?? 'week')
+    if (opts.start) search.set('start', opts.start)
+  }
+  const query = search.toString()
+  return query ? `/time?${query}` : '/time'
+}
+
+/** Matrix cells read as hours: `1.5`, `0.75`, `2` — never a bare `0`. */
+function cellHours(minutes: number): string {
+  const hours = minutes / 60
+  return Number.isInteger(hours) ? String(hours) : hours.toFixed(2)
+}
+
+/** `Mon 19` for a matrix column head, built from the date's own parts. */
+function dayLabel(isoDay: string): string {
+  return new Date(`${isoDay}T00:00:00Z`).toLocaleDateString('en-PH', {
+    weekday: 'short',
+    day: 'numeric',
+    timeZone: 'UTC',
+  })
+}
+
 function Stat({ label, value, hint, accent }: { label: string; value: string; hint?: string; accent: string }) {
   return (
     <div className={`${card} relative overflow-hidden p-5`}>
@@ -43,33 +92,65 @@ function Stat({ label, value, hint, accent }: { label: string; value: string; hi
 export default async function TimePage({
   searchParams,
 }: {
-  searchParams: Promise<{ project?: string; page?: string }>
+  searchParams: Promise<{ project?: string; page?: string; view?: string; period?: string; start?: string }>
 }) {
-  const { project: projectFilter, page: rawPage } = await searchParams
+  const {
+    project: projectFilter,
+    page: rawPage,
+    view: rawView,
+    period: rawPeriod,
+    start: rawStart,
+  } = await searchParams
   const page = parsePage(rawPage)
   const { from, to } = pageRange(page)
   // A malformed ?project= (not even a UUID) counts as no filter rather than
   // being handed to PostgREST, which would reject the cast with a 400.
   const projectParam = projectFilter && isUuid(projectFilter) ? projectFilter : null
+  const isTimesheet = rawView === 'timesheet'
+  const period: PeriodKind = rawPeriod === 'month' ? 'month' : 'week'
+  const today = nowDateInput()
+  // Missing, malformed, or future ?start= collapses to the current period.
+  const range = resolvePeriodRange(period, rawStart, today)
   const supabase = await createClient()
   const { data: claimsData } = await supabase.auth.getClaims()
   if (!claimsData?.claims) redirect('/login')
 
   const options = await loadProjectOptions(supabase)
 
-  const entriesQuery = supabase
-    .from('time_entries')
-    .select(
-      projectParam
-        ? 'id, task_id, start_time, duration_minutes, billable, invoice_id, task:tasks!inner(project_id)'
-        : 'id, task_id, start_time, duration_minutes, billable, invoice_id',
-      { count: 'exact' },
-    )
-    .not('end_time', 'is', null)
-  // The project filter moved into the query: this page used to fetch every
-  // entry and filter in memory, which pagination (and the stats below) can't
-  // afford to do anymore.
-  if (projectParam) entriesQuery.eq('task.project_id', projectParam)
+  // The list pages through every entry (with a count for pagination); the
+  // timesheet pulls one bounded period oldest-first so the matrix columns
+  // line up. The project filter applies to both — inside the query, because
+  // PostgREST only filters on an embedded column with !inner.
+  const entriesSource = (() => {
+    if (isTimesheet) {
+      const query = supabase
+        .from('time_entries')
+        .select(
+          projectParam
+            ? 'start_time, duration_minutes, billable, task:tasks!inner(project:projects(name))'
+            : 'start_time, duration_minutes, billable, task:tasks(project:projects(name))',
+        )
+        .not('end_time', 'is', null)
+        // Manila day bounds (fixed +08:00): the matrix buckets by the
+        // Manila calendar day, so the fetch has to speak the same one.
+        .gte('start_time', `${range.from}T00:00:00+08:00`)
+        .lt('start_time', `${addDays(range.to, 1)}T00:00:00+08:00`)
+        .order('start_time', { ascending: true })
+      if (projectParam) query.eq('task.project_id', projectParam)
+      return query
+    }
+    const query = supabase
+      .from('time_entries')
+      .select(
+        projectParam
+          ? 'id, task_id, start_time, duration_minutes, billable, invoice_id, task:tasks!inner(project_id)'
+          : 'id, task_id, start_time, duration_minutes, billable, invoice_id',
+        { count: 'exact' },
+      )
+      .not('end_time', 'is', null)
+    if (projectParam) query.eq('task.project_id', projectParam)
+    return query.order('start_time', { ascending: false }).range(from, to)
+  })()
 
   const [activeRes, entriesRes, totalsRes] = await Promise.all([
     supabase
@@ -77,7 +158,7 @@ export default async function TimePage({
       .select('id, task_id, start_time, paused_at, paused_seconds')
       .is('end_time', null)
       .maybeSingle(),
-    entriesQuery.order('start_time', { ascending: false }).range(from, to),
+    entriesSource,
     // Summed in the database under the caller's own RLS — the page only ever
     // sees one 50-row slice, but "Unbilled" and "Logged" stay workspace-wide
     // (or project-wide, the way the table itself is filtered).
@@ -127,6 +208,28 @@ export default async function TimePage({
   const totalMinutes = Number(totals.total_minutes ?? 0)
   const filterName = projectFilter ? options.find((p) => p.id === projectFilter)?.name : null
 
+  // The matrix folds the fetched period into project × day minutes.
+  const timesheet = isTimesheet
+    ? buildTimesheet(
+        ((entriesRes.data ?? []) as unknown as MatrixEntry[]).map((entry) => ({
+          start_time: entry.start_time,
+          duration_minutes: entry.duration_minutes,
+          billable: entry.billable,
+          project_name: entry.task?.project?.name ?? null,
+        })),
+        range.from,
+        range.to,
+      )
+    : null
+  const exportReady = isTimesheet ? (timesheet?.total ?? 0) > 0 : total > 0
+  const nextStart = period === 'week' ? addDays(range.from, 7) : addMonths(range.from, 1)
+  // You can browse back through past timesheets, never into next week.
+  const canGoNext = nextStart <= resolvePeriodRange(period, undefined, today).from
+  const shiftStart = (direction: -1 | 1) =>
+    period === 'week'
+      ? addDays(range.from, 7 * direction)
+      : addMonths(range.from, direction)
+
   return (
     <>
       <PageHeader title="Time" description="Run a live timer or log time by hand.">
@@ -174,10 +277,142 @@ export default async function TimePage({
       </div>
 
       <section className="mt-8">
-        <h2 className={`${display.className} mb-3 text-xl font-extrabold tracking-tight`}>
-          {filterName ? `Time for ${filterName}` : 'Recent time'}
-        </h2>
-        {total === 0 ? (
+        <div className="mb-3 flex flex-wrap items-center justify-between gap-3">
+          <h2 className={`${display.className} text-xl font-extrabold tracking-tight`}>
+            {isTimesheet
+              ? period === 'week'
+                ? `${formatDate(range.from)} – ${formatDate(range.to)}`
+                : monthLabel(monthKey(range.from))
+              : filterName
+                ? `Time for ${filterName}`
+                : 'Recent time'}
+          </h2>
+          <div className="flex flex-wrap items-center gap-2">
+            <div className="flex rounded-xl border border-[#0E2F27]/15 p-0.5 text-xs font-semibold">
+              <Link
+                href={timeHref({ view: 'list', project: projectParam })}
+                className={`rounded-lg px-3 py-1.5 ${!isTimesheet ? 'bg-[#0E2F27] text-white' : 'text-[#0E2F27]/65 hover:text-[#0E2F27]'} ${focus}`}
+              >
+                List
+              </Link>
+              <Link
+                href={timeHref({ view: 'timesheet', project: projectParam, period, start: range.from })}
+                className={`rounded-lg px-3 py-1.5 ${isTimesheet ? 'bg-[#0E2F27] text-white' : 'text-[#0E2F27]/65 hover:text-[#0E2F27]'} ${focus}`}
+              >
+                Timesheet
+              </Link>
+            </div>
+            {exportReady && (
+              <Link
+                href={
+                  isTimesheet
+                    ? `/time/export?view=timesheet&period=${period}&start=${range.from}${projectParam ? `&project=${projectParam}` : ''}`
+                    : `/time/export${projectParam ? `?project=${projectParam}` : ''}`
+                }
+                className={`${btnGhost} !px-3 !py-1.5 text-xs ${focus}`}
+              >
+                Export CSV
+              </Link>
+            )}
+          </div>
+        </div>
+        {isTimesheet ? (
+          timesheet && timesheet.rows.length > 0 ? (
+            <div className={`${card} overflow-hidden`}>
+              <div className="flex flex-wrap items-center justify-between gap-2 border-b border-[#0E2F27]/10 px-5 py-3">
+                <div className="flex items-center gap-1">
+                  <Link
+                    href={timeHref({ view: 'timesheet', project: projectParam, period, start: shiftStart(-1) })}
+                    aria-label={`Previous ${period === 'week' ? 'week' : 'month'}`}
+                    className={`${btnGhost} !px-2.5 !py-1.5 text-xs ${focus}`}
+                  >
+                    ←
+                  </Link>
+                  {canGoNext && (
+                    <Link
+                      href={timeHref({ view: 'timesheet', project: projectParam, period, start: shiftStart(1) })}
+                      aria-label={`Next ${period === 'week' ? 'week' : 'month'}`}
+                      className={`${btnGhost} !px-2.5 !py-1.5 text-xs ${focus}`}
+                    >
+                      →
+                    </Link>
+                  )}
+                </div>
+                <div className="flex rounded-xl border border-[#0E2F27]/15 p-0.5 text-xs font-semibold">
+                  <Link
+                    href={timeHref({ view: 'timesheet', project: projectParam, period: 'week', start: range.from })}
+                    className={`rounded-lg px-3 py-1.5 ${period === 'week' ? 'bg-[#0E2F27] text-white' : 'text-[#0E2F27]/65 hover:text-[#0E2F27]'} ${focus}`}
+                  >
+                    Week
+                  </Link>
+                  <Link
+                    href={timeHref({ view: 'timesheet', project: projectParam, period: 'month', start: range.from })}
+                    className={`rounded-lg px-3 py-1.5 ${period === 'month' ? 'bg-[#0E2F27] text-white' : 'text-[#0E2F27]/65 hover:text-[#0E2F27]'} ${focus}`}
+                  >
+                    Month
+                  </Link>
+                </div>
+              </div>
+              <div className="overflow-x-auto">
+                <table className="w-full text-sm">
+                  <thead className={tableHead}>
+                    <tr>
+                      <th className={th}>Project</th>
+                      {timesheet.days.map((day) => (
+                        <th key={day} className={`${th} text-right`}>
+                          {dayLabel(day)}
+                        </th>
+                      ))}
+                      <th className={`${th} text-right`}>Total</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-[#0E2F27]/10">
+                    {timesheet.rows.map((row) => (
+                      <tr key={row.key} className={rowHover}>
+                        <td className="px-5 py-2.5 font-medium whitespace-nowrap">{row.label}</td>
+                        {row.cells.map((minutes, index) => (
+                          <td
+                            key={timesheet.days[index]}
+                            className={`px-3 py-2.5 text-right tabular-nums ${minutes ? '' : 'text-[#0E2F27]/30'}`}
+                          >
+                            {minutes ? cellHours(minutes) : '—'}
+                          </td>
+                        ))}
+                        <td className="px-3 py-2.5 text-right font-semibold tabular-nums">
+                          {cellHours(row.total)}
+                        </td>
+                      </tr>
+                    ))}
+                    <tr className="bg-[#F4F8F5]">
+                      <th className="px-5 py-2.5 text-left text-[11px] font-semibold uppercase tracking-[0.12em] text-[#0E2F27]/55">
+                        Total
+                      </th>
+                      {timesheet.dayTotals.map((minutes, index) => (
+                        <td key={timesheet.days[index]} className="px-3 py-2.5 text-right font-semibold tabular-nums">
+                          {cellHours(minutes)}
+                        </td>
+                      ))}
+                      <td className="px-3 py-2.5 text-right font-bold tabular-nums">
+                        {cellHours(timesheet.total)}
+                      </td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+              <div className="flex flex-wrap items-center justify-between gap-2 border-t border-[#0E2F27]/10 px-5 py-3 text-xs text-[#0E2F27]/55">
+                <span>
+                  {hoursFromMinutes(timesheet.billableMinutes)} billable ·{' '}
+                  {hoursFromMinutes(timesheet.total - timesheet.billableMinutes)} not billable
+                </span>
+                {filterName && <span>Filtered to {filterName}</span>}
+              </div>
+            </div>
+          ) : (
+            <div className={`${card} p-8 text-center text-sm text-[#0E2F27]/65`}>
+              No time logged in this period. Use the arrows to browse back, or log an entry above.
+            </div>
+          )
+        ) : total === 0 ? (
           <EmptyState
             title={filterName ? `No time logged for ${filterName}` : 'No time logged yet'}
             description="Start the timer or log an entry by hand and it will show up here."
