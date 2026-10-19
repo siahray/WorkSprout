@@ -26,7 +26,7 @@ export function ReceiptsDialog({
 
   return (
     <>
-      <button type="button" onClick={() => setOpen(true)} className={`${btnGhost} !px-2.5 !py-1.5 text-xs`}>
+      <button type="button" onClick={() => setOpen(true)} className={`${btnGhost} px-2.5! py-1.5! text-xs`}>
         Receipt{count > 0 ? ` (${count})` : ''}
       </button>
 
@@ -36,7 +36,7 @@ export function ReceiptsDialog({
             <AttachmentUploader parentType="expense" parentId={expenseId} />
 
             {attachments.length === 0 ? (
-              <p className="mt-3 text-sm text-[#0E2F27]/60">
+              <p className="mt-3 text-sm text-ink-2">
                 No receipts yet — attach a photo or PDF of the receipt.
               </p>
             ) : (

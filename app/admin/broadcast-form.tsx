@@ -16,10 +16,10 @@ export function BroadcastForm({
     <form
       action={action}
       aria-busy={pending}
-      className="rounded-xl border border-[#0E2F27]/12 bg-white p-5"
+      className="rounded-control border border-line bg-panel p-5"
     >
       <h2 className={`${display.className} text-lg font-bold tracking-tight`}>Compose broadcast</h2>
-      <p className="mt-1 text-sm text-[#0E2F27]/65">
+      <p className="mt-1 text-sm text-ink-2">
         Delivered one email per recipient through your configured sender.
       </p>
 

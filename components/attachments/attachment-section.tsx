@@ -25,7 +25,7 @@ export function AttachmentSection({
     <section className={`${card} p-5`}>
       <div>
         <h2 className={`${display.className} text-lg font-bold tracking-tight`}>{title}</h2>
-        {description && <p className="mt-1 text-sm text-[#0E2F27]/60">{description}</p>}
+        {description && <p className="mt-1 text-sm text-ink-2">{description}</p>}
       </div>
 
       <div className="mt-4">
@@ -33,7 +33,7 @@ export function AttachmentSection({
       </div>
 
       {attachments.length === 0 && emptyText ? (
-        <p className="mt-3 text-sm text-[#0E2F27]/60">{emptyText}</p>
+        <p className="mt-3 text-sm text-ink-2">{emptyText}</p>
       ) : (
         <AttachmentList attachments={attachments} />
       )}

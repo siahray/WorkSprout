@@ -86,10 +86,10 @@ export function TimeEntryForm({
           type="checkbox"
           name="billable"
           defaultChecked={defaults.billable ?? true}
-          className="h-4 w-4 rounded border-[#0E2F27]/30 text-[#2E9E6B] focus:ring-[#2E9E6B]"
+          className="h-4 w-4 rounded border-ink-4 text-sprout focus:ring-sprout"
         />
         <span className="font-medium">Billable</span>
-        <span className="text-[#0E2F27]/55">— include this time when invoicing</span>
+        <span className="text-ink-3">— include this time when invoicing</span>
       </label>
 
       {state.error && (

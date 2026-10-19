@@ -38,8 +38,8 @@ export function TodoItem({
         pendingText="…"
         className={`flex h-6 w-6 shrink-0 items-center justify-center rounded-full border-2 text-sm leading-none transition-colors ${
           done
-            ? 'border-[#2E9E6B] bg-[#2E9E6B] text-white'
-            : 'border-[#0E2F27]/30 text-transparent hover:border-[#2E9E6B]'
+            ? 'border-sprout bg-sprout text-white'
+            : 'border-ink-4 text-transparent hover:border-sprout'
         }`}
       >
         <span className="sr-only">{done ? 'Mark as not done' : 'Mark as done'}</span>
@@ -54,14 +54,14 @@ export function TodoItem({
 
       <span
         className={`min-w-0 flex-1 truncate text-sm ${
-          done ? 'text-[#0E2F27]/45 line-through' : 'text-[#0E2F27]'
+          done ? 'text-ink-3 line-through' : 'text-ink'
         }`}
       >
         {todo.title}
       </span>
 
       {todo.project && (
-        <span className="shrink-0 rounded-full bg-[#F4F8F5] px-2 py-0.5 text-xs font-medium text-[#0E2F27]/60">
+        <span className="shrink-0 rounded-full bg-canvas px-2 py-0.5 text-xs font-medium text-ink-2">
           {todo.project.name}
         </span>
       )}
@@ -70,7 +70,7 @@ export function TodoItem({
         action={deleteAction}
         id={todo.id}
         message="Delete this to-do?"
-        className="shrink-0 rounded-lg p-2 text-[#0E2F27]/40 transition-colors hover:bg-red-50 hover:text-red-700"
+        className="shrink-0 rounded-control p-2 text-ink-4 transition-colors hover:bg-danger-wash hover:text-danger"
       >
         <span className="sr-only">Delete</span>
         <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">

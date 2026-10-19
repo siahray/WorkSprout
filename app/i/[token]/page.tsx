@@ -27,8 +27,8 @@ export default async function PublicInvoicePage({ params }: { params: Promise<{ 
     <main className="mx-auto min-h-screen max-w-3xl px-4 py-10 sm:py-16">
       <header className="mb-6 flex flex-wrap items-center justify-between gap-4">
         <div className="flex items-center gap-2">
-          <span className="h-2.5 w-2.5 rounded-full bg-[#2E9E6B]" aria-hidden="true" />
-          <span className={`${display.className} text-sm font-extrabold tracking-tight text-[#0E2F27]`}>WorkSprout</span>
+          <span className="h-2.5 w-2.5 rounded-full bg-sprout" aria-hidden="true" />
+          <span className={`${display.className} text-sm font-extrabold tracking-tight text-ink`}>WorkSprout</span>
         </div>
         <div className="flex flex-wrap items-center gap-2 print:hidden">
           <a href={`/i/${token}/pdf`} className={`${btnPrimary} ${focus}`}>
@@ -40,7 +40,7 @@ export default async function PublicInvoicePage({ params }: { params: Promise<{ 
 
       <InvoiceDocument invoice={invoice} />
 
-      <p className="mt-6 text-center text-xs text-[#0E2F27]/45">
+      <p className="mt-6 text-center text-xs text-ink-3">
         This invoice was shared by {invoice.business.name}. Powered by WorkSprout.
       </p>
     </main>

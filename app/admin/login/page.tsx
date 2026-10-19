@@ -6,7 +6,7 @@ import { AdminLogo } from '../logo'
 import { display } from '@/lib/fonts'
 
 const focus =
-  'focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#2E9E6B]'
+  'focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-sprout'
 
 export default function AdminLoginPage() {
   const [state, formAction, pending] = useActionState(login, {})
@@ -19,10 +19,10 @@ export default function AdminLoginPage() {
         </div>
         <form
           action={formAction}
-          className="rounded-2xl border border-[#0E2F27]/12 bg-white p-7 shadow-[0_18px_40px_-24px_rgba(14,47,39,0.35)]"
+          className="rounded-panel border border-line bg-panel p-7 shadow-raised"
         >
           <h1 className={`${display.className} text-2xl font-extrabold tracking-tight`}>Admin sign in</h1>
-          <p className="mt-1 text-sm text-[#0E2F27]/65">Restricted to the WorkSprout team.</p>
+          <p className="mt-1 text-sm text-ink-2">Restricted to the WorkSprout team.</p>
 
           <div className="mt-6 space-y-4">
             <div>
@@ -35,7 +35,7 @@ export default function AdminLoginPage() {
                 type="email"
                 required
                 autoComplete="email"
-                className={`w-full rounded-xl border border-[#0E2F27]/20 bg-white px-4 py-3 text-[#0E2F27] placeholder:text-[#0E2F27]/40 ${focus}`}
+                className={`w-full rounded-control border border-line-strong bg-panel px-4 py-3 text-ink placeholder:text-ink-4 ${focus}`}
                 placeholder="you@worksprout.com"
               />
             </div>
@@ -49,13 +49,13 @@ export default function AdminLoginPage() {
                 type="password"
                 required
                 autoComplete="current-password"
-                className={`w-full rounded-xl border border-[#0E2F27]/20 bg-white px-4 py-3 text-[#0E2F27] ${focus}`}
+                className={`w-full rounded-control border border-line-strong bg-panel px-4 py-3 text-ink ${focus}`}
               />
             </div>
           </div>
 
           {state.error && (
-            <p role="alert" className="mt-4 rounded-lg bg-red-50 px-3 py-2 text-sm font-medium text-red-700">
+            <p role="alert" className="mt-4 rounded-control bg-danger-wash px-3 py-2 text-sm font-medium text-danger">
               {state.error}
             </p>
           )}
@@ -63,7 +63,7 @@ export default function AdminLoginPage() {
           <button
             type="submit"
             disabled={pending}
-            className={`mt-6 w-full rounded-xl bg-[#0E2F27] px-5 py-3 font-semibold text-white hover:bg-[#1F6B52] disabled:opacity-60 ${focus}`}
+            className={`mt-6 w-full rounded-control bg-ink px-5 py-3 font-semibold text-white hover:bg-sprout-deep disabled:opacity-60 ${focus}`}
           >
             {pending ? 'Signing in…' : 'Sign in'}
           </button>

@@ -41,7 +41,7 @@ function DeliverableTaskItem({
       <div className="flex items-center justify-between gap-3">
         <span
           className={`min-w-0 flex-1 truncate text-sm ${
-            task.status === 'done' ? 'text-[#0E2F27]/45 line-through' : 'text-[#0E2F27]'
+            task.status === 'done' ? 'text-ink-3 line-through' : 'text-ink'
           }`}
         >
           {task.title}
@@ -52,12 +52,12 @@ function DeliverableTaskItem({
       </div>
 
       {subtasks.length > 0 && (
-        <ul className="mt-2 space-y-1.5 border-l-2 border-[#0E2F27]/10 pl-4">
+        <ul className="mt-2 space-y-1.5 border-l-2 border-line pl-4">
           {subtasks.map((subtask) => (
             <li key={subtask.id} className="flex items-center justify-between gap-3">
               <span
                 className={`min-w-0 flex-1 truncate text-sm ${
-                  subtask.status === 'done' ? 'text-[#0E2F27]/45 line-through' : 'text-[#0E2F27]/80'
+                  subtask.status === 'done' ? 'text-ink-3 line-through' : 'text-ink-2'
                 }`}
               >
                 {subtask.title}
@@ -132,9 +132,9 @@ function FocusStat({ label, value, hint, accent }: { label: string; value: strin
   return (
     <div className={`${card} relative overflow-hidden p-5`}>
       <span className={`absolute inset-x-0 top-0 h-1 ${accent}`} aria-hidden="true" />
-      <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-[#0E2F27]/50">{label}</p>
+      <p className="text-meta font-medium text-ink-3">{label}</p>
       <p className={`${display.className} mt-2 text-[1.75rem] font-extrabold leading-none tabular-nums`}>{value}</p>
-      {hint && <p className="text-xs text-[#0E2F27]/50">{hint}</p>}
+      {hint && <p className="text-xs text-ink-3">{hint}</p>}
     </div>
   )
 }
@@ -322,11 +322,11 @@ export default async function FocusPage({
           Calls on {formatDate(dayIso)}
         </h2>
         {dayCalls.length === 0 ? (
-          <p className="mt-3 rounded-xl bg-[#F4F8F5] px-4 py-6 text-center text-sm text-[#0E2F27]/55">
+          <p className="mt-3 rounded-control bg-canvas px-4 py-6 text-center text-sm text-ink-3">
             No calls this day. Schedule one beside the calendar.
           </p>
         ) : (
-          <ul className={`${card} mt-3 divide-y divide-[#0E2F27]/10 px-5`}>
+          <ul className={`${card} mt-3 divide-y divide-line px-5`}>
             {dayCalls.map((call) => (
               <CallItem key={call.id} call={call} />
             ))}
@@ -337,7 +337,7 @@ export default async function FocusPage({
       {upcomingCalls.length > 0 && (
         <section>
           <h2 className={`${display.className} text-base font-bold tracking-tight`}>Upcoming</h2>
-          <ul className={`${card} mt-3 divide-y divide-[#0E2F27]/10 px-5`}>
+          <ul className={`${card} mt-3 divide-y divide-line px-5`}>
             {upcomingCalls.map((call) => (
               <CallItem key={call.id} call={call} />
             ))}
@@ -364,14 +364,14 @@ export default async function FocusPage({
             <FocusStat
               label="Current streak"
               value={currentStreak > 0 ? `${currentStreak} day${currentStreak === 1 ? '' : 's'}` : '—'}
-              accent="bg-[#2E9E6B]"
+              accent="bg-sprout"
             />
             <FocusStat
               label="Best streak"
               value={bestStreak > 0 ? `${bestStreak} day${bestStreak === 1 ? '' : 's'}` : '—'}
-              accent="bg-[#F4B63F]"
+              accent="bg-mango"
             />
-            <FocusStat label="Days won" value={String(wonThisMonth)} hint="this month" accent="bg-[#0E2F27]/25" />
+            <FocusStat label="Days won" value={String(wonThisMonth)} hint="this month" accent="bg-ink/25" />
           </div>
         }
         calendar={<Calendar label={monthLabel(y, m)} prevHref={prevHref} nextHref={nextHref} cells={cells} />}
@@ -380,10 +380,10 @@ export default async function FocusPage({
             <div className="flex items-center justify-between gap-3">
               <div>
                 <h2 className={`${display.className} text-base font-bold tracking-tight`}>{formatDate(dayIso)}</h2>
-                {relative && <p className="text-xs font-medium text-[#2E9E6B]">{relative}</p>}
+                {relative && <p className="text-xs font-medium text-sprout">{relative}</p>}
               </div>
               {dayWon && (
-                <span className="rounded-full bg-[#2E9E6B]/12 px-2.5 py-1 text-xs font-semibold text-[#1F6B52]">
+                <span className="rounded-full bg-sprout/12 px-2.5 py-1 text-xs font-semibold text-sprout-deep">
                   Day won
                 </span>
               )}
@@ -391,10 +391,10 @@ export default async function FocusPage({
 
             {dayTotal > 0 && (
               <div className="mt-3">
-                <div className="h-1.5 overflow-hidden rounded-full bg-[#0E2F27]/10">
-                  <div className="h-full rounded-full bg-[#2E9E6B] transition-all" style={{ width: `${donePercent}%` }} />
+                <div className="h-1.5 overflow-hidden rounded-full bg-ink/10">
+                  <div className="h-full rounded-full bg-sprout transition-all" style={{ width: `${donePercent}%` }} />
                 </div>
-                <p className="mt-1.5 text-xs text-[#0E2F27]/55">
+                <p className="mt-1.5 text-xs text-ink-3">
                   {dayDone} of {dayTotal} done{dayWon ? ' — keep it up!' : ''}
                 </p>
               </div>
@@ -407,11 +407,11 @@ export default async function FocusPage({
         }
         todoList={
           dayRows.length === 0 ? (
-            <p className="rounded-xl bg-[#F4F8F5] px-4 py-6 text-center text-sm text-[#0E2F27]/55">
+            <p className="rounded-control bg-canvas px-4 py-6 text-center text-sm text-ink-3">
               Nothing scheduled for this day. Add your first to-do beside the calendar.
             </p>
           ) : (
-            <ul className={`${card} divide-y divide-[#0E2F27]/10 px-5`}>
+            <ul className={`${card} divide-y divide-line px-5`}>
               {dayRows.map((todo) => (
                 <TodoItem key={todo.id} todo={todo} toggleAction={toggleTodo} deleteAction={deleteTodo} />
               ))}
@@ -420,7 +420,7 @@ export default async function FocusPage({
         }
         deliverablesList={
           deliverableCount === 0 ? (
-            <p className={`${card} px-4 py-10 text-center text-sm text-[#0E2F27]/55`}>
+            <p className={`${card} px-4 py-10 text-center text-sm text-ink-3`}>
               No project deliverables yet. Add tasks inside a project and they will show up here.
             </p>
           ) : (
@@ -433,7 +433,7 @@ export default async function FocusPage({
                   const unassigned = projectTasks.filter((task) => !task.phase_id)
                   return (
                     <div key={project.id}>
-                      <h2 className={`${display.className} text-base font-bold tracking-tight text-[#0E2F27]`}>
+                      <h2 className={`${display.className} text-base font-bold tracking-tight text-ink`}>
                         {project.name}
                       </h2>
                       <div className="mt-3 space-y-4">
@@ -442,13 +442,13 @@ export default async function FocusPage({
                           if (phaseTasks.length === 0) return null
                           return (
                             <div key={phase.id}>
-                              <h3 className="flex items-center gap-2 text-sm font-semibold text-[#0E2F27]">
+                              <h3 className="flex items-center gap-2 text-sm font-semibold text-ink">
                                 {phase.title}
-                                <span className="rounded-full bg-[#F4F8F5] px-2 py-0.5 text-xs font-medium text-[#0E2F27]/55">
+                                <span className="rounded-full bg-canvas px-2 py-0.5 text-xs font-medium text-ink-3">
                                   {phaseTasks.length}
                                 </span>
                               </h3>
-                              <ul className="mt-2 divide-y divide-[#0E2F27]/10 overflow-hidden rounded-xl border border-[#0E2F27]/10">
+                              <ul className="mt-2 divide-y divide-line overflow-hidden rounded-control border border-line">
                                 {phaseTasks.map((task) => (
                                   <DeliverableTaskItem
                                     key={task.id}
@@ -464,13 +464,13 @@ export default async function FocusPage({
 
                         {unassigned.length > 0 && (
                           <div>
-                            <h3 className="flex items-center gap-2 text-sm font-semibold text-[#0E2F27]/70">
+                            <h3 className="flex items-center gap-2 text-sm font-semibold text-ink-2">
                               Unassigned
-                              <span className="rounded-full bg-[#F4F8F5] px-2 py-0.5 text-xs font-medium text-[#0E2F27]/55">
+                              <span className="rounded-full bg-canvas px-2 py-0.5 text-xs font-medium text-ink-3">
                                 {unassigned.length}
                               </span>
                             </h3>
-                            <ul className="mt-2 divide-y divide-[#0E2F27]/10 overflow-hidden rounded-xl border border-[#0E2F27]/10">
+                            <ul className="mt-2 divide-y divide-line overflow-hidden rounded-control border border-line">
                               {unassigned.map((task) => (
                                 <DeliverableTaskItem
                                   key={task.id}

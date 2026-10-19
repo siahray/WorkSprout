@@ -139,23 +139,23 @@ export default async function ClientsPage({
                 <th className={`${th} text-right`}>Outstanding</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-[#0E2F27]/10">
+            <tbody className="divide-y divide-line">
               {clients.map((c) => (
                 <tr key={c.id} className={rowHover}>
                   <td className="px-5 py-3.5">
                     <span className="flex flex-wrap items-center gap-2">
-                      <Link href={`/clients/${c.id}`} className={`font-semibold text-[#1F6B52] hover:underline ${focus}`}>
+                      <Link href={`/clients/${c.id}`} className={`font-semibold text-sprout-deep hover:underline ${focus}`}>
                         {c.name}
                       </Link>
                       {showArchived && <StatusBadge status="archived" />}
                     </span>
-                    {c.company && <p className="text-xs text-[#0E2F27]/55">{c.company}</p>}
+                    {c.company && <p className="text-xs text-ink-3">{c.company}</p>}
                   </td>
-                  <td className="px-5 py-3.5 text-[#0E2F27]/75">{c.email ?? '—'}</td>
-                  <td className="px-5 py-3.5 text-[#0E2F27]/70">
+                  <td className="px-5 py-3.5 text-ink-2">{c.email ?? '—'}</td>
+                  <td className="px-5 py-3.5 text-ink-2">
                     {formatDate(showArchived && c.archived_at ? c.archived_at : c.created_at)}
                   </td>
-                  <td className="px-5 py-3.5 text-right tabular-nums text-[#0E2F27]/75">
+                  <td className="px-5 py-3.5 text-right tabular-nums text-ink-2">
                     {projectCount.get(c.id) ?? 0}
                   </td>
                   <td className="px-5 py-3.5 text-right tabular-nums font-medium">

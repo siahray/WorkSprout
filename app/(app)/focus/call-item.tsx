@@ -26,7 +26,7 @@ function CallStatusSelect({ id, status }: { id: string; status: CallStatus }) {
           await setCallStatus(id, event.target.value)
         })
       }
-      className={`w-[124px] rounded-xl border border-[#0E2F27]/20 bg-white px-3 py-1.5 text-xs text-[#0E2F27] disabled:cursor-not-allowed disabled:opacity-60 ${focus}`}
+      className={`w-[124px] rounded-control border border-line-strong bg-panel px-3 py-1.5 text-xs text-ink disabled:cursor-not-allowed disabled:opacity-60 ${focus}`}
     >
       <option value="scheduled">Scheduled</option>
       <option value="completed">Completed</option>
@@ -41,15 +41,15 @@ export function CallItem({ call }: { call: CallListItem }) {
 
   return (
     <li className="flex flex-wrap items-start gap-3 py-3">
-      <span className="w-20 shrink-0 pt-0.5 text-sm font-semibold tabular-nums text-[#0E2F27]/70">
+      <span className="w-20 shrink-0 pt-0.5 text-sm font-semibold tabular-nums text-ink-2">
         {timeLabel(call.scheduledAt)}
       </span>
 
       <div className="min-w-0 flex-1">
-        <p className={`text-sm font-semibold ${cancelled ? 'text-[#0E2F27]/45 line-through' : 'text-[#0E2F27]'}`}>
+        <p className={`text-sm font-semibold ${cancelled ? 'text-ink-3 line-through' : 'text-ink'}`}>
           {call.title}
         </p>
-        <p className="mt-0.5 text-xs text-[#0E2F27]/55">
+        <p className="mt-0.5 text-xs text-ink-3">
           {call.durationMinutes} min
           {call.clientName ? ` · ${call.clientName}` : ''}
         </p>
@@ -59,15 +59,15 @@ export function CallItem({ call }: { call: CallListItem }) {
               href={join}
               target="_blank"
               rel="noreferrer"
-              className="font-medium text-[#1F6B52] underline-offset-2 hover:underline"
+              className="font-medium text-sprout-deep underline-offset-2 hover:underline"
             >
               Join link
             </a>
           ) : (
-            call.location && <span className="text-[#0E2F27]/55">{call.location}</span>
+            call.location && <span className="text-ink-3">{call.location}</span>
           )}
           {call.invitedAt && (
-            <span className="rounded-full bg-[#2E9E6B]/12 px-2 py-0.5 font-medium text-[#1F6B52]">Invited</span>
+            <span className="rounded-full bg-sprout/12 px-2 py-0.5 font-medium text-sprout-deep">Invited</span>
           )}
         </div>
       </div>
@@ -77,9 +77,9 @@ export function CallItem({ call }: { call: CallListItem }) {
           <ActionButton
             action={sendCallInvite}
             id={call.id}
-            className={`${btnSecondary} !px-3 !py-1.5 text-xs`}
+            className={`${btnSecondary} px-3! py-1.5! text-xs`}
             pendingText="Sending…"
-            okClassName="text-xs font-medium text-[#1F6B52]"
+            okClassName="text-xs font-medium text-sprout-deep"
           >
             Send invite
           </ActionButton>
@@ -89,7 +89,7 @@ export function CallItem({ call }: { call: CallListItem }) {
           action={deleteCall}
           id={call.id}
           message="Delete this call?"
-          className="rounded-lg p-2 text-[#0E2F27]/40 transition-colors hover:bg-red-50 hover:text-red-700"
+          className="rounded-control p-2 text-ink-4 transition-colors hover:bg-danger-wash hover:text-danger"
         >
           <span className="sr-only">Delete</span>
           <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">

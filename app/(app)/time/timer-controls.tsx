@@ -43,8 +43,8 @@ export function StartTimer({
       <div
         className={
           bare
-            ? 'rounded-xl bg-[#F4F8F5] p-5 text-sm text-[#0E2F27]/65'
-            : `${card} p-6 text-sm text-[#0E2F27]/65`
+            ? 'rounded-control bg-canvas p-5 text-sm text-ink-2'
+            : `${card} p-6 text-sm text-ink-2`
         }
       >
         {emptyMessage ?? 'Add a project and at least one task, then you can start tracking time here.'}
@@ -80,7 +80,7 @@ export function StartTimer({
     >
       <div className="grid gap-3 sm:grid-cols-2">
         <label className="space-y-1.5">
-          <span className="text-xs font-medium text-[#0E2F27]/60">Project</span>
+          <span className="text-xs font-medium text-ink-2">Project</span>
           <select
             value={projectId}
             onChange={(event) => changeProject(event.target.value)}
@@ -95,7 +95,7 @@ export function StartTimer({
           </select>
         </label>
         <label className="space-y-1.5">
-          <span className="text-xs font-medium text-[#0E2F27]/60">Task</span>
+          <span className="text-xs font-medium text-ink-2">Task</span>
           <select
             value={taskId}
             onChange={(event) => setTaskId(event.target.value)}
@@ -121,7 +121,7 @@ export function StartTimer({
         <button type="submit" disabled={pending || !taskId} className={`${btnAccent} ${focus}`}>
           {pending ? 'Starting…' : 'Start timer'}
         </button>
-        {hasRunning && <span className="text-xs text-[#0E2F27]/55">Starting a new timer stops the current one.</span>}
+        {hasRunning && <span className="text-xs text-ink-3">Starting a new timer stops the current one.</span>}
       </div>
     </form>
   )
@@ -148,35 +148,35 @@ export function RunningTimerCard({ active }: { active: ActiveTimer }) {
   return (
     <div
       className={`${card} relative overflow-hidden p-6 ${
-        paused ? 'border-[#F4B63F]/50' : 'border-[#2E9E6B]/40'
+        paused ? 'border-mango/50' : 'border-sprout/40'
       }`}
     >
       <span
-        className={`absolute inset-x-0 top-0 h-1 ${paused ? 'bg-[#F4B63F]' : 'bg-[#2E9E6B]'}`}
+        className={`absolute inset-x-0 top-0 h-1 ${paused ? 'bg-mango' : 'bg-sprout'}`}
         aria-hidden="true"
       />
       <div className="flex flex-col gap-6 sm:flex-row sm:items-center sm:justify-between">
         <div className="min-w-0">
           <span
-            className={`inline-flex items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.12em] ${
-              paused ? 'text-[#8a6412]' : 'text-[#1F6B52]'
+            className={`inline-flex items-center gap-2 text-meta font-medium ${
+              paused ? 'text-mango-deep' : 'text-sprout-deep'
             }`}
           >
             <span className="relative flex h-2 w-2">
               {!paused && (
-                <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-[#2E9E6B] opacity-60" />
+                <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-sprout opacity-60" />
               )}
               <span
-                className={`relative inline-flex h-2 w-2 rounded-full ${paused ? 'bg-[#F4B63F]' : 'bg-[#2E9E6B]'}`}
+                className={`relative inline-flex h-2 w-2 rounded-full ${paused ? 'bg-mango' : 'bg-sprout'}`}
               />
             </span>
             {paused ? 'Paused' : 'Running now'}
           </span>
-          <p className="mt-2 truncate font-semibold text-[#0E2F27]">{active.label}</p>
+          <p className="mt-2 truncate font-semibold text-ink">{active.label}</p>
           <p
             suppressHydrationWarning
             className={`${display.className} mt-3 text-4xl font-extrabold leading-none tabular-nums sm:text-5xl ${
-              paused ? 'text-[#8a6412]' : 'text-[#1F6B52]'
+              paused ? 'text-mango-deep' : 'text-sprout-deep'
             }`}
           >
             {elapsed}
@@ -195,7 +195,7 @@ export function RunningTimerCard({ active }: { active: ActiveTimer }) {
             type="button"
             disabled={pending}
             onClick={() => run(() => stopTimer(active.id))}
-            className={`${btnAccent} bg-[#0E2F27] hover:bg-[#1F6B52] ${focus}`}
+            className={`${btnAccent} bg-ink hover:bg-sprout-deep ${focus}`}
           >
             {pending ? 'Stopping…' : 'Stop & save'}
           </button>

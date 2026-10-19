@@ -6,11 +6,11 @@ import { btnDanger } from '@/lib/ui'
 
 export function AttachmentList({ attachments }: { attachments: Attachment[] }) {
   if (attachments.length === 0) {
-    return <p className="mt-3 text-sm text-[#0E2F27]/60">No files yet.</p>
+    return <p className="mt-3 text-sm text-ink-2">No files yet.</p>
   }
 
   return (
-    <ul className="mt-3 divide-y divide-[#0E2F27]/10">
+    <ul className="mt-3 divide-y divide-line">
       {attachments.map((attachment) => (
         <li key={attachment.id} className="flex items-center gap-3 py-3">
           {isImageMimeType(attachment.mime_type) ? (
@@ -19,10 +19,10 @@ export function AttachmentList({ attachments }: { attachments: Attachment[] }) {
               src={`/attachments/${attachment.id}`}
               alt=""
               loading="lazy"
-              className="h-10 w-10 shrink-0 rounded-lg border border-[#0E2F27]/10 object-cover"
+              className="h-10 w-10 shrink-0 rounded-control border border-line object-cover"
             />
           ) : (
-            <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-[#F4F8F5] text-[10px] font-bold tracking-wide text-[#1F6B52]">
+            <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-control bg-canvas text-[10px] font-bold tracking-wide text-sprout-deep">
               {fileExtension(attachment.name)}
             </span>
           )}
@@ -30,11 +30,11 @@ export function AttachmentList({ attachments }: { attachments: Attachment[] }) {
           <div className="min-w-0 flex-1">
             <a
               href={`/attachments/${attachment.id}?download=1`}
-              className="block truncate text-sm font-medium text-[#0E2F27] hover:text-[#1F6B52]"
+              className="block truncate text-sm font-medium text-ink hover:text-sprout-deep"
             >
               {attachment.name}
             </a>
-            <p className="text-xs text-[#0E2F27]/55">
+            <p className="text-xs text-ink-3">
               {formatBytes(attachment.size_bytes)} · {formatDate(attachment.created_at)}
             </p>
           </div>
@@ -43,7 +43,7 @@ export function AttachmentList({ attachments }: { attachments: Attachment[] }) {
             action={deleteAttachment}
             id={attachment.id}
             message="Remove this file?"
-            className={`${btnDanger} !px-2.5 !py-1.5 text-xs`}
+            className={`${btnDanger} px-2.5! py-1.5! text-xs`}
           >
             Remove
           </ConfirmAction>

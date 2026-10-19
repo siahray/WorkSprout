@@ -68,7 +68,7 @@ export default async function InvoiceDetailPage({ params }: { params: Promise<{ 
             id={id}
             className={`${btnPrimary} print:hidden`}
             pendingText="Sending…"
-            okClassName="text-xs font-medium text-[#1F6B52]"
+            okClassName="text-xs font-medium text-sprout-deep"
           >
             Send invoice
           </ActionButton>
@@ -86,43 +86,43 @@ export default async function InvoiceDetailPage({ params }: { params: Promise<{ 
 
         <aside className="space-y-6 print:hidden">
           <section className={`${card} p-5`}>
-            <h2 className="text-sm font-semibold text-[#0E2F27]/60">Summary</h2>
+            <h2 className="text-sm font-semibold text-ink-2">Summary</h2>
             <dl className="mt-3 space-y-2 text-sm">
               <div className="flex justify-between">
-                <dt className="text-[#0E2F27]/65">Total</dt>
+                <dt className="text-ink-2">Total</dt>
                 <dd className="tabular-nums">{peso(invoice.total)}</dd>
               </div>
               <div className="flex justify-between">
-                <dt className="text-[#0E2F27]/65">Paid</dt>
-                <dd className="tabular-nums text-[#1F6B52]">{peso(invoice.amountPaid)}</dd>
+                <dt className="text-ink-2">Paid</dt>
+                <dd className="tabular-nums text-sprout-deep">{peso(invoice.amountPaid)}</dd>
               </div>
-              <div className="flex justify-between border-t border-[#0E2F27]/10 pt-2 font-bold">
+              <div className="flex justify-between border-t border-line pt-2 font-bold">
                 <dt>Balance</dt>
                 <dd className={`${display.className} tabular-nums`}>{peso(invoice.balance)}</dd>
               </div>
             </dl>
             {invoice.sentAt && (
-              <p className="mt-3 border-t border-[#0E2F27]/10 pt-3 text-xs text-[#0E2F27]/55">
+              <p className="mt-3 border-t border-line pt-3 text-xs text-ink-3">
                 Last sent {formatDateTime(invoice.sentAt)}
               </p>
             )}
           </section>
 
           <section className={`${card} p-5`}>
-            <h2 className="text-sm font-semibold text-[#0E2F27]/60">Payments</h2>
+            <h2 className="text-sm font-semibold text-ink-2">Payments</h2>
             {payments.length === 0 ? (
-              <p className="mt-2 text-sm text-[#0E2F27]/65">No payments recorded yet.</p>
+              <p className="mt-2 text-sm text-ink-2">No payments recorded yet.</p>
             ) : (
-              <ul className="mt-3 divide-y divide-[#0E2F27]/10">
+              <ul className="mt-3 divide-y divide-line">
                 {payments.map((p) => (
                   <li key={p.id} className="flex items-start justify-between gap-3 py-2.5">
                     <div className="text-sm">
                       <p className="font-semibold tabular-nums">{peso(p.amount)}</p>
-                      <p className="text-xs text-[#0E2F27]/55">
+                      <p className="text-xs text-ink-3">
                         {formatDate(p.paid_at)}
                         {p.method ? ` · ${p.method}` : ''}
                       </p>
-                      {p.note && <p className="text-xs text-[#0E2F27]/55">{p.note}</p>}
+                      {p.note && <p className="text-xs text-ink-3">{p.note}</p>}
                     </div>
                     <div className="flex flex-col items-end gap-1">
                       <PaymentEditDialog
@@ -134,7 +134,7 @@ export default async function InvoiceDetailPage({ params }: { params: Promise<{ 
                         id={p.id}
                         extra={{ invoice_id: id }}
                         message="Remove this payment?"
-                        className={`${btnGhost} !px-2.5 !py-1.5 text-xs text-red-700 hover:text-red-800`}
+                        className={`${btnGhost} px-2.5! py-1.5! text-xs text-danger hover:bg-danger-wash`}
                       >
                         Remove
                       </ConfirmAction>
@@ -145,7 +145,7 @@ export default async function InvoiceDetailPage({ params }: { params: Promise<{ 
             )}
 
             {invoice.status !== 'void' && (
-              <div className="mt-4 border-t border-[#0E2F27]/10 pt-4">
+              <div className="mt-4 border-t border-line pt-4">
                 <PaymentForm invoiceId={id} balance={invoice.balance} />
               </div>
             )}
@@ -161,7 +161,7 @@ export default async function InvoiceDetailPage({ params }: { params: Promise<{ 
           />
 
           <section className={`${card} p-5`}>
-            <h2 className="text-sm font-semibold text-[#0E2F27]/60">Actions</h2>
+            <h2 className="text-sm font-semibold text-ink-2">Actions</h2>
             <div className="mt-3 flex flex-wrap items-center gap-2">
               {canVoid && (
                 <ConfirmAction

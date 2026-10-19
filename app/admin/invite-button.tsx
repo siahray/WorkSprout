@@ -4,7 +4,7 @@ import { useActionState } from 'react'
 import { sendInvite, type InviteState } from './actions'
 
 const focus =
-  'focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#2E9E6B]'
+  'focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-sprout'
 
 export function InviteButton({ email, invited }: { email: string; invited: boolean }) {
   const [state, action, pending] = useActionState<InviteState, FormData>(sendInvite, {})
@@ -15,16 +15,16 @@ export function InviteButton({ email, invited }: { email: string; invited: boole
       <button
         type="submit"
         disabled={pending}
-        className={`rounded-lg border border-[#0E2F27]/20 px-3 py-1.5 text-sm font-semibold text-[#0E2F27] transition-colors hover:border-[#0E2F27]/50 disabled:cursor-wait disabled:opacity-60 ${focus}`}
+        className={`rounded-control border border-line-strong px-3 py-1.5 text-sm font-semibold text-ink transition-colors hover:border-ink-4 disabled:cursor-wait disabled:opacity-60 ${focus}`}
       >
         {pending ? 'Sending…' : invited ? 'Resend' : 'Send invite'}
       </button>
       {state.error && (
-        <span role="alert" className="text-xs font-medium text-red-600">
+        <span role="alert" className="text-xs font-medium text-danger">
           {state.error}
         </span>
       )}
-      {state.ok && <span className="text-xs font-medium text-[#1F6B52]">Invite sent</span>}
+      {state.ok && <span className="text-xs font-medium text-sprout-deep">Invite sent</span>}
     </form>
   )
 }

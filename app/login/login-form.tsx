@@ -6,13 +6,7 @@ import { login } from './actions'
 import { Logo } from '@/components/logo'
 import { LogoMark } from '@/components/logo-mark'
 import { display } from '@/lib/fonts'
-
-const focus =
-  'focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#2E9E6B]'
-
-const input =
-  'w-full rounded-xl border border-[#0E2F27]/20 bg-white px-4 py-3.5 text-[#0E2F27] placeholder:text-[#0E2F27]/40 transition-colors hover:border-[#0E2F27]/40 ' +
-  focus
+import { alertError, btnMango, focus, input, label } from '@/lib/ui'
 
 // Staggered entrance: each block rises in slightly after the previous one.
 const delay = (n: number) => ({ animationDelay: `${150 + n * 90}ms` })
@@ -28,26 +22,26 @@ export function LoginForm() {
   return (
     <div className="mx-auto w-full max-w-md px-6">
       <div className="ws-rise mb-8 flex items-center justify-between" style={delay(0)}>
-        <Link href="/" className={`${focus} rounded-lg`}>
+        <Link href="/" className={`${focus} rounded-control`}>
           <Logo />
         </Link>
         <Link
           href="/"
-          className={`rounded-lg px-2 py-1 text-sm font-medium text-[#0E2F27]/70 hover:text-[#0E2F27] ${focus}`}
+          className={`rounded-control px-2 py-1 text-sm font-medium text-ink-2 hover:text-ink ${focus}`}
         >
           ← Back
         </Link>
       </div>
 
-      <form action={formAction} aria-busy={pending} className="rounded-2xl border border-[#0E2F27]/12 bg-white p-8 shadow-[0_24px_50px_-28px_rgba(14,47,39,0.45)]">
+      <form action={formAction} aria-busy={pending} className="rounded-panel border border-line bg-panel p-8 shadow-overlay">
         <div className="ws-rise" style={delay(1)}>
           <h1 className={`${display.className} text-3xl font-extrabold tracking-tight`}>Welcome back</h1>
-          <p className="mt-1.5 text-[#0E2F27]/65">Log in to pick up where you left off.</p>
+          <p className="mt-1.5 text-ink-2">Log in to pick up where you left off.</p>
         </div>
 
         <div className="mt-7 space-y-5">
           <div className="ws-rise" style={delay(2)}>
-            <label htmlFor="email" className="mb-1.5 block text-sm font-semibold">
+            <label htmlFor="email" className={`mb-1.5 ${label}`}>
               Email
             </label>
             <input
@@ -64,7 +58,7 @@ export function LoginForm() {
           </div>
 
           <div className="ws-rise" style={delay(3)}>
-            <label htmlFor="password" className="mb-1.5 block text-sm font-semibold">
+            <label htmlFor="password" className={`mb-1.5 ${label}`}>
               Password
             </label>
             <div className="relative">
@@ -81,7 +75,7 @@ export function LoginForm() {
                 type="button"
                 onClick={() => setShowPassword((v) => !v)}
                 aria-pressed={showPassword}
-                className={`absolute right-2 top-1/2 -translate-y-1/2 rounded-lg px-2.5 py-1.5 text-sm font-semibold text-[#1F6B52] hover:bg-[#1F6B52]/10 ${focus}`}
+                className={`absolute right-2 top-1/2 -translate-y-1/2 rounded-control px-2.5 py-1.5 text-sm font-semibold text-sprout-deep hover:bg-sprout-deep/10 ${focus}`}
               >
                 {showPassword ? 'Hide' : 'Show'}
               </button>
@@ -89,7 +83,7 @@ export function LoginForm() {
             <p className="mt-1.5 text-right text-sm">
               <Link
                 href="/forgot-password"
-                className={`rounded font-medium text-[#1F6B52] hover:underline ${focus}`}
+                className={`rounded font-medium text-sprout-deep hover:underline ${focus}`}
               >
                 Forgot password?
               </Link>
@@ -101,7 +95,7 @@ export function LoginForm() {
           <p
             key={state.error}
             role="alert"
-            className="ws-shake mt-5 rounded-lg bg-red-50 px-3.5 py-2.5 text-sm font-medium text-red-700"
+            className={`ws-shake mt-5 ${alertError}`}
           >
             {state.error}
           </p>
@@ -111,23 +105,23 @@ export function LoginForm() {
           <button
             type="submit"
             disabled={pending}
-            className={`mt-7 flex w-full items-center justify-center gap-2.5 rounded-xl bg-[#F4B63F] px-5 py-3.5 text-base font-semibold text-[#0E2F27] transition-colors hover:bg-[#e9a82a] disabled:cursor-wait disabled:opacity-80 ${focus}`}
+            className={`mt-7 w-full ${btnMango}`}
           >
             {pending && <SproutLoader />}
             {pending ? 'Logging in…' : 'Log in'}
           </button>
         </div>
 
-        <div className="ws-rise mt-6 space-y-2 text-center text-sm text-[#0E2F27]/65" style={delay(5)}>
+        <div className="ws-rise mt-6 space-y-2 text-center text-sm text-ink-2" style={delay(5)}>
           <p>
             Been invited?{' '}
-            <Link href="/signup" className={`rounded font-semibold text-[#1F6B52] hover:underline ${focus}`}>
+            <Link href="/signup" className={`rounded font-semibold text-sprout-deep hover:underline ${focus}`}>
               Start here
             </Link>
           </p>
           <p>
             Not on the beta list yet?{' '}
-            <Link href="/join" className={`rounded font-semibold text-[#1F6B52] hover:underline ${focus}`}>
+            <Link href="/join" className={`rounded font-semibold text-sprout-deep hover:underline ${focus}`}>
               Join the beta
             </Link>
           </p>

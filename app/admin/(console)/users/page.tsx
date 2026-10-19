@@ -14,9 +14,9 @@ export const metadata: Metadata = {
 
 function Badge({ tone, children }: { tone: 'admin' | 'active' | 'suspended'; children: string }) {
   const tones = {
-    admin: 'bg-[#0E2F27] text-white',
-    active: 'bg-[#2E9E6B]/12 text-[#1F6B52]',
-    suspended: 'bg-red-100 text-red-700',
+    admin: 'bg-ink text-white',
+    active: 'bg-sprout/12 text-sprout-deep',
+    suspended: 'bg-danger-wash text-danger',
   }
   return <span className={`rounded-full px-2 py-0.5 text-xs font-semibold ${tones[tone]}`}>{children}</span>
 }
@@ -43,7 +43,7 @@ export default async function AdminUsersPage({
   return (
     <>
       <PageHeader title="Users" description="Every account, with the ability to grant admin or suspend access.">
-        <span className={`${card} px-3 py-1.5 text-sm text-[#0E2F27]/70`}>
+        <span className={`${card} px-3 py-1.5 text-sm text-ink-2`}>
           {users.length} user{users.length === 1 ? '' : 's'}
         </span>
       </PageHeader>
@@ -63,7 +63,7 @@ export default async function AdminUsersPage({
         </div>
         <button
           type="submit"
-          className="inline-flex items-center justify-center rounded-xl bg-[#0E2F27] px-4 py-2.5 text-sm font-semibold text-white hover:bg-[#1F6B52]"
+          className="inline-flex items-center justify-center rounded-control bg-ink px-4 py-2.5 text-sm font-semibold text-white hover:bg-sprout-deep"
         >
           Search
         </button>
@@ -76,7 +76,7 @@ export default async function AdminUsersPage({
 
       <div className={`${card} mt-4 overflow-hidden`}>
         {users.length === 0 ? (
-          <p className="p-10 text-center text-[#0E2F27]/60">No users match your search.</p>
+          <p className="p-10 text-center text-ink-2">No users match your search.</p>
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
@@ -91,7 +91,7 @@ export default async function AdminUsersPage({
                   <th className={`${th} text-right`}>Actions</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-[#0E2F27]/10">
+              <tbody className="divide-y divide-line">
                 {users.map((u) => {
                   const isAdmin = u.app_role === 'admin'
                   const isSelf = u.id === claims.sub
@@ -101,12 +101,12 @@ export default async function AdminUsersPage({
                         <span className="flex items-center gap-2 font-medium">
                           {u.full_name || u.business_name || '—'}
                           {isSelf && (
-                            <span className="rounded-full bg-[#F4B63F]/30 px-2 py-0.5 text-xs font-semibold">
+                            <span className="rounded-full bg-mango/30 px-2 py-0.5 text-xs font-semibold">
                               You
                             </span>
                           )}
                         </span>
-                        <span className="text-xs text-[#0E2F27]/55">{u.email ?? '—'}</span>
+                        <span className="text-xs text-ink-3">{u.email ?? '—'}</span>
                       </td>
                       <td className="px-5 py-3.5">
                         <Badge tone={isAdmin ? 'admin' : 'active'}>{isAdmin ? 'Admin' : 'Member'}</Badge>
@@ -116,22 +116,22 @@ export default async function AdminUsersPage({
                           {u.banned ? 'Suspended' : 'Active'}
                         </Badge>
                       </td>
-                      <td className="px-5 py-3.5 text-[#0E2F27]/70">{formatDate(u.created_at)}</td>
-                      <td className="px-5 py-3.5 text-[#0E2F27]/70">
+                      <td className="px-5 py-3.5 text-ink-2">{formatDate(u.created_at)}</td>
+                      <td className="px-5 py-3.5 text-ink-2">
                         {u.last_sign_in_at ? formatDateTime(u.last_sign_in_at) : 'Never'}
                       </td>
-                      <td className="px-5 py-3.5 text-[#0E2F27]/70">
+                      <td className="px-5 py-3.5 text-ink-2">
                         <span className="tabular-nums">
                           {u.projects} proj · {u.clients} cli · {u.invoices} inv
                         </span>
-                        <span className="block text-xs text-[#0E2F27]/50">
+                        <span className="block text-xs text-ink-3">
                           {hoursFromMinutes(Number(u.time_minutes))} tracked
                         </span>
                       </td>
                       <td className="px-5 py-3.5">
                         <div className="flex flex-wrap items-start justify-end gap-2">
                           {isSelf ? (
-                            <span className="text-xs text-[#0E2F27]/45">—</span>
+                            <span className="text-xs text-ink-3">—</span>
                           ) : (
                             <>
                               {isAdmin ? (

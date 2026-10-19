@@ -31,7 +31,7 @@ export function ActionButton({
         {children}
       </SubmitButton>
       {state.error && (
-        <span role="alert" className={errorClassName ?? 'text-xs font-medium text-red-700'}>
+        <span role="alert" className={errorClassName ?? 'text-xs font-medium text-danger'}>
           {state.error}
         </span>
       )}

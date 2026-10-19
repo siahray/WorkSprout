@@ -184,34 +184,34 @@ export function InvoiceBuilder({
       <section className={`${card} p-6`}>
         <div className="flex items-center justify-between">
           <h2 className={`${display.className} text-lg font-bold tracking-tight`}>Unbilled time</h2>
-          <span className="text-sm text-[#0E2F27]/55">{timeLines.length} of {visibleGroups.length} selected</span>
+          <span className="text-sm text-ink-3">{timeLines.length} of {visibleGroups.length} selected</span>
         </div>
 
         {visibleGroups.length === 0 ? (
-          <p className="mt-3 text-sm text-[#0E2F27]/65">
+          <p className="mt-3 text-sm text-ink-2">
             No unbilled billable time for this {projectId ? 'project' : 'client'}. Track time first, or add a manual line below.
           </p>
         ) : (
-          <div className="mt-4 divide-y divide-[#0E2F27]/10">
+          <div className="mt-4 divide-y divide-line">
             {visibleGroups.map((g) => (
               <label key={g.key} className="flex items-center gap-3 py-3">
                 <input
                   type="checkbox"
                   checked={Boolean(selected[g.key])}
                   onChange={() => toggle(g.key)}
-                  className="h-4 w-4 rounded border-[#0E2F27]/30 text-[#2E9E6B] focus:ring-[#2E9E6B]"
+                  className="h-4 w-4 rounded border-ink-4 text-sprout focus:ring-sprout"
                 />
                 <span className="min-w-0 flex-1">
                   <span className="block truncate text-sm font-medium">{g.taskTitle}</span>
-                  <span className="block text-xs text-[#0E2F27]/55">
+                  <span className="block text-xs text-ink-3">
                     {g.fixedRate != null
                       ? `Fixed price · ${decimalHours(g.minutes).toFixed(2)} h work`
                       : g.projectName}
                   </span>
                 </span>
-                <span className="text-right text-sm tabular-nums text-[#0E2F27]/75">
+                <span className="text-right text-sm tabular-nums text-ink-2">
                   {g.fixedRate != null ? `1 × fixed` : `${decimalHours(g.minutes).toFixed(2)} h`}
-                  <span className="block text-xs text-[#0E2F27]/55">
+                  <span className="block text-xs text-ink-3">
                     {g.fixedRate != null
                       ? peso(g.fixedRate)
                       : g.rate != null
@@ -230,7 +230,7 @@ export function InvoiceBuilder({
 
       <section className={`${card} p-6`}>
         <h2 className={`${display.className} text-lg font-bold tracking-tight`}>Other items</h2>
-        <p className="mt-1 text-sm text-[#0E2F27]/65">Add fixed fees, expenses, or discounts (use a negative rate to subtract).</p>
+        <p className="mt-1 text-sm text-ink-2">Add fixed fees, expenses, or discounts (use a negative rate to subtract).</p>
 
         <div className="mt-4 space-y-3">
           {manual.map((line) => {
@@ -275,7 +275,7 @@ export function InvoiceBuilder({
                 <button
                   type="button"
                   onClick={() => removeManual(line.id)}
-                  className={`${btnSecondary} !px-3 !py-2 text-sm`}
+                  className={`${btnSecondary} px-3! py-2! text-sm`}
                 >
                   Remove
                 </button>
@@ -296,18 +296,18 @@ export function InvoiceBuilder({
 
         <dl className="ml-auto w-full max-w-xs space-y-1.5 text-sm">
           <div className="flex justify-between">
-            <dt className="text-[#0E2F27]/65">Subtotal</dt>
+            <dt className="text-ink-2">Subtotal</dt>
             <dd className="tabular-nums">{peso(subtotal)}</dd>
           </div>
           {taxBreakdown.map((tax) => (
             <div key={tax.label} className="flex justify-between">
-              <dt className="text-[#0E2F27]/65">
+              <dt className="text-ink-2">
                 {tax.label} ({formatPercent(tax.rate)})
               </dt>
               <dd className="tabular-nums">{peso(tax.amount)}</dd>
             </div>
           ))}
-          <div className="flex justify-between border-t border-[#0E2F27]/10 pt-2 text-base font-bold">
+          <div className="flex justify-between border-t border-line pt-2 text-base font-bold">
             <dt>Total</dt>
             <dd className={`${display.className} tabular-nums`}>{peso(total)}</dd>
           </div>

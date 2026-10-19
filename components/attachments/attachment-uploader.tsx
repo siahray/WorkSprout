@@ -118,7 +118,7 @@ export function AttachmentUploader({
         >
           {busy ? (status ?? 'Uploading…') : 'Add files'}
         </button>
-        <p className="text-xs text-[#0E2F27]/55">
+        <p className="text-xs text-ink-3">
           {hint ?? `${ALLOWED_LABEL} · up to ${formatBytes(MAX_ATTACHMENT_BYTES)} each`}
         </p>
       </div>

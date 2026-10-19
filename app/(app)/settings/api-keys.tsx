@@ -32,7 +32,7 @@ function CopyableKey({ value }: { value: string }) {
 
   return (
     <div className="flex flex-wrap items-center gap-2">
-      <code className="min-w-0 flex-1 overflow-x-auto rounded-lg bg-[#0E2F27] px-3 py-2 font-mono text-xs text-white">
+      <code className="min-w-0 flex-1 overflow-x-auto rounded-control bg-ink px-3 py-2 font-mono text-xs text-white">
         {value}
       </code>
       <button type="button" onClick={copy} className={btnGhost}>
@@ -49,10 +49,10 @@ export function ApiKeysCard({ keys }: { keys: ApiKeyRow[] }) {
     <div className="space-y-6">
       <div>
         <h3 className="text-lg font-bold tracking-tight">API keys</h3>
-        <p className="mt-1 text-sm text-[#0E2F27]/65">
+        <p className="mt-1 text-sm text-ink-2">
           Let an automation tool read what happens here — invoices, payments, appointments,
           clients and expenses — so it can send emails or update a CRM. A tool polls{' '}
-          <code className="rounded bg-[#0E2F27]/5 px-1 py-0.5 font-mono text-xs">
+          <code className="rounded bg-ink/5 px-1 py-0.5 font-mono text-xs">
             GET /api/v1/events
           </code>{' '}
           with its key and keeps the last event id as a cursor.
@@ -61,12 +61,12 @@ export function ApiKeysCard({ keys }: { keys: ApiKeyRow[] }) {
 
       {/* The raw key exists only in this response. Once the page is reloaded it is gone. */}
       {state.createdKey && (
-        <div className="space-y-2 rounded-xl border border-[#2E9E6B]/30 bg-[#2E9E6B]/5 p-4">
-          <p className="text-sm font-semibold text-[#1F6B52]">
+        <div className="space-y-2 rounded-control border border-sprout/30 bg-sprout/5 p-4">
+          <p className="text-sm font-semibold text-sprout-deep">
             {state.createdName} — copy this key now
           </p>
           <CopyableKey value={state.createdKey} />
-          <p className="text-xs text-[#0E2F27]/65">
+          <p className="text-xs text-ink-2">
             It is shown once and only a hash is stored. If you lose it, revoke the key and make
             another. Send it as <code className="font-mono">Authorization: Bearer &lt;key&gt;</code>.
           </p>
@@ -117,13 +117,13 @@ export function ApiKeysCard({ keys }: { keys: ApiKeyRow[] }) {
                 </th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-[#0E2F27]/8">
+            <tbody className="divide-y divide-line">
               {keys.map((key) => (
                 <tr key={key.id} className={rowHover}>
                   <td className="px-5 py-3 font-medium">{key.name}</td>
-                  <td className="px-5 py-3 font-mono text-xs text-[#0E2F27]/70">{key.prefix}…</td>
-                  <td className="px-5 py-3 text-[#0E2F27]/70">{key.createdAt}</td>
-                  <td className="px-5 py-3 text-[#0E2F27]/70">{key.lastUsedAt ?? 'Never'}</td>
+                  <td className="px-5 py-3 font-mono text-xs text-ink-2">{key.prefix}…</td>
+                  <td className="px-5 py-3 text-ink-2">{key.createdAt}</td>
+                  <td className="px-5 py-3 text-ink-2">{key.lastUsedAt ?? 'Never'}</td>
                   <td className="px-5 py-3 text-right">
                     <form
                       action={revokeApiKey.bind(null, key.id)}

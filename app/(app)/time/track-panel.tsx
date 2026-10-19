@@ -29,7 +29,7 @@ export function TrackPanel({
     <section className={`${card} p-6`}>
       <div className="flex flex-wrap items-center justify-between gap-3">
         <h2 className={`${display.className} text-lg font-bold tracking-tight`}>Track time</h2>
-        <div className="inline-flex rounded-full bg-[#F4F8F5] p-1">
+        <div className="inline-flex rounded-full bg-canvas p-1">
           {TABS.map((item) => {
             const active = tab === item.key
             return (
@@ -39,7 +39,7 @@ export function TrackPanel({
                 onClick={() => setTab(item.key)}
                 aria-pressed={active}
                 className={`rounded-full px-3.5 py-1.5 text-sm font-semibold transition-colors ${focus} ${
-                  active ? 'bg-white text-[#0E2F27] shadow-sm' : 'text-[#0E2F27]/60 hover:text-[#0E2F27]'
+                  active ? 'bg-panel text-ink shadow-panel' : 'text-ink-2 hover:text-ink'
                 }`}
               >
                 {item.label}
