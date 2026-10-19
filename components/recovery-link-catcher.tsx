@@ -19,8 +19,12 @@ export function RecoveryLinkCatcher() {
     if (!hash) return
 
     const params = new URLSearchParams(hash)
-    const carriesSession = Boolean(params.get('access_token')) || Boolean(params.get('error_code') || params.get('error'))
-    if (!carriesSession) return
+    const isRecoveryLink = params.get('type') === 'recovery'
+    const isRefusedLink = Boolean(params.get('error') || params.get('error_code'))
+    // Recovery only, on purpose: this runs on every page, and other emailed
+    // links (an invite, say) have their own landing page and their own next
+    // step. Widening this would quietly reroute them.
+    if (!isRecoveryLink && !isRefusedLink) return
 
     window.location.replace(`/auth/confirm${window.location.search}${window.location.hash}`)
   }, [])

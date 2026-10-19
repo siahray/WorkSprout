@@ -27,10 +27,7 @@ export default function ConfirmPage() {
     async function complete(): Promise<Outcome> {
       const query = new URLSearchParams(window.location.search)
       const hash = new URLSearchParams(window.location.hash.slice(1))
-      const next = safeNextPath(
-        query.get('next'),
-        hash.get('type') === 'recovery' ? '/reset-password' : '/dashboard'
-      )
+      const next = safeNextPath(query.get('next'), '/reset-password')
 
       const accessToken = hash.get('access_token')
       const refreshToken = hash.get('refresh_token')
