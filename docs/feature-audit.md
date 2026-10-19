@@ -1,7 +1,7 @@
 # WorkSprout — Feature Audit & Automation Readiness
 
 **Date:** 19 October 2026
-**Branches:** PRs #18–#31 merged. Open: `feat/ops-hardening`.
+**Branches:** PRs #18–#32 merged. No open branches.
 **Method:** static inventory of `app/**` routes, server actions, route handlers, `supabase/migrations/*.sql`, database functions and triggers, and CI workflows. No runtime walkthrough.
 
 Legend: ✅ built · ⚠️ partial · ❌ absent
