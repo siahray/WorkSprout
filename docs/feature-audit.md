@@ -58,7 +58,7 @@ The event log follows it: `events` is written by an `after insert or update or d
 
 ### Auth & accounts
 - ✅ Login, logout, invite-only signup with OTP, waitlist, DB-level signup gate
-- ✅ Password reset / forgot-password page (in-app: request → emailed link → `/auth/callback` exchanges the PKCE code → `/reset-password`)
+- ✅ Password reset / forgot-password page (in-app: request → emailed one-time link → `/auth/confirm` completes the session in the browser → `/reset-password`)
 - ❌ Email change flow, account deletion, session/device management
 - ❌ MFA
 
@@ -320,6 +320,8 @@ Two findings worth recording, both of which came from verifying against real out
 
 Rides Supabase's auth email service, so it is independent of the app's Resend config — the two email paths stay separate. **Operational gate:** `https://<site>/auth/callback` must be in Dashboard → Authentication → URL Configuration → Redirect URLs, or the emailed link lands on the Site URL and the flow breaks there.
 
+> **Superseded** by [Reset-link hardening](#reset-link-hardening-branch-fixreset-password-hardening): new links come back as a session in the URL fragment and are finished by `/auth/confirm`, not by a server route. `/auth/callback` and the redirect URL above are kept alive so links already in inboxes still resolve.
+
 ### CI typegen fix (branch `fix/ci-typegen`)
 
 | Change | Notes |
@@ -395,9 +397,32 @@ Suite: 70 → **101 tests**. Three audit lines move to ⚠️ rather than ✅ on
 - **"Editing timer-generated entries" was never missing.** `update_manual_entry` only requires a stopped, unbilled entry, and the time list filters out running timers. The ❌ came from inferring behaviour from the function's name instead of reading its SQL.
 - **`invoice_items.time_entry_id` is dormant.** The column exists, is indexed, has `on delete set null` and a comment promising line-level provenance to tracked time — but nothing in `app/` or `lib/` ever writes it. Billing groups many entries into one line, so a single FK cannot express the relationship; the design changed and the column was left behind. Consequence: **you cannot tell which line on an existing invoice came from tracked time.** The editor therefore replaces lines without touching time links, and releasing hours back to the unbilled pool remains void's job.
 
+### Reset-link hardening (branch `fix/reset-password-hardening`)
+
+Reported as "the reset link just goes back to the landing page without letting anyone change their password". Three separate things were wrong at once, and only two of them are in this repo.
+
+| Change | Notes |
+|---|---|
+| `app/auth/confirm/page.tsx` | Where the emailed link lands now. Supabase answers `/auth/v1/verify` with the session in the **URL hash** (`303 → …/auth/confirm?next=/reset-password#access_token=…`), and a fragment is never sent to a server — so the page completes it in the browser with `setSession` and hands over to `/reset-password`. Reading it here also removes the dependency on a verifier cookie written when the email was requested, which is what makes the link work from any browser or device. |
+| `components/recovery-link-catcher.tsx` | Mounted in the root layout. When Supabase will not accept the redirect the app asked for it silently swaps in the **Site URL**, so the session lands on the home page — the reported symptom, exactly. This forwards that fragment to `/auth/confirm` rather than letting it die in the address bar. |
+| `app/forgot-password/actions.ts` | The request now goes through the session-less client instead of the PKCE one, so Supabase does not attach a `code_challenge`. That is the other half of being device-independent: a PKCE `code` can only be exchanged by the browser holding the verifier cookie. |
+| `app/auth/callback/route.ts` | Reduced to the legacy path. Links already in inboxes carry a PKCE `code`, which their requesting browser can still exchange server-side; with no `code` the route hands off to `/auth/confirm`, and the browser carries the fragment across that redirect (a 3xx Location with no fragment inherits the original's). |
+| `lib/supabase/client.ts` | `detectSessionInUrl: false`. One deliberate consumer of a recovery fragment instead of an accidental one: with detection on, whichever page happened to instantiate a browser client first would swallow the session and leave the user signed in on a page with no password form. |
+| `components/link-expired-card.tsx` | One explanation for an unusable link, shared by `/reset-password` (no session) and `/auth/confirm` (refused, already used, or no token at all). |
+| `lib/safe-next.ts`, `test/safe-next-simple.test.ts` | `?next=` is only ever followed when it is a path inside the app: `//host` and `/\host` are rejected along with absolute URLs. |
+
+**Why the template was not changed.** The tidy fix is Supabase's documented one — point the Recovery template at `/auth/confirm?token_hash={{ .TokenHash }}` and call `verifyOtp` server-side. `PATCH /v1/projects/{ref}/config/auth` refuses it: *"Email template modification is not available for free tier projects using the default email provider."* So the whole fix had to live in the app, and it has to work with the fragment Supabase sends.
+
+**Measured, not assumed.** A recovery link was minted with the admin API (no email sent) and followed with no cookies, imitating a different device: `303 → …/auth/callback?next=/reset-password#access_token=…&type=recovery`. The old route read only `?code=`, so every fragment-shaped click fell through the `!code` branch to `/forgot-password?expired=1` — "This link has expired" — while a PKCE-shaped link worked only in the browser that asked for it.
+
+**A second, quieter fault in the same URL.** Whichever redirect the app asks for must also be listed in Dashboard → Authentication → URL Configuration, and the fallback when it is not is not an error: GoTrue replaces it with the Site URL. Two measured cases: `http://localhost:3000/auth/confirm` is **not** honoured even though `http://localhost:3000/*` is listed there, and any preview-deployment origin is not listed at all. Both end with the session sitting on the home page, which is the report. `RecoveryLinkCatcher` now catches that, but the entry itself is the thing to fix.
+
+End-to-end verified in headless Chrome against the local dev server with real minted links: valid fragment → reset form; refusal fragment → expired card; `/auth/confirm` with no token → expired card; fragment dropped on the site root → forwarded, then the form; legacy `/auth/callback` with a bad code → `/forgot-password?expired=1`.
+
 ### Bugs found while doing this
 
 - **`update_manual_entry` reported success for writes that never happened.** It had no `if not found then raise`, unlike `start_timer`/`pause_timer`/`resume_timer`. A stale edit form, an entry invoiced since the page loaded, or one deleted in another tab returned void, and the action still answered "Time entry updated." Fixed by the migration above.
 - **`initial.sql` was invisible to the migration system**, and there was **no migration pipeline at all** — CI lints and builds only, with no `db push`, no `config.toml`, and no drift check. All 16 migrations had been applied by hand with an empty history table, so the CLI believed every one was pending; a naive `db push` would have replayed them against objects that already existed. Baselined instead.
 - **`unauthorized()` hardcoded HTTP 401**, discarding the status on the auth result, so an unconfigured API answered `401` where it should have been `503`. Caught by a smoke test of the failure paths; replaced with `authFailure()`, which preserves the status.
 - **The CodeQL workflow could not match configurations on `main`**, so the code-scanning check failed on every pull request. Fixed by the CI change above. Whether `main`'s configuration comes from this workflow or from GitHub's *Default setup* could not be determined without repository-settings access — if both are configured, they will keep conflicting until one is removed.
+- **Password reset was broken twice over, and neither cause was in the app.** Supabase reports a verified recovery link as a `303` whose session sits in the **URL fragment**, which no route handler can read — and it silently redirects to the Site URL instead of the requested URL when that URL is not in the allow-list. Either one alone produces "the link just goes to the landing page". Both are recorded in the hardening section above.

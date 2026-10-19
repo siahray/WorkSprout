@@ -1,7 +1,7 @@
 'use server'
 
 import { logError } from '@/lib/log'
-import { createClient } from '@/lib/supabase/server'
+import { createAuthClient } from '@/lib/supabase/server'
 import { siteUrl } from '@/lib/site'
 
 // `email` is echoed back on errors so the form keeps what the user typed.
@@ -9,6 +9,12 @@ export type ForgotState = { error?: string; email?: string; sent?: boolean }
 
 // Requests a password-reset link. Supabase sends it, so this rides the same
 // channel as invite OTPs and is independent of the app's Resend config.
+//
+// The request deliberately goes through the session-less client rather than the
+// PKCE one: Supabase answers a PKCE request with a `code` that only the browser
+// which asked for the email can exchange. Without it, the link comes back as a
+// session in the URL hash that /auth/confirm completes in whatever browser —
+// or on whatever device — opened the email.
 //
 // Success is reported whether or not the email was recognised — returning a
 // different message for unknown accounts would let anyone probe which emails
@@ -23,11 +29,11 @@ export async function requestPasswordReset(
     return { error: 'Enter a valid email address.' }
   }
 
-  const supabase = await createClient()
+  const auth = createAuthClient()
   const origin = await siteUrl()
 
-  const { error } = await supabase.auth.resetPasswordForEmail(email, {
-    redirectTo: `${origin}/auth/callback?next=/reset-password`,
+  const { error } = await auth.auth.resetPasswordForEmail(email, {
+    redirectTo: `${origin}/auth/confirm?next=/reset-password`,
   })
 
   if (error) {
