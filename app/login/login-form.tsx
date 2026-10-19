@@ -120,9 +120,9 @@ export function LoginForm() {
 
         <div className="ws-rise mt-6 space-y-2 text-center text-sm text-[#0E2F27]/65" style={delay(5)}>
           <p>
-            No account yet?{' '}
+            Been invited?{' '}
             <Link href="/signup" className={`rounded font-semibold text-[#1F6B52] hover:underline ${focus}`}>
-              Sign up
+              Start here
             </Link>
           </p>
           <p>

@@ -12,7 +12,7 @@ export function LinkExpiredCard() {
       <div className="rounded-2xl border border-[#0E2F27]/12 bg-white p-8 text-center shadow-[0_24px_50px_-28px_rgba(14,47,39,0.45)]">
         <h1 className="text-2xl font-extrabold tracking-tight">This link has expired</h1>
         <p className="mt-2 text-[#0E2F27]/65">
-          Reset links work once and don&rsquo;t last forever. Request a fresh one and we&rsquo;ll email it over.
+          Email links work once and don&rsquo;t last forever. Request a fresh one and we&rsquo;ll email it over.
         </p>
         <Link
           href="/forgot-password"

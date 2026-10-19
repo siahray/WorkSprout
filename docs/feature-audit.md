@@ -1,7 +1,7 @@
 # WorkSprout — Feature Audit & Automation Readiness
 
-**Date:** 19 October 2026
-**Branches:** none open — all merged work is on `main`.
+**Date:** 20 October 2026
+**Branches:** `fix/invite-link-flow` in review — everything else merged is on `main`.
 **Method:** static inventory of `app/**` routes, server actions, route handlers, `supabase/migrations/*.sql`, database functions and triggers, and CI workflows. No runtime walkthrough.
 
 Legend: ✅ built · ⚠️ partial · ❌ absent
@@ -57,7 +57,7 @@ The event log follows it: `events` is written by an `after insert or update or d
 ## 2. Every basic feature, laid out
 
 ### Auth & accounts
-- ✅ Login, logout, invite-only signup with OTP, waitlist, DB-level signup gate
+- ✅ Login, logout, invite-only signup by emailed link, waitlist, DB-level signup gate
 - ✅ Password reset / forgot-password page (in-app: request → emailed one-time link → `/auth/confirm` completes the session in the browser → `/reset-password`)
 - ❌ Email change flow, account deletion, session/device management
 - ❌ MFA
@@ -404,7 +404,7 @@ Reported as "the reset link just goes back to the landing page without letting a
 | Change | Notes |
 |---|---|
 | `app/auth/confirm/page.tsx` | Where the emailed link lands now. Supabase answers `/auth/v1/verify` with the session in the **URL hash** (`303 → …/auth/confirm?next=/reset-password#access_token=…`), and a fragment is never sent to a server — so the page completes it in the browser with `setSession` and hands over to `/reset-password`. Reading it here also removes the dependency on a verifier cookie written when the email was requested, which is what makes the link work from any browser or device. |
-| `components/recovery-link-catcher.tsx` | Mounted in the root layout. When Supabase will not accept the redirect the app asked for it silently swaps in the **Site URL**, so the session lands on the home page — the reported symptom, exactly. This forwards that fragment to `/auth/confirm` rather than letting it die in the address bar. Recovery links only: it runs on every page, and other emailed links have their own landing spot. |
+| `components/auth-link-catcher.tsx` | Mounted in the root layout. When Supabase will not accept the redirect the app asked for it silently swaps in the **Site URL**, so the session lands on the home page — the reported symptom, exactly. This forwards that fragment to `/auth/confirm` rather than letting it die in the address bar. Narrow on purpose, since it runs on every page; widened to invite links in the next section. |
 | `app/forgot-password/actions.ts` | The request now goes through the session-less client instead of the PKCE one, so Supabase does not attach a `code_challenge`. That is the other half of being device-independent: a PKCE `code` can only be exchanged by the browser holding the verifier cookie. |
 | `app/auth/callback/route.ts` | Reduced to the legacy path. Links already in inboxes carry a PKCE `code`, which their requesting browser can still exchange server-side; with no `code` the route hands off to `/auth/confirm`, and the browser carries the fragment across that redirect (a 3xx Location with no fragment inherits the original's). |
 | `lib/supabase/client.ts` | `detectSessionInUrl: false`. One deliberate consumer of a recovery fragment instead of an accidental one: with detection on, whichever page happened to instantiate a browser client first would swallow the session and leave the user signed in on a page with no password form. |
@@ -415,9 +415,24 @@ Reported as "the reset link just goes back to the landing page without letting a
 
 **Measured, not assumed.** A recovery link was minted with the admin API (no email sent) and followed with no cookies, imitating a different device: `303 → …/auth/callback?next=/reset-password#access_token=…&type=recovery`. The old route read only `?code=`, so every fragment-shaped click fell through the `!code` branch to `/forgot-password?expired=1` — "This link has expired" — while a PKCE-shaped link worked only in the browser that asked for it.
 
-**A second, quieter fault in the same URL.** Whichever redirect the app asks for must also be listed in Dashboard → Authentication → URL Configuration, and the fallback when it is not is not an error: GoTrue replaces it with the Site URL. Two measured cases: `http://localhost:3000/auth/confirm` is **not** honoured even though `http://localhost:3000/*` is listed there, and any preview-deployment origin is not listed at all. Both end with the session sitting on the home page, which is the report. `RecoveryLinkCatcher` now catches that, but the entry itself is the thing to fix.
+**A second, quieter fault in the same URL.** Whichever redirect the app asks for must also be listed in Dashboard → Authentication → URL Configuration, and the fallback when it is not is not an error: GoTrue replaces it with the Site URL. Two measured cases: `http://localhost:3000/auth/confirm` is **not** honoured even though `http://localhost:3000/*` is listed there, and any preview-deployment origin is not listed at all. Both end with the session sitting on the home page, which is the report. `AuthLinkCatcher` now catches that, but the entry itself is the thing to fix.
 
 End-to-end verified in headless Chrome against the local dev server with real minted links: valid fragment → reset form; refusal fragment → expired card; `/auth/confirm` with no token → expired card; fragment dropped on the site root → forwarded, then the form; legacy `/auth/callback` with a bad code → `/forgot-password?expired=1`.
+
+### Invite link (branch `fix/invite-link-flow`)
+
+Found while reading the mailer config for the section above: the invite email carries a **link and nothing else** — no template in this project fills `{{ .Token }}`, and the free tier refuses template edits — while `app/signup/actions.ts` finished signup with `verifyOtp({ email, token, type: 'email' })`, a one-time code typed by the invitee. The first person invited would have met a form waiting for a code that was never sent. Nobody outside had hit it yet: both `beta_signups` rows and all three auth users are the owner's own addresses.
+
+| Change | Notes |
+|---|---|
+| `app/admin/actions.ts` | `emailRedirectTo` points at `/auth/confirm?next=/reset-password` instead of `/signup?email=…`. The link is now the whole sign-up — GoTrue verifies it, `/auth/confirm` turns the fragment into a session, and the set-password form turns that into a password. |
+| `components/auth-link-catcher.tsx` | Renamed from `recovery-link-catcher.tsx` and widened to carry `magiclink`/`signup` fragments as well as `recovery`. Still deliberately narrow — it runs on every page — but an invite sent from a host outside the redirect allow-list (localhost included) has its session dropped on the site root, and without this the invitee would have no way forward. It also rescues invites sent before this change, whose links still point at `/signup`. |
+| `app/signup/page.tsx` | No longer a form. Beta access is invite-only and the invite is a link, so there is nothing to type: the page says so and sends someone without an invite to `/join`. |
+| `app/signup/actions.ts`, `app/signup/signup-form.tsx` | Deleted — the code path cannot be satisfied by any email this project can send. Recoverable from git if a custom SMTP provider ever makes `{{ .Token }}` editable again. |
+| `components/link-expired-card.tsx` | "Reset links work once" → "Email links work once": the card is the invitee's dead end too (an invite link that was already used), and its way out — request a fresh link — works for both, because the invited account already exists. |
+| `app/login/login-form.tsx` | "No account yet? Sign up" → "Been invited? Start here". Self-serve signup does not exist, so the login page should not offer it. |
+
+Verified end-to-end against the dev server with real minted invites and a throwaway user (created through the admin API, deleted afterwards): an allow-listed invite lands on the set-password form; an invite whose redirect is *not* allow-listed is dropped on the site root and picked up from there by `AuthLinkCatcher`; an invite sent before this change — its link still pointing at `/signup` — is rescued the same way; and `/signup` with no fragment shows the new card. The first is the only case that needs a warm dev server: on the very first cold render of the route it had not finished inside the harness's virtual-time budget, and it passed on the re-run.
 
 ### Bugs found while doing this
 
@@ -426,4 +441,4 @@ End-to-end verified in headless Chrome against the local dev server with real mi
 - **`unauthorized()` hardcoded HTTP 401**, discarding the status on the auth result, so an unconfigured API answered `401` where it should have been `503`. Caught by a smoke test of the failure paths; replaced with `authFailure()`, which preserves the status.
 - **The CodeQL workflow could not match configurations on `main`**, so the code-scanning check failed on every pull request. Fixed by the CI change above. Whether `main`'s configuration comes from this workflow or from GitHub's *Default setup* could not be determined without repository-settings access — if both are configured, they will keep conflicting until one is removed.
 - **Password reset was broken twice over, and neither cause was in the app.** Supabase reports a verified recovery link as a `303` whose session sits in the **URL fragment**, which no route handler can read — and it silently redirects to the Site URL instead of the requested URL when that URL is not in the allow-list. Either one alone produces "the link just goes to the landing page". Both are recorded in the hardening section above.
-- **Invite emails ask for a code they do not contain** — found while reading the mailer config for the line above, **not fixed**. `app/signup/actions.ts` finishes signup with `verifyOtp({ email, token, type: 'email' })`, i.e. a one-time code typed by the invitee, but the project's `invite`, `magic_link` and `confirmation` templates all carry only `{{ .ConfirmationURL }}`; `reauthentication` is the only template with `{{ .Token }}`. So the code the signup page waits for is never mailed. Beta signup is invite-only, and the free tier's default mailer refuses template edits, so this needs a decision rather than a patch — see the note on the outstanding work.
+- **Invite emails asked for a code they did not contain** — found while reading the mailer config for the line above, and fixed in [Invite link](#invite-link-branch-fixinvite-link-flow). `app/signup/actions.ts` finished signup with `verifyOtp({ type: 'email' })`, a code typed by the invitee, but the project's `invite`, `magic_link` and `confirmation` templates all carry only `{{ .ConfirmationURL }}`; `reauthentication` is the only template with `{{ .Token }}`. Since the invitee's account is created when the invite is sent, the link now drives the flow end to end and the code page is gone.
