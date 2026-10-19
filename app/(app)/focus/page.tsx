@@ -208,7 +208,8 @@ export default async function FocusPage({
         .select('id, title, status, project_id, parent_task_id')
         .order('position', { ascending: true })
         .order('created_at', { ascending: true }),
-      supabase.from('clients').select('id, name').order('name', { ascending: true }),
+      // Archived clients can't receive new appointments.
+      supabase.from('clients').select('id, name').is('archived_at', null).order('name', { ascending: true }),
       supabase
         .from('calls')
         .select(

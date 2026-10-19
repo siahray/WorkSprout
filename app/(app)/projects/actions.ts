@@ -50,6 +50,18 @@ export async function createProject(_prev: FormState, formData: FormData): Promi
   const { data } = await supabase.auth.getClaims()
   if (!data?.claims) return { error: 'Your session expired — sign in again.' }
 
+  // The pickers hide archived clients; re-check here so a stale form or a
+  // hand-built request can't start new work under one. The read is RLS-scoped,
+  // so a client that isn't the caller's reads as "not found" rather than
+  // leaking — and no longer attaches to someone else's client either.
+  const { data: clientRow } = await supabase
+    .from('clients')
+    .select('id, archived_at')
+    .eq('id', values.client_id)
+    .maybeSingle()
+  if (!clientRow) return { error: 'Choose a client for this project.' }
+  if (clientRow.archived_at) return { error: 'That client is archived — restore them first.' }
+
   const { data: inserted, error } = await supabase
     .from('projects')
     .insert({

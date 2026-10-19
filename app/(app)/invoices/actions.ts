@@ -57,8 +57,12 @@ export async function createInvoice(_prev: FormState, formData: FormData): Promi
   const userId = data?.claims?.sub
   if (!userId) return { error: 'Your session expired — sign in again.' }
 
-  const { data: client } = await supabase.from('clients').select('id').eq('id', clientId).maybeSingle()
+  const { data: client } = await supabase.from('clients').select('id, archived_at').eq('id', clientId).maybeSingle()
   if (!client) return { error: 'That client could not be found.' }
+  // The picker hides archived clients; this catches stale tabs and crafted
+  // requests. Billing an archived client's existing draft is fine — that goes
+  // through updateInvoice, which allows the client the invoice already has.
+  if (client.archived_at) return { error: 'That client is archived — restore them first.' }
 
   const { data: profile } = await supabase.from('profiles').select('taxes').eq('id', userId).maybeSingle()
   const taxes = coerceTaxes(profile?.taxes)
@@ -321,8 +325,13 @@ export async function updateInvoice(_prev: FormState, formData: FormData): Promi
     return { error: 'Only draft invoices can be edited. Void this one and raise a new invoice instead.' }
   }
 
-  const { data: client } = await supabase.from('clients').select('id').eq('id', clientId).maybeSingle()
+  const { data: client } = await supabase.from('clients').select('id, archived_at').eq('id', clientId).maybeSingle()
   if (!client) return { error: 'That client could not be found.' }
+  // Correcting a draft whose client has since been archived stays possible —
+  // only *pointing* the draft at a different archived client is refused.
+  if (client.archived_at && clientId !== current.client_id) {
+    return { error: 'That client is archived — restore them first.' }
+  }
 
   // The invoice's own tax snapshot is reused, so correcting an amount never
   // silently applies a tax change the user has since made on their profile.
