@@ -27,18 +27,18 @@ export function Modal({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange} labelledBy={titleId} size={size}>
-      <div className="flex items-start justify-between gap-4 border-b border-[#0E2F27]/10 px-6 py-5">
+      <div className="flex items-start justify-between gap-4 border-b border-line px-6 py-5">
         <div className="min-w-0">
-          <h2 id={titleId} className={`${display.className} text-lg font-extrabold tracking-tight text-[#0E2F27]`}>
+          <h2 id={titleId} className={`${display.className} text-lead font-extrabold tracking-tight text-ink`}>
             {title}
           </h2>
-          {description && <p className="mt-1 text-sm text-[#0E2F27]/60">{description}</p>}
+          {description && <p className="mt-1 text-small text-ink-2">{description}</p>}
         </div>
         <button
           type="button"
           onClick={() => onOpenChange(false)}
           aria-label="Close"
-          className={`-m-1.5 shrink-0 rounded-lg p-1.5 text-[#0E2F27]/45 transition-colors hover:bg-[#0E2F27]/5 hover:text-[#0E2F27] ${focus}`}
+          className={`-m-1.5 shrink-0 rounded-control p-1.5 text-ink-3 transition-colors hover:bg-ink/5 hover:text-ink ${focus}`}
         >
           <svg
             width="18"

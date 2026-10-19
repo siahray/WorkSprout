@@ -30,27 +30,27 @@ export function ActiveTimer({ active }: { active: ActiveTimerInfo | null }) {
 
   return (
     <div
-      className={`animate-rise-in flex items-center gap-2 rounded-full border py-1 pl-3 pr-1 ${
-        paused ? 'border-[#F4B63F]/40 bg-[#F4B63F]/15' : 'border-[#2E9E6B]/30 bg-[#2E9E6B]/10'
+      className={`animate-rise-in flex items-center gap-2 rounded-control border py-1 pl-3 pr-1 ${
+        paused ? 'border-mango/40 bg-mango-wash' : 'border-sprout/30 bg-sprout-wash'
       }`}
     >
       <span className="relative flex h-2 w-2" aria-hidden="true">
         {!paused && (
-          <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-[#2E9E6B] opacity-70" />
+          <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-sprout opacity-70" />
         )}
         <span
-          className={`relative inline-flex h-2 w-2 rounded-full ${paused ? 'bg-[#F4B63F]' : 'bg-[#2E9E6B]'}`}
+          className={`relative inline-flex h-2 w-2 rounded-full ${paused ? 'bg-mango' : 'bg-sprout'}`}
         />
       </span>
       <span
-        className={`hidden max-w-[13rem] truncate text-sm font-medium sm:inline ${
-          paused ? 'text-[#8a6412]' : 'text-[#1F6B52]'
+        className={`hidden max-w-[13rem] truncate text-small font-medium sm:inline ${
+          paused ? 'text-mango-deep' : 'text-sprout-deep'
         }`}
       >
         {active.label}
       </span>
       <span
-        className={`tabular-nums text-sm font-semibold ${paused ? 'text-[#8a6412]' : 'text-[#1F6B52]'}`}
+        className={`tabular-nums text-small font-semibold ${paused ? 'text-mango-deep' : 'text-sprout-deep'}`}
       >
         {display}
       </span>
@@ -58,7 +58,7 @@ export function ActiveTimer({ active }: { active: ActiveTimerInfo | null }) {
         type="button"
         disabled={pending}
         onClick={() => run(() => (paused ? resumeTimer(active.id) : pauseTimer(active.id)))}
-        className={`rounded-full bg-white px-3 py-1 text-xs font-semibold text-[#0E2F27] ring-1 ring-[#0E2F27]/15 transition-colors hover:bg-[#F4F8F5] disabled:opacity-60 ${focus}`}
+        className={`rounded-control bg-panel px-3 py-1 text-meta font-semibold text-ink ring-1 ring-line-strong transition-colors hover:bg-canvas disabled:opacity-55 ${focus}`}
       >
         {paused ? 'Resume' : 'Pause'}
       </button>
@@ -66,7 +66,7 @@ export function ActiveTimer({ active }: { active: ActiveTimerInfo | null }) {
         type="button"
         disabled={pending}
         onClick={() => run(() => stopTimer(active.id))}
-        className={`rounded-full bg-[#0E2F27] px-3 py-1 text-xs font-semibold text-white transition-colors hover:bg-[#1F6B52] disabled:opacity-60 ${focus}`}
+        className={`rounded-control bg-ink px-3 py-1 text-meta font-semibold text-white transition-colors hover:bg-ink-deep disabled:opacity-55 ${focus}`}
       >
         {pending ? 'Stopping…' : 'Stop'}
       </button>

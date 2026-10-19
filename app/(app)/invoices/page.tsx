@@ -121,22 +121,33 @@ export default async function InvoicesPage({
                     <th className={`${th} text-right`}>Balance</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-[#0E2F27]/10">
+                <tbody className="divide-y divide-line">
                   {invoices.map((inv) => (
                     <tr key={inv.id} className={rowHover}>
                       <td className="px-5 py-3.5 font-semibold">
-                        <Link href={`/invoices/${inv.id}`} className={`text-[#1F6B52] hover:underline ${focus}`}>
+                        <Link href={`/invoices/${inv.id}`} className={`text-sprout-deep hover:underline ${focus}`}>
                           {inv.number}
                         </Link>
                       </td>
-                      <td className="px-5 py-3.5 text-[#0E2F27]/75">{inv.client_name ?? '—'}</td>
-                      <td className="px-5 py-3.5 whitespace-nowrap text-[#0E2F27]/65">{formatDate(inv.issue_date)}</td>
-                      <td className="px-5 py-3.5 whitespace-nowrap text-[#0E2F27]/65">{inv.due_date ? formatDate(inv.due_date) : '—'}</td>
+                      <td className="px-5 py-3.5 text-ink-2">{inv.client_name ?? '—'}</td>
+                      <td className="px-5 py-3.5 whitespace-nowrap text-ink-3">{formatDate(inv.issue_date)}</td>
+                      <td className="px-5 py-3.5 whitespace-nowrap text-ink-3">
+                        {inv.due_date ? formatDate(inv.due_date) : '—'}
+                      </td>
                       <td className="px-5 py-3.5">
                         <StatusBadge status={inv.status} />
                       </td>
-                      <td className="px-5 py-3.5 text-right tabular-nums">{peso(inv.total)}</td>
-                      <td className="px-5 py-3.5 text-right tabular-nums font-medium">{peso(inv.balance)}</td>
+                      {/* Total is the ask, balance is the answer. The column that
+                          still needs chasing is the dark one; a settled ₱0 fades
+                          out of the way. */}
+                      <td className="px-5 py-3.5 text-right tabular-nums text-ink-2">{peso(inv.total)}</td>
+                      <td
+                        className={`px-5 py-3.5 text-right font-semibold tabular-nums ${
+                          Number(inv.balance) > 0 ? 'text-ink' : 'text-ink-4'
+                        }`}
+                      >
+                        {peso(inv.balance)}
+                      </td>
                     </tr>
                   ))}
                 </tbody>

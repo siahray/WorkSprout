@@ -6,14 +6,7 @@ import { createPortal } from 'react-dom'
 import { Logo } from '@/components/logo'
 import { NavFooter } from '@/components/nav-footer'
 import { NavLinks } from '@/components/nav-links'
-import { focus } from '@/lib/ui'
-
-// Same weave texture as the desktop sidebar, so the drawer reads as the
-// sidebar pulled in from the right rather than a separate surface.
-const weave = {
-  backgroundImage:
-    'repeating-linear-gradient(45deg, rgba(255,255,255,.04) 0 2px, transparent 2px 16px), repeating-linear-gradient(-45deg, rgba(255,255,255,.04) 0 2px, transparent 2px 16px)',
-}
+import { focus, railSurface } from '@/lib/ui'
 
 /**
  * Below `lg` the sidebar collapses into a drawer that slides in from the
@@ -67,7 +60,7 @@ export function MobileNav({ email, name }: { email: string; name: string }) {
         aria-expanded={open}
         aria-controls="mobile-nav"
         aria-label="Open menu"
-        className={`inline-flex items-center justify-center rounded-lg p-2 text-[#0E2F27]/70 transition-colors hover:bg-[#0E2F27]/5 hover:text-[#0E2F27] lg:hidden print:hidden ${focus}`}
+        className={`inline-flex items-center justify-center rounded-control p-2 text-ink-2 transition-colors hover:bg-ink/5 hover:text-ink lg:hidden print:hidden ${focus}`}
       >
         <svg
           width="22"
@@ -91,7 +84,7 @@ export function MobileNav({ email, name }: { email: string; name: string }) {
               tabIndex={-1}
               aria-hidden="true"
               onClick={() => setOpen(false)}
-              className={`fixed inset-0 z-40 bg-[#0E2F27]/40 transition-opacity duration-[220ms] ease-[cubic-bezier(0.22,1,0.36,1)] motion-reduce:transition-none lg:hidden print:hidden ${
+              className={`fixed inset-0 z-40 bg-ink/40 transition-opacity duration-[220ms] ease-[cubic-bezier(0.22,1,0.36,1)] motion-reduce:transition-none lg:hidden print:hidden ${
                 open ? 'opacity-100' : 'pointer-events-none opacity-0'
               }`}
             />
@@ -99,8 +92,8 @@ export function MobileNav({ email, name }: { email: string; name: string }) {
               id="mobile-nav"
               aria-label="Menu"
               inert={!open}
-              style={weave}
-              className={`fixed inset-y-0 right-0 z-50 flex w-72 max-w-[85vw] flex-col bg-[#0E2F27] shadow-2xl transition-transform duration-[220ms] ease-[cubic-bezier(0.22,1,0.36,1)] motion-reduce:transition-none lg:hidden print:hidden ${
+              style={railSurface}
+              className={`fixed inset-y-0 right-0 z-50 flex w-72 max-w-[85vw] flex-col bg-ink shadow-overlay transition-transform duration-[220ms] ease-[cubic-bezier(0.22,1,0.36,1)] motion-reduce:transition-none lg:hidden print:hidden ${
                 open ? 'translate-x-0' : 'translate-x-full'
               }`}
             >
@@ -108,7 +101,7 @@ export function MobileNav({ email, name }: { email: string; name: string }) {
                 <Link
                   href="/dashboard"
                   onClick={() => setOpen(false)}
-                  className={`inline-flex rounded-lg text-white ${focus}`}
+                  className={`inline-flex rounded-control text-white ${focus}`}
                   aria-label="WorkSprout dashboard"
                 >
                   <Logo size={30} />
@@ -118,7 +111,7 @@ export function MobileNav({ email, name }: { email: string; name: string }) {
                   type="button"
                   onClick={() => setOpen(false)}
                   aria-label="Close menu"
-                  className={`inline-flex items-center justify-center rounded-lg p-2 text-white/70 transition-colors hover:bg-white/5 hover:text-white ${focus}`}
+                  className={`inline-flex items-center justify-center rounded-control p-2 text-white/70 transition-colors hover:bg-white/[0.06] hover:text-white ${focus}`}
                 >
                   <svg
                     width="20"
@@ -134,10 +127,7 @@ export function MobileNav({ email, name }: { email: string; name: string }) {
                   </svg>
                 </button>
               </div>
-              <nav className="flex-1 overflow-y-auto overscroll-contain px-3 py-2">
-                <p className="px-3 pb-2 text-[11px] font-semibold uppercase tracking-[0.18em] text-white/40">
-                  Workspace
-                </p>
+              <nav className="flex-1 overflow-y-auto overscroll-contain px-3">
                 <NavLinks onNavigate={() => setOpen(false)} />
               </nav>
               <div className="border-t border-white/10 p-4 pb-[max(1rem,env(safe-area-inset-bottom))]">

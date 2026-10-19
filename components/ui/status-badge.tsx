@@ -1,41 +1,49 @@
+/**
+ * Status reads as a quiet chip: a tinted wash, a dot, and the word. The word is
+ * always there, so colour is a second signal rather than the only one — which
+ * is also what makes it work for anyone who cannot separate the two greens.
+ *
+ * Meaning is fixed: canvas = inert, mango = waiting on someone, sprout = done,
+ * danger = void. A status that is not in this list renders as inert.
+ */
 const styles: Record<string, string> = {
   // invoice (derived)
-  draft: 'bg-[#0E2F27]/8 text-[#0E2F27]/70',
-  sent: 'bg-[#F4B63F]/20 text-[#8a6412]',
-  partial: 'bg-[#F4B63F]/20 text-[#8a6412]',
-  paid: 'bg-[#2E9E6B]/12 text-[#1F6B52]',
-  void: 'bg-red-100 text-red-700',
+  draft: 'bg-canvas text-ink-2',
+  sent: 'bg-mango-wash text-mango-deep',
+  partial: 'bg-mango-wash text-mango-deep',
+  paid: 'bg-sprout-wash text-sprout-deep',
+  void: 'bg-danger-wash text-danger',
   // project / task
-  active: 'bg-[#2E9E6B]/12 text-[#1F6B52]',
-  completed: 'bg-[#0E2F27]/8 text-[#0E2F27]/70',
-  on_hold: 'bg-[#F4B63F]/20 text-[#8a6412]',
-  archived: 'bg-[#0E2F27]/8 text-[#0E2F27]/55',
-  todo: 'bg-[#0E2F27]/8 text-[#0E2F27]/70',
-  in_progress: 'bg-[#F4B63F]/20 text-[#8a6412]',
-  done: 'bg-[#2E9E6B]/12 text-[#1F6B52]',
+  active: 'bg-sprout-wash text-sprout-deep',
+  completed: 'bg-canvas text-ink-2',
+  on_hold: 'bg-mango-wash text-mango-deep',
+  archived: 'bg-canvas text-ink-2',
+  todo: 'bg-canvas text-ink-2',
+  in_progress: 'bg-mango-wash text-mango-deep',
+  done: 'bg-sprout-wash text-sprout-deep',
 }
 
 const dots: Record<string, string> = {
-  draft: 'bg-[#0E2F27]/40',
-  sent: 'bg-[#c98a16]',
-  partial: 'bg-[#c98a16]',
-  paid: 'bg-[#2E9E6B]',
-  void: 'bg-red-500',
-  active: 'bg-[#2E9E6B]',
-  completed: 'bg-[#0E2F27]/40',
-  on_hold: 'bg-[#c98a16]',
-  archived: 'bg-[#0E2F27]/35',
-  todo: 'bg-[#0E2F27]/40',
-  in_progress: 'bg-[#c98a16]',
-  done: 'bg-[#2E9E6B]',
+  draft: 'bg-ink-4',
+  sent: 'bg-mango',
+  partial: 'bg-mango',
+  paid: 'bg-sprout',
+  void: 'bg-danger',
+  active: 'bg-sprout',
+  completed: 'bg-ink-4',
+  on_hold: 'bg-mango',
+  archived: 'bg-ink-4',
+  todo: 'bg-ink-4',
+  in_progress: 'bg-mango',
+  done: 'bg-sprout',
 }
 
 export function StatusBadge({ status }: { status: string }) {
-  const className = styles[status] ?? 'bg-[#0E2F27]/8 text-[#0E2F27]/70'
-  const dot = dots[status] ?? 'bg-[#0E2F27]/40'
+  const className = styles[status] ?? 'bg-canvas text-ink-2'
+  const dot = dots[status] ?? 'bg-ink-4'
   return (
     <span
-      className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-xs font-semibold capitalize ${className}`}
+      className={`inline-flex items-center gap-1.5 rounded-chip px-2 py-0.5 text-meta font-semibold capitalize ${className}`}
     >
       <span className={`h-1.5 w-1.5 rounded-full ${dot}`} aria-hidden="true" />
       {status.replace(/_/g, ' ')}

@@ -61,18 +61,18 @@ export function NavLinks({ onNavigate }: { onNavigate?: () => void } = {}) {
     <ul className="space-y-1">
       {links.map((link) => {
         const active = pathname === link.href || pathname.startsWith(`${link.href}/`)
-        const tone = active ? 'bg-white/10 text-white' : 'text-white/60 hover:bg-white/5 hover:text-white'
+        const tone = active ? 'bg-white/10 text-white' : 'text-white/65 hover:bg-white/[0.06] hover:text-white'
         return (
           <li key={link.href}>
             <Link
               href={link.href}
               onClick={onNavigate}
               aria-current={active ? 'page' : undefined}
-              className={`relative flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-semibold transition-colors ${focus} ${tone}`}
+              className={`relative flex items-center gap-3 rounded-control px-3 py-2.5 text-body font-medium transition-colors ${focus} ${tone}`}
             >
               {active && (
                 <span
-                  className="animate-bar-in absolute left-0 top-1/2 h-4 w-1 -translate-y-1/2 rounded-full bg-[#F4B63F]"
+                  className="animate-bar-in absolute left-0 top-1/2 h-4 w-1 -translate-y-1/2 rounded-full bg-mango"
                   aria-hidden="true"
                 />
               )}
@@ -82,7 +82,7 @@ export function NavLinks({ onNavigate }: { onNavigate?: () => void } = {}) {
                 viewBox="0 0 24 24"
                 fill="none"
                 stroke="currentColor"
-                strokeWidth="1.8"
+                strokeWidth="1.6"
                 strokeLinecap="round"
                 strokeLinejoin="round"
                 aria-hidden="true"

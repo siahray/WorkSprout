@@ -1,40 +1,58 @@
 // Shared Tailwind class strings for the workspace UI.
 // Brand: Ink #0E2F27 · Sprout #2E9E6B · Mango #F4B63F · Sampaguita #F4F8F5
+//
+// Every token named here is defined in app/globals.css (@theme): the five-step
+// ink ramp, line/canvas/panel, the meaning colours, the text-* scale, and the
+// panel/control radii. Reach for a token before reaching for an arbitrary hex —
+// the alpha-on-ink habit is what made the app read soft.
 
-export const focus =
-  'focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#2E9E6B]'
+export const focus = 'focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-sprout'
 
-export const card =
-  'rounded-2xl border border-[#0E2F27]/10 bg-white shadow-[0_1px_2px_rgba(14,47,39,0.04)]'
+/* Surfaces. A panel is paper on the canvas: hairline, almost no shadow, and it
+   lifts only when it is the thing you are pointing at. */
+export const panel = 'rounded-panel border border-line bg-panel shadow-panel'
+/** `card` is the older name for the same thing, kept while the sweep reaches
+    the remaining pages. */
+export const card = panel
+export const cardHover = 'transition-[box-shadow,border-color] hover:border-line-strong hover:shadow-raised'
 
-export const cardHover =
-  'transition-[box-shadow,border-color] hover:border-[#0E2F27]/18 hover:shadow-[0_18px_38px_-26px_rgba(14,47,39,0.55)]'
+/* Text. Hierarchy is size and weight; nothing here is a faded ink. */
+export const meta = 'text-meta font-medium text-ink-3'
+/** Pages not yet swept still call this `eyebrow`; sentence case, no tracking. */
+export const eyebrow = meta
+export const sectionTitle = 'text-title font-bold tracking-tight text-ink'
+export const bodyText = 'text-body text-ink-2'
+export const link = 'font-medium text-sprout-deep underline-offset-2 hover:underline'
 
-export const input = `w-full rounded-xl border border-[#0E2F27]/15 bg-white px-3.5 py-2.5 text-[#0E2F27] placeholder:text-[#0E2F27]/35 transition-colors hover:border-[#0E2F27]/30 focus:border-[#2E9E6B] disabled:cursor-not-allowed disabled:opacity-60 ${focus}`
+/* Controls. */
+export const input = `w-full rounded-control border border-line-strong bg-panel px-3 py-2 text-body text-ink placeholder:text-ink-4 transition-colors hover:border-ink-4 focus:border-sprout disabled:cursor-not-allowed disabled:bg-canvas disabled:text-ink-3 ${focus}`
+export const label = 'block text-small font-medium text-ink-2'
 
-export const label = 'block text-sm font-medium text-[#0E2F27]/80'
+const button = `inline-flex items-center justify-center gap-2 rounded-control px-4 py-2.5 text-body font-semibold transition-all active:translate-y-px disabled:cursor-not-allowed disabled:opacity-55 ${focus}`
 
-export const btnPrimary = `inline-flex items-center justify-center gap-2 rounded-xl bg-[#0E2F27] px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition-all hover:bg-[#1F6B52] active:translate-y-px disabled:cursor-not-allowed disabled:opacity-60 ${focus}`
+export const btnPrimary = `${button} bg-ink text-white hover:bg-ink-deep`
+export const btnAccent = `${button} bg-sprout text-white hover:bg-sprout-deep`
+export const btnSecondary = `${button} border border-line-strong bg-panel text-ink hover:border-ink-4 hover:bg-canvas`
+export const btnGhost = `inline-flex items-center justify-center gap-2 rounded-control px-3 py-2 text-small font-medium text-ink-2 transition-colors hover:bg-canvas hover:text-ink disabled:cursor-not-allowed disabled:opacity-55 ${focus}`
+export const btnDanger = `${button} border border-danger/25 bg-panel text-danger hover:bg-danger-wash`
 
-export const btnAccent = `inline-flex items-center justify-center gap-2 rounded-xl bg-[#2E9E6B] px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition-all hover:bg-[#268a5c] active:translate-y-px disabled:cursor-not-allowed disabled:opacity-60 ${focus}`
+/* Tables read as a ledger: quiet sentence-case headers, hairline row rules,
+   figures right-aligned and tabular. */
+export const tableHead = 'border-b border-line text-left text-meta font-medium text-ink-3'
+export const th = 'px-5 py-2.5'
+export const rowHover = 'transition-colors hover:bg-canvas'
 
-export const btnSecondary = `inline-flex items-center justify-center gap-2 rounded-xl border border-[#0E2F27]/15 bg-white px-4 py-2.5 text-sm font-semibold text-[#0E2F27] shadow-sm transition-all hover:border-[#0E2F27]/25 hover:bg-[#F4F8F5] active:translate-y-px disabled:cursor-not-allowed disabled:opacity-60 ${focus}`
+/* Panel chrome. */
+export const panelHeader = 'flex items-center justify-between gap-3 border-b border-line px-5 py-3.5'
+export const panelTitle = 'text-body font-semibold text-ink'
 
-export const btnGhost = `inline-flex items-center justify-center gap-2 rounded-lg px-3 py-2 text-sm font-medium text-[#0E2F27]/70 transition-colors hover:bg-[#0E2F27]/5 hover:text-[#0E2F27] disabled:cursor-not-allowed disabled:opacity-60 ${focus}`
+export const alertError = 'rounded-control bg-danger-wash px-3 py-2 text-small font-medium text-danger'
+export const alertOk = 'rounded-control bg-sprout-wash px-3 py-2 text-small font-medium text-sprout-deep'
 
-export const btnDanger = `inline-flex items-center justify-center gap-2 rounded-xl border border-red-200 bg-white px-4 py-2.5 text-sm font-semibold text-red-700 shadow-sm transition-all hover:bg-red-50 active:translate-y-px disabled:cursor-not-allowed disabled:opacity-60 ${focus}`
-
-export const eyebrow = 'text-[11px] font-semibold uppercase tracking-[0.16em] text-[#1F6B52]'
-
-export const sectionTitle = 'text-lg font-bold tracking-tight'
-
-export const tableHead =
-  'bg-[#F4F8F5] text-left text-[11px] font-semibold uppercase tracking-[0.12em] text-[#0E2F27]/55'
-
-export const th = 'px-5 py-3 font-semibold'
-
-export const rowHover = 'transition-colors hover:bg-[#F4F8F5]/70'
-
-export const alertError =
-  'rounded-lg bg-red-50 px-3 py-2 text-sm font-medium text-red-700'
-export const alertOk = 'rounded-lg bg-[#2E9E6B]/10 px-3 py-2 text-sm font-medium text-[#1F6B52]'
+/* The rail behind the navigation: a woven texture over Ink deepening to
+   Ink-deep, so the sidebar has depth instead of sitting flat. Shared so the
+   desktop rail and the mobile drawer cannot drift apart. */
+export const railSurface = {
+  backgroundImage:
+    'repeating-linear-gradient(45deg, rgba(255,255,255,.035) 0 2px, transparent 2px 16px), repeating-linear-gradient(-45deg, rgba(255,255,255,.035) 0 2px, transparent 2px 16px), linear-gradient(180deg, #0e2f27 0%, #09211b 100%)',
+}

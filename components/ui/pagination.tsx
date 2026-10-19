@@ -3,7 +3,7 @@ import { listHref } from '@/lib/pagination'
 import { btnGhost } from '@/lib/ui'
 
 /**
- * Previous/Next footer for a paginated table, rendered inside the table card.
+ * Previous/Next footer for a paginated table, rendered inside the table panel.
  * Returns nothing on single-page lists so small tables look untouched.
  */
 export function Pagination({
@@ -33,9 +33,9 @@ export function Pagination({
   return (
     <nav
       aria-label="Pagination"
-      className="flex items-center justify-between gap-3 border-t border-[#0E2F27]/10 px-5 py-3"
+      className="flex items-center justify-between gap-3 border-t border-line px-5 py-3"
     >
-      <span className="text-xs tabular-nums text-[#0E2F27]/55">
+      <span className="text-small tabular-nums text-ink-3">
         Page {page} of {pages}
       </span>
       <span className="flex items-center gap-1">
