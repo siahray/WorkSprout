@@ -7,7 +7,7 @@ import { StatusBadge } from '@/components/ui/status-badge'
 import { ConfirmAction } from '@/components/ui/confirm-action'
 import { formatDate, peso } from '@/lib/format'
 import { btnPrimary, btnSecondary, btnDanger, card, focus, tableHead, th, rowHover } from '@/lib/ui'
-import { deleteClient } from '../actions'
+import { deleteClient, archiveClient, restoreClient } from '../actions'
 
 export const metadata: Metadata = {
   title: 'Client · WorkSprout',
@@ -50,12 +50,15 @@ export default async function ClientDetailPage({ params }: { params: Promise<{ i
   return (
     <>
       <PageHeader title={client.name} description={client.company ?? undefined}>
+        {client.archived_at && <StatusBadge status="archived" />}
         <Link href={`/clients/${id}/edit`} className={`${btnSecondary} ${focus}`}>
           Edit
         </Link>
-        <Link href={`/projects/new?client_id=${id}`} className={`${btnPrimary} ${focus}`}>
-          New project
-        </Link>
+        {!client.archived_at && (
+          <Link href={`/projects/new?client_id=${id}`} className={`${btnPrimary} ${focus}`}>
+            New project
+          </Link>
+        )}
       </PageHeader>
 
       <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_20rem]">
@@ -64,11 +67,16 @@ export default async function ClientDetailPage({ params }: { params: Promise<{ i
             <h2 className="mb-3 text-lg font-bold tracking-tight">Projects</h2>
             {projects.length === 0 ? (
               <div className={`${card} p-6 text-sm text-[#0E2F27]/65`}>
-                No projects yet.{' '}
-                <Link href={`/projects/new?client_id=${id}`} className={`font-semibold text-[#1F6B52] hover:underline ${focus}`}>
-                  Create one
-                </Link>
-                .
+                No projects yet.
+                {!client.archived_at && (
+                  <>
+                    {' '}
+                    <Link href={`/projects/new?client_id=${id}`} className={`font-semibold text-[#1F6B52] hover:underline ${focus}`}>
+                      Create one
+                    </Link>
+                    .
+                  </>
+                )}
               </div>
             ) : (
               <div className={`${card} divide-y divide-[#0E2F27]/10`}>
@@ -145,6 +153,40 @@ export default async function ClientDetailPage({ params }: { params: Promise<{ i
               <InfoRow label="Notes" value={client.notes} />
               <InfoRow label="Added" value={formatDate(client.created_at)} />
             </dl>
+          </section>
+
+          <section className={`${card} p-5`}>
+            <h2 className="text-sm font-semibold text-[#0E2F27]/60">
+              {client.archived_at ? 'Archived' : 'Archive'}
+            </h2>
+            <p className="mt-2 text-sm text-[#0E2F27]/65">
+              {client.archived_at
+                ? `Out of your lists and pickers since ${formatDate(client.archived_at)}. Their projects, invoices, and time are untouched.`
+                : 'Hide this client from lists and pickers without deleting anything. Their projects, invoices, and time stay exactly as they are.'}
+            </p>
+            <div className="mt-3">
+              {client.archived_at ? (
+                <ConfirmAction
+                  action={restoreClient}
+                  id={id}
+                  message="Restore this client to your lists and pickers?"
+                  className={btnSecondary}
+                  errorClassName="mt-2 text-xs font-medium text-red-700"
+                >
+                  Restore client
+                </ConfirmAction>
+              ) : (
+                <ConfirmAction
+                  action={archiveClient}
+                  id={id}
+                  message="Archive this client? They'll disappear from lists and pickers — nothing is deleted."
+                  className={btnSecondary}
+                  errorClassName="mt-2 text-xs font-medium text-red-700"
+                >
+                  Archive client
+                </ConfirmAction>
+              )}
+            </div>
           </section>
 
           <section className={`${card} p-5`}>

@@ -120,11 +120,14 @@ export async function scheduleCall(
     // else's client by guessing an id.
     const { data: client } = await supabase
       .from('clients')
-      .select('id')
+      .select('id, archived_at')
       .eq('id', clientId)
       .eq('user_id', userId)
       .maybeSingle()
     if (!client) return { ok: false, status: 400, error: 'That client could not be found.' }
+    if (client.archived_at) {
+      return { ok: false, status: 400, error: 'That client is archived — restore them first.' }
+    }
   }
 
   const { data, error } = await supabase

@@ -55,6 +55,42 @@ export async function updateClient(_prev: FormState, formData: FormData): Promis
   redirect(`/clients/${id}`)
 }
 
+// Archive is the gentle alternative to delete: the client leaves every list
+// and picker, while everything they own stays exactly as it is. The update is
+// RLS-scoped to the owner, and `.select()` proves the row landed — and was
+// visible to this session — before we claim success.
+async function setArchived(id: string, archived: boolean): Promise<FormState> {
+  const supabase = await createSupabaseClient()
+  const { data, error } = await supabase
+    .from('clients')
+    .update({ archived_at: archived ? new Date().toISOString() : null })
+    .eq('id', id)
+    .select('id')
+    .maybeSingle()
+
+  if (error) {
+    console.error(`${archived ? 'archive' : 'restore'} client failed:`, error.message)
+    return { error: 'Could not update that client — please try again.' }
+  }
+  if (!data) return { error: 'That client could not be found.' }
+
+  revalidatePath('/clients')
+  revalidatePath(`/clients/${id}`)
+  return { ok: archived ? 'Client archived.' : 'Client restored.' }
+}
+
+export async function archiveClient(_prev: FormState, formData: FormData): Promise<FormState> {
+  const id = text(formData, 'id')
+  if (!isUuid(id)) return { error: 'That client could not be found.' }
+  return setArchived(id, true)
+}
+
+export async function restoreClient(_prev: FormState, formData: FormData): Promise<FormState> {
+  const id = text(formData, 'id')
+  if (!isUuid(id)) return { error: 'That client could not be found.' }
+  return setArchived(id, false)
+}
+
 export async function deleteClient(_prev: FormState, formData: FormData): Promise<FormState> {
   const id = text(formData, 'id')
   if (!isUuid(id)) return { error: 'That client could not be found.' }

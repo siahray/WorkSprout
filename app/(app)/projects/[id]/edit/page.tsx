@@ -23,9 +23,12 @@ export default async function EditProjectPage({ params }: { params: Promise<{ id
 
   if (!project) notFound()
 
+  // Archived clients are hidden from pickers, but this project's own client
+  // must stay selectable so the form never silently repoints it.
   const { data: clients } = await supabase
     .from('clients')
     .select('id, name')
+    .or(`archived_at.is.null,id.eq.${project.client_id}`)
     .order('name', { ascending: true })
 
   return (

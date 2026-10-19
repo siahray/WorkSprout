@@ -1,7 +1,7 @@
 # WorkSprout — Feature Audit & Automation Readiness
 
 **Date:** 18 October 2026
-**Branches:** PRs #18–#28 merged. Open: `feat/expense-receipts`.
+**Branches:** PRs #18–#29 merged. Open: `feat/archive-clients`.
 **Method:** static inventory of `app/**` routes, server actions, route handlers, `supabase/migrations/*.sql`, database functions and triggers, and CI workflows. No runtime walkthrough.
 
 Legend: ✅ built · ⚠️ partial · ❌ absent
@@ -64,7 +64,7 @@ The event log follows it: `events` is written by an `after insert or update or d
 
 ### Clients
 - ✅ CRUD, detail page, per-client outstanding balance
-- ❌ Archive vs hard delete (delete is destructive and cascading)
+- ✅ Archive vs hard delete — `archived_at` pulls a client out of every list and picker while their projects, invoices, time, and attachments stay intact; restore clears it. Hard delete remains for real removal, and stays destructive: it cascades projects and tasks, and refuses while invoices exist.
 - ❌ Client-facing portal or login
 - ❌ Contact persons / multiple emails per client — **this is what blocks CRM sync**; `clients` holds a single `email`, so there is no contact to map a CRM to
 
@@ -173,7 +173,7 @@ Ordered by dependency, not preference.
 
 | Module | Actions |
 |---|---|
-| Clients | `createClient`, `updateClient`, `deleteClient` |
+| Clients | `createClient`, `updateClient`, `deleteClient`, `archiveClient`, `restoreClient` |
 | Projects | `createProject`, `updateProject`, `deleteProject`, `addPhase`, `updatePhase`, `movePhase`, `deletePhase`, `addTask`, `updateTask`, `moveTask`, `setTaskStatus`, `deleteTask`, `addSubtask`, `updateSubtask`, `moveSubtask`, `setSubtaskStatus`, `deleteSubtask` |
 | Time | `startTimer`, `pauseTimer`, `resumeTimer`, `stopTimer`, `addManualEntry`, `updateManualEntry`, `deleteTimeEntry` |
 | Invoices | `createInvoice`, `updateInvoice`, `sendInvoice`, `markInvoiceSent`, `voidInvoice`, `deleteInvoice`, `addPayment`, `updatePayment`, `deletePayment` |
@@ -329,6 +329,19 @@ Rides Supabase's auth email service, so it is independent of the app's Resend co
 | `ReceiptsDialog` | A per-row "Receipt (n)" button on the expenses table opening the standard modal with the existing uploader + list. Content mounts only while open, matching the edit dialog. |
 
 Receipts attach from the saved expense's row, not inside the add-expense form: the upload target needs an id that does not exist until the insert lands, and keeping upload out of the create form leaves that money-adjacent action's shape untouched. Deleting a project does **not** delete its expenses — the FK is `on delete set null` — so receipt cleanup belongs solely to `deleteExpense`, and no project/client cascade had to grow an expense branch.
+
+### Client archive (branch `feat/archive-clients`)
+
+| Change | Notes |
+|---|---|
+| Migration `20261018140000` | `clients.archived_at` (nullable timestamptz). NULL = active. Visibility only: no backfill, no RLS change (the owner policy already covers the update), no index (per-user lists are tiny and always scanned under `user_id`). |
+| `archiveClient` / `restoreClient` | Flip the timestamp and verify the row landed with `.select()` — the same row-verify the update actions use. Both revalidate the list and the detail page. |
+| Clients list | Active clients by default; an `Archived (n)` link opens `?archived=1`, where rows carry an `Archived` badge and the third column shows the archive date instead of "Client since". Each empty state points at the other view. |
+| Client detail page | `Archived` badge in the header, an Archive/Restore card above the danger zone, and the "New project" / "Create one" invitations hidden while archived. Projects and invoices stay visible — history never disappears, and delete remains available. |
+| Pickers exclude archived clients | New project, new invoice, the focus page's call form, and the dashboard's client count and panel all filter to active clients. Deep links keep their preselected client visible (validated with `isUuid` before it enters a PostgREST `or()`), and edit forms keep the record's *own* client selectable via `archived_at.is.null,id.eq.<current>` — a form can never silently repoint a record at someone else. |
+| Server-side guards | `createProject`, `createInvoice`, `updateInvoice` (only when *switching* to an archived client), and the shared `scheduleCall` — app form and integration API alike — refuse archived clients. Pickers are the convenience; the actions are the rule. `createProject` also gained the client-existence probe it never had: the read is RLS-scoped, so it now rejects ids owned by other users too, which the bare FK insert previously allowed. |
+
+Archiving does not cascade: projects, invoices, time, and expenses are untouched, and the dashboard counts active clients only. To bill or schedule for an archived client, restore first — the error says so. The disproven claim at the old line 67 ("delete is destructive and cascading" as the *only* option) is replaced above: delete is still destructive, but it is no longer the only option.
 
 ### Audit corrections
 

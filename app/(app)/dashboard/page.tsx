@@ -104,7 +104,8 @@ export default async function DashboardPage() {
       .select('id, number, status, total, balance, issue_date, client_name, project_id')
       .order('created_at', { ascending: false }),
     supabase.from('payments').select('amount').gte('paid_at', monthStartIso),
-    supabase.from('clients').select('id', { count: 'exact', head: true }),
+    // Active clients only — the count matches the clients list and the panel below.
+    supabase.from('clients').select('id', { count: 'exact', head: true }).is('archived_at', null),
     supabase.from('projects').select('id', { count: 'exact', head: true }).eq('status', 'active'),
     supabase
       .from('time_entries')
@@ -125,7 +126,7 @@ export default async function DashboardPage() {
       .select('id, name, status, client:clients(name)')
       .order('created_at', { ascending: false })
       .limit(3),
-    supabase.from('clients').select('id, name, company').order('name', { ascending: true }),
+    supabase.from('clients').select('id, name, company').is('archived_at', null).order('name', { ascending: true }),
     supabase.from('expenses').select('amount, project_id, spent_on'),
     supabase.from('projects').select('id, name').order('name', { ascending: true }),
   ])

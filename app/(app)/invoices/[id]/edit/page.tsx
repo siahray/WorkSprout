@@ -29,7 +29,13 @@ export default async function EditInvoicePage({ params }: { params: Promise<{ id
   if (invoice.status !== 'draft') redirect(`/invoices/${id}`)
 
   const [clientsRes, projectsRes, itemsRes] = await Promise.all([
-    supabase.from('clients').select('id, name').order('name', { ascending: true }),
+    // Archived clients are hidden from pickers, but this invoice's own client
+    // must stay selectable so a draft can be corrected without repointing it.
+    supabase
+      .from('clients')
+      .select('id, name')
+      .or(`archived_at.is.null,id.eq.${invoice.client_id}`)
+      .order('name', { ascending: true }),
     supabase.from('projects').select('id, name').order('name', { ascending: true }),
     supabase
       .from('invoice_items')

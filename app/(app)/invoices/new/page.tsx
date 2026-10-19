@@ -6,6 +6,7 @@ import { EmptyState } from '@/components/ui/empty-state'
 import { InvoiceBuilder, type UnbilledGroup } from '../invoice-builder'
 import { coerceTaxes } from '@/lib/tax'
 import { createInvoice } from '../actions'
+import { isUuid } from '@/lib/validation'
 
 export const metadata: Metadata = {
   title: 'New invoice · WorkSprout',
@@ -40,8 +41,13 @@ export default async function NewInvoicePage({
   const { data: claimsData } = await supabase.auth.getClaims()
   if (!claimsData?.claims) redirect('/login')
 
+  // Same preselect rule as new projects: a deep-linked client stays in the
+  // list even if archived, so the builder shows who it is and createInvoice
+  // can refuse with a clear message instead of billing someone else.
+  const preselect = typeof client_id === 'string' && isUuid(client_id) ? client_id : null
+  const clientQuery = supabase.from('clients').select('id, name').order('name', { ascending: true })
   const [clientsRes, projectsRes, unbilledRes, profileRes] = await Promise.all([
-    supabase.from('clients').select('id, name').order('name', { ascending: true }),
+    preselect ? clientQuery.or(`archived_at.is.null,id.eq.${preselect}`) : clientQuery.is('archived_at', null),
     supabase.from('projects').select('id, name, client_id').order('name', { ascending: true }),
     supabase
       .from('time_entries')
@@ -109,7 +115,7 @@ const groups = new Map<string, UnbilledGroup>()
         projects={projects}
         unbilled={[...groups.values()]}
         taxes={taxes}
-        initialClientId={typeof client_id === 'string' ? client_id : undefined}
+        initialClientId={preselect ?? undefined}
         initialProjectId={typeof project_id === 'string' ? project_id : undefined}
       />
     </>
