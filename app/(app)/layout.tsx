@@ -15,17 +15,16 @@ export default async function WorkspaceLayout({ children }: { children: ReactNod
 
   if (!claims) redirect('/login')
 
-  const { data: profile } = await supabase
-    .from('profiles')
-    .select('full_name, business_name')
-    .eq('id', claims.sub)
-    .maybeSingle()
-
-  const { data: active } = await supabase
-    .from('time_entries')
-    .select('id, start_time, paused_at, paused_seconds, task:tasks(title, project:projects(name))')
-    .is('end_time', null)
-    .maybeSingle()
+  // Independent of each other, so they go out together: the layout blocks the
+  // first paint, and one round trip to Sydney is worth not paying twice.
+  const [{ data: profile }, { data: active }] = await Promise.all([
+    supabase.from('profiles').select('full_name, business_name').eq('id', claims.sub).maybeSingle(),
+    supabase
+      .from('time_entries')
+      .select('id, start_time, paused_at, paused_seconds, task:tasks(title, project:projects(name))')
+      .is('end_time', null)
+      .maybeSingle(),
+  ])
 
   const task = active?.task as unknown as
     | { title: string; project: { name: string } | null }
