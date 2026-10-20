@@ -475,3 +475,44 @@ names are strings.
 
 `docs/design.md` records the tokens, the two colour rules, and the checklist.
 
+## Auth email moved off Supabase's sender
+
+Requested as "I don't want the Supabase email styling" for invites and password
+resets. Supabase's auth service sends both, in its own template, and the free
+tier gates both the template editor and custom SMTP — so there is no setting
+that restyles them. The only way is to stop asking Supabase to send them.
+
+Supabase separates *making* a link from *sending* it. `generateLink` returns the
+same URL `signInWithOtp` / `resetPasswordForEmail` would have emailed, without
+dispatching anything, so the link can ride the app's own Resend config — our
+sender, our design — while still landing on `/auth/confirm`, which turns it into
+a session exactly as before.
+
+| Change | Notes |
+|---|---|
+| `lib/auth-link.ts` | `generateAuthLink({kind, email, redirectTo})` — mints an `invite` or `recovery` link via the admin API. Gated on `adminClientConfigured()`; until `SUPABASE_SERVICE_ROLE_KEY` is set it returns `notConfigured` and the caller says so rather than crashing. |
+| `lib/auth-email.ts` | The two messages: `renderInviteEmail` and `renderResetEmail`. Table-based with inline styles like `lib/call-email.ts`, in the four brand colours, with a Mango button. |
+| `app/admin/actions.ts` | `signInWithOtp` → `generateAuthLink` + `sendEmail`. Checks Resend first (2 ms, no network) so an unconfigured app fails before minting a link. |
+| `app/forgot-password/actions.ts` | `resetPasswordForEmail` → `generateAuthLink` + `sendEmail`, keeping the property that matters: an unknown address is answered exactly like a known one, so nobody can probe which emails have accounts. That now also covers the send-failure case. |
+| `components/auth-link-catcher.tsx` + `lib/auth-link-shared.ts` | **The subtle part.** `generateLink` only ever preserves a *bare origin* in `redirect_to` — ask for `…/auth/confirm?next=/reset-password` and it hands back `https://host`. The path and query are dropped, so the session always arrives at the site root. The catcher is what forwards it, and it did not carry `type=invite` (that is what `generateLink` labels an invite's verify URL; the old OTP flow produced `magiclink`). Without that one word, an invited person would land on the marketing page holding a session nothing claimed. |
+
+**Verified against the live project, not just the types.** `generateLink`
+returns a working `action_link` for both kinds and creates the user for
+`invite`; the rendered message carries that link in HTML and plain text and uses
+the brand colours. The redirect-stripping above was found by inspecting the
+generated URL's `redirect_to` parameter for a full path, a bare origin and a
+localhost path — only the bare origin survived. The unstyled path was confirmed
+in a browser: with `RESEND_API_KEY` unset the invite stops at
+"Email is not configured yet" and never mints a link.
+
+Two things this does **not** change. Auth mail now bypasses Supabase's own
+rate limiting (`rate_limit_email_sent`), so Resend's limits are the only ones —
+the invite path still reports its rate-limit error honestly. And the plain-text
+part of each email shows the underlying `…supabase.co/auth/v1/verify?token=…`
+URL, which is unavoidable while Supabase performs the verification; the OTP
+emails had the same shape.
+
+**Also fixed here:** the admin console's invite copy still said "We email them a
+one-time code", which was never what the flow did and is certainly not now.
+
+

@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect } from 'react'
+import { shouldCarryAuthHash } from '@/lib/auth-link-shared'
 
 // Emailed links are meant to land on /auth/confirm. Two things can put them
 // somewhere else, and neither is an error the sender ever sees: Supabase puts
@@ -10,9 +11,15 @@ import { useEffect } from 'react'
 // email — would otherwise just sit in the address bar.
 //
 // This runs on every page, so it is deliberately limited to the links the app
-// itself can send: a password reset (`recovery`) and an invite/magic sign-in
+// itself can send: a password reset (`recovery`), an invite (`invite`, which is
+// what `generateLink` labels the verification URL), and a magic sign-in
 // (`magiclink`, `signup`). Anything else is left exactly where it was.
-const CARRIED_TYPES = new Set(['recovery', 'magiclink', 'signup'])
+//
+// `invite` matters more than it looks: `generateLink` only ever preserves a
+// bare origin in `redirect_to`, so an invite link always arrives at the site
+// root with the session in the hash. Without this, the invitee would sit on the
+// marketing page with a session they never get handed to the set-password form.
+// The list itself lives in `lib/auth-link-shared.ts` so a test can pin it.
 
 export function AuthLinkCatcher() {
   useEffect(() => {
@@ -24,10 +31,7 @@ export function AuthLinkCatcher() {
     if (!hash) return
 
     const params = new URLSearchParams(hash)
-    // A refusal carries no `type` — an expired or already-used link — and is
-    // still worth answering with the expired-link card rather than silence.
-    const refused = Boolean(params.get('error') || params.get('error_code'))
-    if (!refused && !CARRIED_TYPES.has(params.get('type') ?? '')) return
+    if (!shouldCarryAuthHash(params)) return
 
     // A scripted navigation drops the fragment, so it is carried by hand.
     window.location.replace(`/auth/confirm${window.location.search}${window.location.hash}`)
