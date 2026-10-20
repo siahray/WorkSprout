@@ -16,7 +16,7 @@ export function InviteForm() {
     >
       <h2 className={`${display.className} text-lg font-bold tracking-tight`}>Invite a beta tester</h2>
       <p className="mt-1 text-sm text-ink-2">
-        We email them a one-time code. They use it to create an account, then log in with a password.
+        We email them a link. They use it to set a password, then log in with it.
       </p>
 
       <div className="mt-4 flex flex-col gap-2 sm:flex-row">

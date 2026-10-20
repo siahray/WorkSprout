@@ -4,7 +4,10 @@ import { logError } from '@/lib/log'
 import { headers } from 'next/headers'
 import { revalidatePath } from 'next/cache'
 import { redirect } from 'next/navigation'
-import { createAuthClient, createClient } from '@/lib/supabase/server'
+import { createClient } from '@/lib/supabase/server'
+import { generateAuthLink } from '@/lib/auth-link'
+import { renderInviteEmail } from '@/lib/auth-email'
+import { emailConfigured, sendEmail } from '@/lib/email'
 import { recordAdminAction } from './audit'
 
 export type InviteState = { error?: string; ok?: string; email?: string }
@@ -12,8 +15,16 @@ export type InviteState = { error?: string; ok?: string; email?: string }
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
 
 // Admin-only: email a link that lets an invited person set their own password.
-// The client here is session-less so sending the invite never disturbs the
-// signed-in admin's own session.
+//
+// The link is minted here and sent through Resend, so the message carries our
+// design and our sender rather than Supabase's template. `generateLink` is the
+// same URL Supabase would have emailed — it just does not send it. The link
+// still lands on /auth/confirm, which turns it into a session and hands the
+// invitee to the set-password form.
+//
+// If the host is not in Supabase's redirect allow-list (localhost included,
+// measured) the session lands on the site root instead, which AuthLinkCatcher
+// picks up.
 export async function sendInvite(_prevState: InviteState, formData: FormData): Promise<InviteState> {
   const email = String(formData.get('email') ?? '').trim().toLowerCase()
 
@@ -27,6 +38,10 @@ export async function sendInvite(_prevState: InviteState, formData: FormData): P
 
   if (claims?.app_metadata?.role !== 'admin') {
     return { error: 'You are not authorized to send invites.', email }
+  }
+
+  if (!emailConfigured()) {
+    return { error: 'Email is not configured yet. Add RESEND_API_KEY and EMAIL_FROM.', email }
   }
 
   const { error: recordError } = await supabase.from('beta_signups').upsert(
@@ -47,29 +62,24 @@ export async function sendInvite(_prevState: InviteState, formData: FormData): P
   const h = await headers()
   const host = h.get('host')
   const proto = h.get('x-forwarded-proto') ?? 'http'
-  // The invite email carries a link and nothing else — no template here fills
-  // `{{ .Token }}`, and the free tier will not let us add one — so the link has
-  // to be the way in: /auth/confirm turns it into a session and hands the
-  // invitee to the set-password form. If the host is not in Supabase's redirect
-  // allow-list (localhost included, measured) the session lands on the site
-  // root instead, which AuthLinkCatcher picks up.
   const emailRedirectTo = host
     ? `${proto}://${host}/auth/confirm?next=/reset-password`
     : undefined
 
-  const auth = createAuthClient()
-  const { error } = await auth.auth.signInWithOtp({
-    email,
-    options: { shouldCreateUser: true, emailRedirectTo },
+  if (!emailRedirectTo) {
+    return { error: 'Could not determine where to send the invite — please try again.', email }
+  }
+
+  const link = await generateAuthLink({ kind: 'invite', email, redirectTo: emailRedirectTo })
+  if (!link.ok) return { error: link.error, email }
+
+  const { subject, html, text } = renderInviteEmail({
+    link: link.actionLink,
+    invitedBy: claims.email ?? null,
   })
 
-  if (error) {
-    if (error.code === 'over_email_send_rate_limit' || /rate limit/i.test(error.message)) {
-      return { error: 'Too many invites just now — wait a few minutes and try again.', email }
-    }
-    logError('invite email failed', { error })
-    return { error: 'Could not send the invite email — please try again.', email }
-  }
+  const sent = await sendEmail({ to: email, subject, html, text })
+  if (!sent.ok) return { error: sent.error, email }
 
   await recordAdminAction(supabase, { id: claims.sub, email: claims.email }, 'invite.send', email)
 

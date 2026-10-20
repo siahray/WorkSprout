@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation'
 import { AuthShell } from '@/components/auth-shell'
 import { LinkExpiredCard } from '@/components/link-expired-card'
 import { LogoMark } from '@/components/logo-mark'
-import { safeNextPath } from '@/lib/safe-next'
+import { linkDestination } from '@/lib/auth-link-shared'
 import { createClient } from '@/lib/supabase/client'
 
 // Where the emailed recovery link lands.
@@ -27,7 +27,7 @@ export default function ConfirmPage() {
     async function complete(): Promise<Outcome> {
       const query = new URLSearchParams(window.location.search)
       const hash = new URLSearchParams(window.location.hash.slice(1))
-      const next = safeNextPath(query.get('next'), '/reset-password')
+      const next = linkDestination(query.get('next'))
 
       const accessToken = hash.get('access_token')
       const refreshToken = hash.get('refresh_token')

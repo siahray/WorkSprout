@@ -1,24 +1,27 @@
 'use server'
 
 import { logError } from '@/lib/log'
-import { createAuthClient } from '@/lib/supabase/server'
 import { siteUrl } from '@/lib/site'
+import { generateAuthLink } from '@/lib/auth-link'
+import { renderResetEmail } from '@/lib/auth-email'
+import { emailConfigured, sendEmail } from '@/lib/email'
 
 // `email` is echoed back on errors so the form keeps what the user typed.
 export type ForgotState = { error?: string; email?: string; sent?: boolean }
 
-// Requests a password-reset link. Supabase sends it, so this rides the same
-// channel as invite OTPs and is independent of the app's Resend config.
+// Requests a password-reset link, which we send ourselves rather than asking
+// Supabase to email it — the message is WorkSprout's design and sender.
 //
-// The request deliberately goes through the session-less client rather than the
-// PKCE one: Supabase answers a PKCE request with a `code` that only the browser
-// which asked for the email can exchange. Without it, the link comes back as a
-// session in the URL hash that /auth/confirm completes in whatever browser —
-// or on whatever device — opened the email.
+// The request deliberately does not go through the PKCE client: a PKCE request
+// yields a `code` that only the browser which asked for the email can exchange.
+// Without it, the link comes back as a session in the URL hash that
+// /auth/confirm completes in whatever browser — or on whatever device — opened
+// the email.
 //
 // Success is reported whether or not the email was recognised — returning a
 // different message for unknown accounts would let anyone probe which emails
-// have WorkSprout accounts.
+// have WorkSprout accounts. That holds for the not-configured and send-failure
+// cases too: the response shape must not depend on whether the address exists.
 export async function requestPasswordReset(
   _prev: ForgotState,
   formData: FormData
@@ -29,20 +32,37 @@ export async function requestPasswordReset(
     return { error: 'Enter a valid email address.' }
   }
 
-  const auth = createAuthClient()
+  if (!emailConfigured()) {
+    logError('password reset requested but email is not configured')
+    return { sent: true, email }
+  }
+
   const origin = await siteUrl()
 
-  const { error } = await auth.auth.resetPasswordForEmail(email, {
+  const link = await generateAuthLink({
+    kind: 'recovery',
+    email,
     redirectTo: `${origin}/auth/confirm?next=/reset-password`,
   })
 
-  if (error) {
-    // Supabase rate-limits reset requests; that one is worth telling them about.
-    // Anything else still looks like success, per the note above.
-    if (/rate limit/i.test(error.message)) {
+  // Unknown addresses come back as an error from generateLink. The caller must
+  // not be able to tell, so this is logged and answered exactly like success.
+  if (!link.ok) {
+    if (!link.notConfigured) logError('password reset link failed', { error: link.error })
+    return { sent: true, email }
+  }
+
+  const { subject, html, text } = renderResetEmail({ link: link.actionLink })
+  const sent = await sendEmail({ to: email, subject, html, text })
+
+  if (!sent.ok) {
+    // Rate limiting is the one case worth reporting honestly — it tells the
+    // person to retry rather than to check an inbox nothing was sent to, and it
+    // fires the same way for an unknown address.
+    if (/rate limit/i.test(sent.error)) {
       return { error: 'Too many requests — wait a minute and try again.', email }
     }
-    logError('password reset request failed', { error })
+    logError('password reset send failed', { error: sent.error })
   }
 
   return { sent: true, email }
