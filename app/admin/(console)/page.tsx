@@ -1,11 +1,10 @@
 import type { Metadata } from 'next'
 import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
-import { PageHeader } from '@/components/ui/page-header'
 import { InviteForm } from '@/app/admin/invite-form'
 import { SignupsTable } from '@/app/admin/signups-table'
 import { display } from '@/lib/fonts'
-import { btnPrimary, btnSecondary, card, input, label } from '@/lib/ui'
+import { btnPrimary, btnSecondary, input, label } from '@/lib/ui'
 import type { SignupRow } from '@/app/admin/types'
 
 export const metadata: Metadata = {
@@ -28,9 +27,9 @@ function matches(signup: SignupRow, needle: string) {
 
 function Stat({ label: statLabel, value }: { label: string; value: string | number }) {
   return (
-    <div className="rounded-control border border-line bg-panel p-5">
+    <div className="rounded-control border border-line bg-panel p-5 shadow-overlay">
       <p className="text-sm text-ink-2">{statLabel}</p>
-      <p className={`${display.className} mt-1 text-3xl font-extrabold tabular-nums`}>{value}</p>
+      <p className={`${display.className} mt-1 text-3xl font-extrabold tabular-nums tracking-tight`}>{value}</p>
     </div>
   )
 }
@@ -68,60 +67,77 @@ export default async function AdminSignupsPage({
   const exportHref = `/admin/signups-export?q=${encodeURIComponent(q)}&status=${status}`
 
   return (
-    <>
-      <PageHeader title="Beta signups" description="Everyone who has signed up for the WorkSprout beta.">
+    <div className="mx-auto max-w-7xl px-6 py-10">
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+        <div>
+          <h1 className={`${display.className} text-3xl font-extrabold tracking-tight sm:text-4xl`}>
+            Beta signups
+          </h1>
+          <p className="mt-2 text-ink-2">
+            Manage invites and track everyone who&apos;s signed up for the WorkSprout beta.
+          </p>
+        </div>
         <a href={exportHref} className={btnSecondary} download>
           Export CSV
         </a>
-      </PageHeader>
+      </div>
 
-      <div className="grid gap-4 sm:grid-cols-4">
+      <div className="mt-8 grid gap-4 sm:grid-cols-3">
         <Stat label="Total signups" value={signups.length} />
         <Stat label="Invited" value={invited} />
         <Stat label="Last 7 days" value={countInLast7Days(signups)} />
-        <Stat label="Signed in as" value={claims.email ?? claims.sub} />
       </div>
 
-      <div className="mt-8">
-        <InviteForm />
+      <div className="mt-10 grid gap-6 xl:grid-cols-12">
+        <div className="xl:col-span-4">
+          <InviteForm />
+        </div>
+        <div className="xl:col-span-8">
+          <form
+            method="get"
+            action="/admin"
+            className="rounded-panel border border-line bg-panel p-5 shadow-overlay"
+          >
+            <h2 className="text-sm font-semibold tracking-wide uppercase text-ink-3">Search & Filter</h2>
+            <div className="mt-4 flex flex-wrap items-end gap-3">
+              <div className="min-w-[240px] flex-1">
+                <label htmlFor="q" className={label}>
+                  Search
+                </label>
+                <input
+                  id="q"
+                  name="q"
+                  defaultValue={q}
+                  placeholder="Email, name, or profession"
+                  className={`mt-1.5 ${input}`}
+                />
+              </div>
+              <div>
+                <label htmlFor="status" className={label}>
+                  Status
+                </label>
+                <select id="status" name="status" defaultValue={status} className={`mt-1.5 ${input}`}>
+                  <option value="all">All</option>
+                  <option value="invited">Invited</option>
+                  <option value="pending">Not invited</option>
+                </select>
+              </div>
+              <button type="submit" className={btnPrimary}>
+                Apply
+              </button>
+              {(q || status !== 'all') && (
+                <a href="/admin" className={btnSecondary}>
+                  Clear
+                </a>
+              )}
+            </div>
+          </form>
+        </div>
       </div>
 
-      <form method="get" action="/admin" className={`${card} mt-8 flex flex-wrap items-end gap-3 p-4`}>
-        <div className="min-w-[220px] flex-1">
-          <label htmlFor="q" className={label}>
-            Search
-          </label>
-          <input
-            id="q"
-            name="q"
-            defaultValue={q}
-            placeholder="Email, name, or profession"
-            className={`mt-1.5 ${input}`}
-          />
-        </div>
-        <div>
-          <label htmlFor="status" className={label}>
-            Status
-          </label>
-          <select id="status" name="status" defaultValue={status} className={`mt-1.5 ${input}`}>
-            <option value="all">All</option>
-            <option value="invited">Invited</option>
-            <option value="pending">Not invited</option>
-          </select>
-        </div>
-        <button type="submit" className={btnPrimary}>
-          Filter
-        </button>
-        {(q || status !== 'all') && (
-          <a href="/admin" className={btnSecondary}>
-            Clear
-          </a>
-        )}
-      </form>
-
-      <div className="mt-4">
+      <div className="mt-6">
         <SignupsTable signups={filtered} claimsEmail={claims.email} />
       </div>
-    </>
+    </div>
   )
 }

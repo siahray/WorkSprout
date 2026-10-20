@@ -12,11 +12,11 @@ export function InviteForm() {
     <form
       action={action}
       aria-busy={pending}
-      className="rounded-control border border-line bg-panel p-5"
+      className="h-full rounded-panel border border-line bg-panel p-6 shadow-overlay"
     >
       <h2 className={`${display.className} text-lg font-bold tracking-tight`}>Invite a beta tester</h2>
       <p className="mt-1 text-sm text-ink-2">
-        We email them a link. They use it to set a password, then log in with it.
+        We&apos;ll email them a secure invite link to set their password and get started.
       </p>
 
       <div className="mt-4 flex flex-col gap-2 sm:flex-row">

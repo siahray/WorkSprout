@@ -241,7 +241,7 @@ export default async function TimePage({
       </PageHeader>
 
       {active && (
-        <div className="mb-6">
+        <div className="mb-6 -mx-2 sm:mx-0">
           <RunningTimerCard active={active} />
         </div>
       )}

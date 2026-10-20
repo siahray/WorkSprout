@@ -147,7 +147,7 @@ export function RunningTimerCard({ active }: { active: ActiveTimer }) {
 
   return (
     <div
-      className={`${card} relative overflow-hidden p-6 ${
+      className={`${card} relative overflow-hidden p-4 sm:p-6 ${
         paused ? 'border-mango/50' : 'border-sprout/40'
       }`}
     >
@@ -155,7 +155,7 @@ export function RunningTimerCard({ active }: { active: ActiveTimer }) {
         className={`absolute inset-x-0 top-0 h-1 ${paused ? 'bg-mango' : 'bg-sprout'}`}
         aria-hidden="true"
       />
-      <div className="flex flex-col gap-6 sm:flex-row sm:items-center sm:justify-between">
+      <div className="flex flex-col gap-4 sm:gap-6 lg:flex-row lg:items-center lg:justify-between">
         <div className="min-w-0">
           <span
             className={`inline-flex items-center gap-2 text-meta font-medium ${
@@ -175,19 +175,19 @@ export function RunningTimerCard({ active }: { active: ActiveTimer }) {
           <p className="mt-2 truncate font-semibold text-ink">{active.label}</p>
           <p
             suppressHydrationWarning
-            className={`${display.className} mt-3 text-4xl font-extrabold leading-none tabular-nums sm:text-5xl ${
+            className={`${display.className} mt-3 text-2xl font-extrabold leading-none tabular-nums sm:text-4xl md:text-5xl ${
               paused ? 'text-mango-deep' : 'text-sprout-deep'
             }`}
           >
             {elapsed}
           </p>
         </div>
-        <div className="flex shrink-0 items-center gap-3">
+        <div className="flex w-full flex-wrap items-center gap-2 sm:w-auto sm:gap-3">
           <button
             type="button"
             disabled={pending}
             onClick={() => run(() => (paused ? resumeTimer(active.id) : pauseTimer(active.id)))}
-            className={`${btnSecondary} ${focus}`}
+            className={`${btnSecondary} flex-1 sm:flex-none ${focus}`}
           >
             {pending ? 'Working…' : paused ? 'Resume' : 'Pause'}
           </button>
@@ -195,7 +195,7 @@ export function RunningTimerCard({ active }: { active: ActiveTimer }) {
             type="button"
             disabled={pending}
             onClick={() => run(() => stopTimer(active.id))}
-            className={`${btnPrimary} ${focus}`}
+            className={`${btnPrimary} flex-1 sm:flex-none ${focus}`}
           >
             {pending ? 'Stopping…' : 'Stop & save'}
           </button>

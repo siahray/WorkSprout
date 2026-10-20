@@ -42,7 +42,15 @@ export default function ConfirmPage() {
         refresh_token: refreshToken,
       })
 
-      return sessionError ? null : { next }
+      if (sessionError) return null
+
+      // If this came from a recovery/invite link heading to reset-password,
+      // force them to actually set a new password before navigating anywhere else.
+      if (next === '/reset-password') {
+        document.cookie = 'ws_force_password_reset=1; path=/; max-age=3600; SameSite=Lax'
+      }
+
+      return { next }
     }
 
     void complete().then((outcome) => {

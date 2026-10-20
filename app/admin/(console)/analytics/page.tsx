@@ -2,9 +2,7 @@ import type { Metadata } from 'next'
 import type { ReactNode } from 'react'
 import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
-import { PageHeader } from '@/components/ui/page-header'
 import { display } from '@/lib/fonts'
-import { card } from '@/lib/ui'
 import type { UsageStats } from '@/app/admin/types'
 
 export const metadata: Metadata = {
@@ -13,9 +11,9 @@ export const metadata: Metadata = {
 
 function Tile({ label, value, hint }: { label: string; value: number | string; hint?: string }) {
   return (
-    <div className={`${card} relative overflow-hidden p-5`}>
-      <p className="text-meta font-medium text-ink-3">{label}</p>
-      <p className={`${display.className} mt-2 text-[1.75rem] font-extrabold leading-none tabular-nums`}>
+    <div className="rounded-control border border-line bg-panel p-5 shadow-overlay">
+      <p className="text-sm text-ink-2">{label}</p>
+      <p className={`${display.className} mt-2 text-3xl font-extrabold tabular-nums tracking-tight`}>
         {value}
       </p>
       {hint && <p className="mt-1 text-xs text-ink-3">{hint}</p>}
@@ -25,9 +23,9 @@ function Tile({ label, value, hint }: { label: string; value: number | string; h
 
 function Section({ title, children }: { title: string; children: ReactNode }) {
   return (
-    <section className="mt-8">
-      <h2 className={`${display.className} text-lg font-bold tracking-tight`}>{title}</h2>
-      <div className="mt-3 grid gap-4 sm:grid-cols-3">{children}</div>
+    <section className="mt-10">
+      <h2 className="text-sm font-semibold tracking-wide uppercase text-ink-3">{title}</h2>
+      <div className="mt-4 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">{children}</div>
     </section>
   )
 }
@@ -44,11 +42,13 @@ export default async function AdminAnalyticsPage() {
   const trackedHours = Math.round(Number(stats.time_minutes ?? 0) / 60)
 
   return (
-    <>
-      <PageHeader
-        title="Usage analytics"
-        description="A live snapshot of beta growth and how the product is being used."
-      />
+    <div className="mx-auto max-w-7xl px-6 py-10">
+      <div className="flex flex-col gap-2">
+        <h1 className={`${display.className} text-3xl font-extrabold tracking-tight sm:text-4xl`}>
+          Analytics
+        </h1>
+        <p className="text-ink-2">A live snapshot of beta growth and how the product is being used.</p>
+      </div>
 
       <Section title="Growth">
         <Tile label="Accounts" value={stats.users} hint={`${stats.admins} admin${stats.admins === 1 ? '' : 's'}`} />
@@ -74,6 +74,6 @@ export default async function AdminAnalyticsPage() {
         <Tile label="Hours tracked" value={trackedHours} hint="all time" />
         <Tile label="Feedback" value={stats.feedback_total} hint={`${stats.feedback_new} unread`} />
       </Section>
-    </>
+    </div>
   )
 }

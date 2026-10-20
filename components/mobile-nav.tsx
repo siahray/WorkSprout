@@ -1,12 +1,16 @@
 'use client'
 
 import Link from 'next/link'
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useRef, useState, useTransition } from 'react'
 import { createPortal } from 'react-dom'
 import { Logo } from '@/components/logo'
 import { NavFooter } from '@/components/nav-footer'
 import { NavLinks } from '@/components/nav-links'
+import { pauseTimer, resumeTimer, stopTimer } from '@/app/(app)/time/actions'
 import { focus, railSurface } from '@/lib/ui'
+import { formatElapsed, timerElapsedSeconds, type RunningTimer } from '@/lib/timer'
+
+export type ActiveTimerInfo = RunningTimer
 
 /**
  * Below `lg` the sidebar collapses into a drawer that slides in from the
@@ -18,11 +22,20 @@ import { focus, railSurface } from '@/lib/ui'
  * can slide out); two animation frames pass before it becomes visible, giving
  * the browser a painted closed state to transition from.
  */
-export function MobileNav({ email, name }: { email: string; name: string }) {
+export function MobileNav({ email, name, active }: { email: string; name: string; active?: ActiveTimerInfo | null }) {
   const [mounted, setMounted] = useState(false)
   const [open, setOpen] = useState(false)
+  const [timerOpen, setTimerOpen] = useState(false)
   const toggleRef = useRef<HTMLButtonElement>(null)
   const closeRef = useRef<HTMLButtonElement>(null)
+  const [now, setNow] = useState(() => Date.now())
+  const [pending, startTransition] = useTransition()
+
+  useEffect(() => {
+    if (!active) return
+    const timer = setInterval(() => setNow(Date.now()), 1000)
+    return () => clearInterval(timer)
+  }, [active])
 
   // Escape closes, the page behind stops scrolling, and focus returns to the
   // toggle so keyboard users land where they started. Everything here touches
@@ -45,36 +58,104 @@ export function MobileNav({ email, name }: { email: string; name: string }) {
   }, [open])
 
   const show = () => {
+    setTimerOpen(false)
     setMounted(true)
     requestAnimationFrame(() => {
       requestAnimationFrame(() => setOpen(true))
     })
   }
 
+  function run(action: () => Promise<{ error?: string } | void>) {
+    startTransition(async () => {
+      await action()
+    })
+  }
+
+  const paused = active?.pausedAt != null
+  const elapsed = active ? formatElapsed(timerElapsedSeconds(active, now)) : null
+
   return (
     <>
-      <button
-        ref={toggleRef}
-        type="button"
-        onClick={show}
-        aria-expanded={open}
-        aria-controls="mobile-nav"
-        aria-label="Open menu"
-        className={`inline-flex items-center justify-center rounded-control p-2 text-ink-2 transition-colors hover:bg-ink/5 hover:text-ink lg:hidden print:hidden ${focus}`}
-      >
-        <svg
-          width="22"
-          height="22"
-          viewBox="0 0 24 24"
-          fill="none"
-          stroke="currentColor"
-          strokeWidth="1.8"
-          strokeLinecap="round"
-          aria-hidden="true"
+      <div className="flex items-center gap-1 md:hidden">
+        {active && (
+          <button
+            type="button"
+            onClick={() => setTimerOpen((v) => !v)}
+            aria-expanded={timerOpen}
+            className={`inline-flex items-center gap-2 rounded-control px-2.5 py-1.5 text-small font-semibold tabular-nums ${
+              paused
+                ? 'bg-mango-wash text-mango-deep ring-1 ring-mango/40'
+                : 'bg-sprout-wash text-sprout-deep ring-1 ring-sprout/30'
+            } ${focus}`}
+          >
+            <span className="relative flex h-1.5 w-1.5">
+              {!paused && (
+                <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-sprout opacity-70" />
+              )}
+              <span
+                className={`relative inline-flex h-1.5 w-1.5 rounded-full ${paused ? 'bg-mango' : 'bg-sprout'}`}
+              />
+            </span>
+            {elapsed}
+          </button>
+        )}
+        <button
+          ref={toggleRef}
+          type="button"
+          onClick={show}
+          aria-expanded={open}
+          aria-controls="mobile-nav"
+          aria-label="Open menu"
+          className={`inline-flex items-center justify-center rounded-control p-2 text-ink-2 transition-colors hover:bg-ink/5 hover:text-ink lg:hidden print:hidden ${focus}`}
         >
-          <path d="M4 7h16M4 12h16M4 17h16" />
-        </svg>
-      </button>
+          <svg
+            width="22"
+            height="22"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="1.8"
+            strokeLinecap="round"
+            aria-hidden="true"
+          >
+            <path d="M4 7h16M4 12h16M4 17h16" />
+          </svg>
+        </button>
+      </div>
+
+      {active && timerOpen && (
+        <div className="fixed inset-x-0 top-[calc(56px+env(safe-area-inset-top))] z-30 mx-3 rounded-panel border border-line bg-panel p-3 shadow-overlay md:hidden">
+          <div className="flex items-center justify-between gap-3">
+            <div className="min-w-0">
+              <p className="truncate text-small font-medium text-ink">{active.label}</p>
+              <p
+                suppressHydrationWarning
+                className={`mt-1 text-xl font-extrabold tabular-nums ${paused ? 'text-mango-deep' : 'text-sprout-deep'}`}
+              >
+                {elapsed}
+              </p>
+            </div>
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                disabled={pending}
+                onClick={() => run(() => (paused ? resumeTimer(active.id) : pauseTimer(active.id)))}
+                className="rounded-control bg-canvas px-3 py-1.5 text-meta font-semibold ring-1 ring-line-strong"
+              >
+                {pending ? '…' : paused ? 'Resume' : 'Pause'}
+              </button>
+              <button
+                type="button"
+                disabled={pending}
+                onClick={() => run(() => stopTimer(active.id))}
+                className="rounded-control bg-ink px-3 py-1.5 text-meta font-semibold text-white"
+              >
+                {pending ? '…' : 'Stop'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {mounted &&
         createPortal(

@@ -15,7 +15,7 @@ const weave = {
 
 const pains = [
   'Hours in one app, invoices in a doc, payments buried in chat screenshots.',
-  'Every invoice means redoing the tax math and hoping it is right.',
+  'Every invoice means redoing the computation and hoping it is right.',
   'You finish the work, then spend days chasing the payment.',
 ];
 
@@ -27,9 +27,9 @@ const loop = [
 ];
 
 const niches = [
-  { who: 'Virtual assistants', text: 'Log hours across several retainer clients and send one invoice per client at month end.' },
+  { who: 'Virtual Assistants', text: 'Log hours across several retainer clients and send one invoice per client at month end.' },
   { who: 'Developers', text: 'Track time per task, bill by milestone, and keep every project and client in one place.' },
-  { who: 'Artists and designers', text: 'Quote a fixed fee, track revisions as hours, and invoice when the file is approved.' },
+  { who: 'Artists and Designers', text: 'Quote a fixed fee, track revisions as hours, and invoice when the file is approved.' },
 ];
 
 const later = [

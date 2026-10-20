@@ -41,5 +41,24 @@ export async function updateSession(request: NextRequest) {
     // return NextResponse.redirect(url)
   }
 
+  // If the user came from a recovery/invite link, force them to set a new password
+  // before accessing any other part of the app.
+  const forcePasswordReset = request.cookies.get('ws_force_password_reset')?.value === '1'
+  const { pathname } = request.nextUrl
+
+  if (forcePasswordReset && user) {
+    const allowed =
+      pathname === '/reset-password' ||
+      pathname.startsWith('/auth/') ||
+      pathname.startsWith('/_next/') ||
+      pathname === '/favicon.ico'
+
+    if (!allowed) {
+      const url = request.nextUrl.clone()
+      url.pathname = '/reset-password'
+      return NextResponse.redirect(url)
+    }
+  }
+
   return supabaseResponse
 }

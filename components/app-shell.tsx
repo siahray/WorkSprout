@@ -50,12 +50,14 @@ export function AppShell({
 
         <div className="flex min-h-screen flex-col">
           <header className="sticky top-0 z-20 border-b border-line bg-canvas/80 backdrop-blur-md print:hidden">
-            <div className="flex items-center gap-3 px-5 py-3 sm:px-8 lg:px-12">
+            <div className="flex items-center gap-3 px-4 py-2 sm:px-6 lg:px-12">
               <Link href="/dashboard" className={`lg:hidden ${focus}`} aria-label="WorkSprout dashboard">
-                <Logo size={28} />
+                <Logo size={26} />
               </Link>
-              <div className="ml-auto flex items-center gap-3">
-                <ActiveTimer active={active} />
+              <div className="ml-auto flex items-center gap-2 sm:gap-3">
+                <div className="hidden md:block">
+                  <ActiveTimer active={active} />
+                </div>
                 <form action={logout} className="hidden sm:block">
                   <button
                     className={`rounded-control px-3 py-2 text-small font-medium text-ink-2 transition-colors hover:bg-ink/5 hover:text-ink ${focus}`}
@@ -63,7 +65,7 @@ export function AppShell({
                     Sign out
                   </button>
                 </form>
-                <MobileNav email={email} name={name} />
+                <MobileNav email={email} name={name} active={active} />
               </div>
             </div>
           </header>

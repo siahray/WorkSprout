@@ -31,6 +31,11 @@ export async function setNewPassword(_prev: ResetState, formData: FormData): Pro
     return { error: 'Could not update your password — please try again.' }
   }
 
+  // Successfully set new password - clear the force reset flag
+  const { cookies } = await import('next/headers')
+  const cookieStore = await cookies()
+  cookieStore.delete('ws_force_password_reset')
+
   // The recovery link left them signed in, so they land in the app directly.
   redirect('/dashboard')
 }

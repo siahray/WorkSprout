@@ -29,11 +29,11 @@ export function SignupsTable({
   }
 
   return (
-    <div className="overflow-hidden rounded-control border border-line bg-panel">
+    <div className="overflow-hidden rounded-panel border border-line bg-panel shadow-overlay">
       <form
         id={BULK_FORM}
         action={action}
-        className="flex flex-wrap items-center gap-3 border-b border-line bg-canvas px-5 py-3"
+        className="flex flex-wrap items-center gap-3 border-b border-line px-5 py-3"
       >
         <button
           type="button"
@@ -110,7 +110,7 @@ export function SignupsTable({
                   </td>
                   <td className="px-5 py-3.5 text-ink-2">{s.full_name ?? '—'}</td>
                   <td className="px-5 py-3.5 text-ink-2">{s.profession ?? '—'}</td>
-                  <td className="px-5 py-3.5 tabular-nums text-ink-2">
+                  <td className="px-5 py-3.5 tabular-nums text-ink-2" suppressHydrationWarning>
                     {new Date(s.created_at).toLocaleString('en-US', {
                       dateStyle: 'medium',
                       timeStyle: 'short',
@@ -121,7 +121,7 @@ export function SignupsTable({
                       <div className="flex flex-col items-start gap-1">
                         <InviteButton email={s.email} invited={Boolean(s.invited_at)} />
                         {s.invited_at && (
-                          <span className="text-xs text-ink-3">
+                          <span className="text-xs text-ink-3" suppressHydrationWarning>
                             Invited{' '}
                             {new Date(s.invited_at).toLocaleDateString('en-US', { dateStyle: 'medium' })}
                           </span>
