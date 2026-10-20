@@ -4,9 +4,7 @@ import { useActionState } from 'react'
 import { login } from '../actions'
 import { AdminLogo } from '../logo'
 import { display } from '@/lib/fonts'
-
-const focus =
-  'focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-sprout'
+import { btnPrimary, focus } from '@/lib/ui'
 
 export default function AdminLoginPage() {
   const [state, formAction, pending] = useActionState(login, {})
@@ -63,7 +61,7 @@ export default function AdminLoginPage() {
           <button
             type="submit"
             disabled={pending}
-            className={`mt-6 w-full rounded-control bg-ink px-5 py-3 font-semibold text-white hover:bg-sprout-deep disabled:opacity-60 ${focus}`}
+            className={`mt-6 w-full ${btnPrimary} px-5 py-3`}
           >
             {pending ? 'Signing in…' : 'Sign in'}
           </button>

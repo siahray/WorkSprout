@@ -3,9 +3,7 @@
 import { useActionState } from 'react'
 import { sendInvite, type InviteState } from './actions'
 import { display } from '@/lib/fonts'
-
-const focus =
-  'focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-sprout'
+import { btnPrimary, focus } from '@/lib/ui'
 
 export function InviteForm() {
   const [state, action, pending] = useActionState<InviteState, FormData>(sendInvite, {})
@@ -39,7 +37,7 @@ export function InviteForm() {
         <button
           type="submit"
           disabled={pending}
-          className={`rounded-control bg-ink px-5 py-3 font-semibold text-white transition-colors hover:bg-sprout-deep disabled:cursor-wait disabled:opacity-60 ${focus}`}
+          className={`${btnPrimary} px-5 py-3 disabled:cursor-wait`}
         >
           {pending ? 'Sending…' : 'Send invite'}
         </button>

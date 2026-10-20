@@ -457,7 +457,7 @@ brand colours, not a different palette.
 | Change | Notes |
 |---|---|
 | `app/globals.css` | A five-step Ink ramp mixed toward the canvas rather than toward grey, `line`/`line-strong` hairlines, `canvas`/`panel` surfaces, a real type scale (12/13/15/17/22/28/34), three radii, and three depths, all as `@theme` tokens. The four brand values are byte-identical to before, plus `mango-strong` (`#E9A82A`) which was already in use as Mango's hover. |
-| `lib/ui.ts` | Every shared class string rewritten on the tokens: `panel`/`card`, `meta`, `panelHeader`/`panelTitle`, the button set (`btnPrimary`, `btnAccent`, `btnMango`, `btnSecondary`, `btnGhost`, `btnDanger`), `input`, `tableHead`/`th`/`rowHover`, `alertError`/`alertOk`. |
+| `lib/ui.ts` | Every shared class string rewritten on the tokens: `panel`/`card`, `meta`, `panelHeader`/`panelTitle`, the button set (`btnPrimary`, `btnMango`, `btnSecondary`, `btnGhost`, `btnDanger`), `input`, `tableHead`/`th`/`rowHover`, `alertError`/`alertOk`. |
 | Dashboard, invoices | The two screens restructured first: four stat cards became one hairline-divided strip, the month's figures became a definition list, and invoice rows read as a ledger — tabular figures right-aligned, a balance in Ink when it is owed. |
 | The rest of the app | Swept onto the same tokens: ~63 files, so the ramp, hairlines, radii, and sentence-case meta labels are now one vocabulary everywhere. Five pages that had grown their own field/label/error/CTA strings now import the shared ones. |
 | `lib/fonts.ts` | Figtree retired: the body face is Geist (already set on `<html>`), and Bricolage is kept for page titles, hero figures, and the invoice document. |
