@@ -1,10 +1,8 @@
 import Link from 'next/link';
 import type { ReactNode } from 'react';
-import { Bricolage_Grotesque, Figtree } from 'next/font/google';
 import { LogoMark } from '@/components/logo-mark';
-
-const display = Bricolage_Grotesque({ subsets: ['latin'], weight: ['600', '800'] });
-const body = Figtree({ subsets: ['latin'], weight: ['400', '500', '600'] });
+import { display } from '@/lib/fonts';
+import { btnMango, btnPrimary, focus } from '@/lib/ui';
 
 // Brand: Ink #0E2F27 · Sprout #2E9E6B · Mango #F4B63F · Sampaguita #F4F8F5
 // Set to a number (e.g. 40) to show a real "spots left" line; leave null to hide it.
@@ -14,9 +12,6 @@ const weave = {
   backgroundImage:
     'repeating-linear-gradient(45deg, rgba(255,255,255,.05) 0 2px, transparent 2px 14px), repeating-linear-gradient(-45deg, rgba(255,255,255,.05) 0 2px, transparent 2px 14px)',
 };
-
-const focus =
-  'focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#2E9E6B]';
 
 const pains = [
   'Hours in one app, invoices in a doc, payments buried in chat screenshots.',
@@ -70,15 +65,14 @@ function Logo({ light = false, size = 34 }: { light?: boolean; size?: number }) 
 
 function Eyebrow({ children, dark = false }: { children: ReactNode; dark?: boolean }) {
   return (
-    <p
-      className={`mb-3 text-xs font-semibold uppercase tracking-[0.18em] ${
-        dark ? 'text-[#F4B63F]' : 'text-[#1F6B52]'
-      }`}
-    >
+    <p className={`mb-3 text-meta font-medium ${dark ? 'text-mango' : 'text-sprout-deep'}`}>
       {children}
     </p>
   );
 }
+
+/** The section heading. One string, so every section opens the same way. */
+const heading = `${display.className} text-3xl font-extrabold tracking-tight text-ink md:text-4xl`;
 
 function SignupForm({ id, dark = false }: { id: string; dark?: boolean }) {
   return (
@@ -95,24 +89,21 @@ function SignupForm({ id, dark = false }: { id: string; dark?: boolean }) {
           required
           autoComplete="email"
           placeholder="you@email.com"
-          className={`min-w-0 flex-1 rounded-xl border px-4 py-4 text-base text-[#0E2F27] placeholder:text-[#0E2F27]/50 ${
-            dark ? 'border-white/20 bg-white' : 'border-[#0E2F27]/20 bg-white'
+          className={`min-w-0 flex-1 rounded-control border bg-panel px-4 py-4 text-lead text-ink placeholder:text-ink-4 ${
+            dark ? 'border-white/25' : 'border-line-strong'
           } ${focus}`}
         />
-        <button
-          type="submit"
-          className={`rounded-xl bg-[#F4B63F] px-6 py-4 text-base font-semibold text-[#0E2F27] hover:bg-[#e9a82a] ${focus}`}
-        >
+        <button type="submit" className={`${btnMango} px-6 py-4 text-lead`}>
           Get free beta access
         </button>
       </div>
-      <ul className={`mt-3 flex flex-wrap gap-x-5 gap-y-1 text-sm ${dark ? 'text-white/75' : 'text-[#0E2F27]/70'}`}>
+      <ul className={`mt-3 flex flex-wrap gap-x-5 gap-y-1 text-small ${dark ? 'text-white/75' : 'text-ink-3'}`}>
         <li>✓ Free during beta</li>
         <li>✓ No card needed</li>
         <li>✓ Ready in minutes</li>
       </ul>
       {BETA_SPOTS_LEFT !== null && (
-        <p className={`mt-2 text-sm font-semibold ${dark ? 'text-[#F4B63F]' : 'text-[#1F6B52]'}`}>
+        <p className={`mt-2 text-small font-semibold ${dark ? 'text-mango' : 'text-sprout-deep'}`}>
           {BETA_SPOTS_LEFT} beta spots left
         </p>
       )}
@@ -122,7 +113,7 @@ function SignupForm({ id, dark = false }: { id: string; dark?: boolean }) {
 
 export default function Home() {
   return (
-    <div className={`${body.className} min-h-screen bg-[#F4F8F5] text-[#0E2F27]`}>
+    <div className="min-h-screen bg-canvas text-ink">
       <style>{`
         @keyframes ws-stamp {
           0% { opacity: 0; transform: rotate(-9deg) scale(1.7); }
@@ -140,13 +131,10 @@ export default function Home() {
       <nav className="mx-auto flex max-w-6xl items-center justify-between px-6 py-5">
         <div className="flex items-center gap-3">
           <Logo size={48} />
-          <span className="rounded-full bg-[#F4B63F] px-2.5 py-0.5 text-xs font-semibold">Beta</span>
+          <span className="rounded-full bg-mango px-2.5 py-0.5 text-meta font-semibold text-ink">Beta</span>
         </div>
         <div className="flex items-center gap-5">
-          <Link
-            href="#join"
-            className={`hidden rounded-lg bg-[#0E2F27] px-5 py-2.5 font-semibold text-white hover:bg-[#1F6B52] sm:block ${focus}`}
-          >
+          <Link href="#join" className={`${btnPrimary} hidden text-lead sm:inline-flex`}>
             Join the beta
           </Link>
         </div>
@@ -169,7 +157,7 @@ export default function Home() {
               </svg>
             </span>
           </h1>
-          <p className="mt-6 max-w-xl text-lg leading-relaxed text-[#0E2F27]/75">
+          <p className="mt-6 max-w-xl text-lg leading-relaxed text-ink-2">
             Clients, tasks, hours, invoices, and payments in one workspace built for virtual assistants,
             developers, and artists.
           </p>
@@ -179,31 +167,31 @@ export default function Home() {
         </div>
 
         <div className="relative mx-auto w-full max-w-md" aria-label="Sample invoice produced by WorkSprout">
-          <div className="rounded-2xl border border-[#0E2F27]/12 bg-white p-7 shadow-[0_24px_50px_-24px_rgba(14,47,39,0.45)]">
+          <div className="rounded-panel border border-line bg-panel p-7 shadow-overlay">
             <div className="flex items-start justify-between">
               <div>
                 <p className={`${display.className} text-xl font-extrabold`}>Invoice #0012</p>
-                <p className="mt-1 text-sm text-[#0E2F27]/65">Billed to RayTech</p>
+                <p className="mt-1 text-small text-ink-3">Billed to RayTech</p>
               </div>
-              <p className="text-sm text-[#0E2F27]/65">Sample</p>
+              <p className="text-small text-ink-3">Sample</p>
             </div>
-            <dl className="mt-7 space-y-3 text-sm">
+            <dl className="mt-7 space-y-3 text-small">
               <div className="flex justify-between gap-4">
                 <dt>
                   Website revisions
-                  <span className="block text-[#0E2F27]/60">18 hrs × ₱1,200</span>
+                  <span className="block text-ink-3">18 hrs × ₱1,200</span>
                 </dt>
                 <dd className="tabular-nums">₱21,600.00</dd>
               </div>
               <div className="flex justify-between gap-4">
                 <dt>
                   Landing page design
-                  <span className="block text-[#0E2F27]/60">Fixed fee</span>
+                  <span className="block text-ink-3">Fixed fee</span>
                 </dt>
                 <dd className="tabular-nums">₱8,000.00</dd>
               </div>
             </dl>
-            <div className="mt-6 space-y-2 border-t border-[#0E2F27]/15 pt-4 text-sm">
+            <div className="mt-6 space-y-2 border-t border-line pt-4 text-small">
               <div className="flex justify-between">
                 <span>Subtotal</span>
                 <span className="tabular-nums">₱29,600.00</span>
@@ -217,10 +205,10 @@ export default function Home() {
                 <span className="tabular-nums">₱30,488.00</span>
               </div>
             </div>
-            <p className="mt-5 text-sm text-[#0E2F27]/65">Pay with Maya</p>
+            <p className="mt-5 text-small text-ink-3">Pay with Maya</p>
           </div>
           <div
-            className={`ws-stamp ${display.className} absolute -bottom-5 -right-3 rounded-md border-4 border-[#2E9E6B] bg-[#F4F8F5]/90 px-4 py-1 text-2xl font-extrabold text-[#1F6B52]`}
+            className={`ws-stamp ${display.className} absolute -bottom-5 -right-3 rounded-chip border-4 border-sprout bg-canvas/90 px-4 py-1 text-2xl font-extrabold text-sprout-deep`}
             aria-hidden="true"
           >
             PAID
@@ -229,15 +217,13 @@ export default function Home() {
       </header>
 
       {/* Problem */}
-      <section className="bg-white px-6 py-20">
+      <section className="bg-panel px-6 py-20">
         <div className="mx-auto max-w-6xl">
           <Eyebrow>The problem</Eyebrow>
-          <h2 className={`${display.className} max-w-2xl text-3xl font-extrabold tracking-tight md:text-4xl`}>
-            Freelancing is hard enough without the admin
-          </h2>
+          <h2 className={heading}>Freelancing is hard enough without the admin</h2>
           <ul className="mt-10 grid gap-8 md:grid-cols-3">
             {pains.map((p) => (
-              <li key={p} className="border-l-4 border-[#F4B63F] pl-5 text-lg leading-relaxed text-[#0E2F27]/80">
+              <li key={p} className="border-l-4 border-mango pl-5 text-lg leading-relaxed text-ink-2">
                 {p}
               </li>
             ))}
@@ -249,19 +235,17 @@ export default function Home() {
       <section className="px-6 py-24">
         <div className="mx-auto max-w-6xl">
           <Eyebrow>How it works</Eyebrow>
-          <h2 className={`${display.className} max-w-2xl text-3xl font-extrabold tracking-tight md:text-4xl`}>
-            One flow, from first task to payment
-          </h2>
+          <h2 className={heading}>One flow, from first task to payment</h2>
           <ol className="mt-12 grid gap-10 md:grid-cols-2 lg:grid-cols-4">
             {loop.map((s, i) => (
               <li key={s.title}>
                 <span
-                  className={`${display.className} flex h-10 w-10 items-center justify-center rounded-full bg-[#0E2F27] text-lg font-semibold text-white`}
+                  className={`${display.className} flex h-10 w-10 items-center justify-center rounded-full bg-ink text-lg font-semibold text-white`}
                 >
                   {i + 1}
                 </span>
                 <h3 className={`${display.className} mt-4 text-xl font-semibold`}>{s.title}</h3>
-                <p className="mt-2 leading-relaxed text-[#0E2F27]/75">{s.text}</p>
+                <p className="mt-2 leading-relaxed text-ink-2">{s.text}</p>
               </li>
             ))}
           </ol>
@@ -269,17 +253,15 @@ export default function Home() {
       </section>
 
       {/* Niches */}
-      <section className="bg-white px-6 py-24">
+      <section className="bg-panel px-6 py-24">
         <div className="mx-auto max-w-6xl">
           <Eyebrow>Built for you</Eyebrow>
-          <h2 className={`${display.className} max-w-2xl text-3xl font-extrabold tracking-tight md:text-4xl`}>
-            Made for how you actually work
-          </h2>
-          <div className="mt-10 grid gap-px overflow-hidden rounded-xl border border-[#0E2F27]/12 bg-[#0E2F27]/12 md:grid-cols-3">
+          <h2 className={heading}>Made for how you actually work</h2>
+          <div className="mt-10 grid gap-px overflow-hidden rounded-panel border border-line bg-line md:grid-cols-3">
             {niches.map((n) => (
-              <div key={n.who} className="bg-[#F4F8F5] p-7">
+              <div key={n.who} className="bg-canvas p-7">
                 <h3 className={`${display.className} text-xl font-semibold`}>{n.who}</h3>
-                <p className="mt-3 leading-relaxed text-[#0E2F27]/75">{n.text}</p>
+                <p className="mt-3 leading-relaxed text-ink-2">{n.text}</p>
               </div>
             ))}
           </div>
@@ -287,11 +269,11 @@ export default function Home() {
       </section>
 
       {/* Why join + roadmap */}
-      <section className="px-6 py-24 text-white" style={{ backgroundColor: '#0E2F27', ...weave }}>
+      <section className="bg-ink px-6 py-24 text-white" style={weave}>
         <div className="mx-auto grid max-w-6xl gap-14 lg:grid-cols-2">
           <div>
             <Eyebrow dark>Open beta</Eyebrow>
-            <h2 className={`${display.className} text-3xl font-extrabold tracking-tight md:text-4xl`}>
+            <h2 className={`${display.className} text-3xl font-extrabold tracking-tight text-white md:text-4xl`}>
               Join now and shape what we build
             </h2>
             <p className="mt-4 max-w-md leading-relaxed text-white/80">
@@ -300,7 +282,7 @@ export default function Home() {
             </p>
           </div>
           <div>
-            <h3 className={`${display.className} text-lg font-semibold text-[#F4B63F]`}>Coming after the beta</h3>
+            <h3 className={`${display.className} text-lg font-semibold text-mango`}>Coming after the beta</h3>
             <ul className="mt-4 grid gap-x-8 gap-y-3 sm:grid-cols-2">
               {later.map((l) => (
                 <li key={l} className="border-b border-white/15 pb-3 text-white/90">
@@ -316,17 +298,17 @@ export default function Home() {
       <section className="px-6 py-24">
         <div className="mx-auto max-w-3xl">
           <Eyebrow>FAQ</Eyebrow>
-          <h2 className={`${display.className} text-3xl font-extrabold tracking-tight md:text-4xl`}>Questions</h2>
-          <div className="mt-8 divide-y divide-[#0E2F27]/15 border-y border-[#0E2F27]/15">
+          <h2 className={heading}>Questions</h2>
+          <div className="mt-8 divide-y divide-line border-y border-line">
             {faqs.map((f) => (
               <details key={f.q} className="group py-5">
                 <summary className={`flex cursor-pointer items-center justify-between gap-4 text-lg font-semibold ${focus}`}>
                   {f.q}
-                  <span className="ws-plus text-2xl leading-none text-[#1F6B52]" aria-hidden="true">
+                  <span className="ws-plus text-2xl leading-none text-sprout-deep" aria-hidden="true">
                     +
                   </span>
                 </summary>
-                <p className="mt-3 leading-relaxed text-[#0E2F27]/75">{f.a}</p>
+                <p className="mt-3 leading-relaxed text-ink-2">{f.a}</p>
               </details>
             ))}
           </div>
@@ -334,7 +316,7 @@ export default function Home() {
       </section>
 
       {/* Final CTA */}
-      <section className="px-6 py-24 text-white" style={{ backgroundColor: '#1F6B52', ...weave }}>
+      <section className="bg-sprout-deep px-6 py-24 text-white" style={weave}>
         <div className="mx-auto flex max-w-3xl flex-col items-center text-center">
           <h2 className={`${display.className} text-3xl font-extrabold tracking-tight md:text-5xl`}>
             Your next invoice can come from WorkSprout
@@ -345,8 +327,8 @@ export default function Home() {
       </section>
 
       {/* Footer */}
-      <footer className="bg-white px-6 pb-28 pt-10 md:pb-10">
-        <div className="mx-auto max-w-6xl space-y-3 text-sm text-[#0E2F27]/65">
+      <footer className="bg-panel px-6 pb-28 pt-10 md:pb-10">
+        <div className="mx-auto max-w-6xl space-y-3 text-small text-ink-3">
           <Logo />
           <p>© 2026 WorkSprout. This is a beta, so some things will change or break.</p>
           <p>Tax amounts are estimates, not tax advice. Confirm with the BIR or an accountant.</p>
@@ -355,13 +337,10 @@ export default function Home() {
 
       {/* Mobile sticky CTA */}
       <div
-        className="fixed inset-x-0 bottom-0 z-10 border-t border-white/10 bg-[#0E2F27] p-3 md:hidden"
+        className="fixed inset-x-0 bottom-0 z-10 border-t border-white/10 bg-ink p-3 md:hidden"
         style={{ paddingBottom: 'calc(0.75rem + env(safe-area-inset-bottom, 0px))' }}
       >
-        <Link
-          href="#join"
-          className={`block rounded-xl bg-[#F4B63F] py-3.5 text-center font-semibold text-[#0E2F27] ${focus}`}
-        >
+        <Link href="#join" className={`${btnMango} flex w-full py-3.5`}>
           Get free beta access
         </Link>
       </div>
