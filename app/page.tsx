@@ -155,9 +155,6 @@ export default function Home() {
       {/* Hero */}
       <header className="mx-auto grid max-w-6xl items-center gap-16 px-6 pb-24 pt-10 lg:grid-cols-[1.1fr_0.9fr]">
         <div>
-          <p className="mb-4 inline-block rounded-full border border-[#0E2F27]/20 px-3 py-1 text-sm font-medium">
-            Free beta
-          </p>
           <h1 className={`${display.className} text-5xl font-extrabold leading-[1.04] tracking-tight md:text-6xl`}>
             Track the work. Send the invoice.{" "}
             <span className="relative whitespace-nowrap">
