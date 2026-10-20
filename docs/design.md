@@ -74,9 +74,8 @@ disabled under `prefers-reduced-motion`.
 
 ## Sweeping the remaining routes
 
-The sweep is done: every route and component draws from the token layer, with one
-exception — `app/page.tsx` (the marketing page), held back while its pending local
-edit lands. The checklist, for a new page or a stray value:
+The sweep is done: every route and component draws from the token layer,
+including `app/page.tsx`. The checklist, for a new page or a stray value:
 
 - `text-[#0E2F27]/NN` → the ramp step with adequate contrast (`ink-2`/`ink-3`).
 - `rounded-2xl border border-[#0E2F27]/10 bg-white shadow-[…]` → `card`.
@@ -104,5 +103,6 @@ Two surfaces are what make the app feel finished rather than merely styled:
   offers the retry, and keeps the frame around the message. This version of Next
   passes `retry` to an error boundary — not the older `reset`.
 
-Body copy is Geist everywhere. Bricolage (`display`) is the only other face, and
-it is spent on titles, figures, and the invoice.
+Body copy is Geist everywhere — including the marketing page, which was the last
+place Figtree lived. Bricolage (`display`) is the only other face, and it is spent
+on titles, figures, and the invoice.

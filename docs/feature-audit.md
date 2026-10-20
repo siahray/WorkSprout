@@ -463,9 +463,15 @@ brand colours, not a different palette.
 | `lib/fonts.ts` | Figtree retired: the body face is Geist (already set on `<html>`), and Bricolage is kept for page titles, hero figures, and the invoice document. |
 | `app/(app)/loading.tsx`, `dashboard/loading.tsx`, `error.tsx` | New. Before this, a click showed nothing until the server in Sydney answered; now the shape of the next screen paints immediately, and a failed render says so inside the frame instead of looking like a broken product. |
 | `app/(app)/layout.tsx` | The profile and active-timer reads were independent but sequential — one wasted round trip to `ap-southeast-2` on every cold load. Now `Promise.all`. |
+| Tailwind v4 important modifier | Fixing the sweep turned up 32 `!px-*` / `!py-*` classes that had been silently ignored since the v3→v4 upgrade — v4 moved the modifier to the end of the utility (`px-2.5!`). Every dense table button had therefore been rendering at its full size. |
+| `app/page.tsx` (branch `design/landing`) | The marketing page swept last, after its pending local edit had landed as its own commit (`29ed521`, the hero's "Free beta" badge removed). It was the final home of Figtree and of hand-written hexes; it now uses `canvas`/`ink`/`sprout-deep`/`mango`/`mango-strong` and the shared field and Mango CTA from `lib/ui`. Every computed colour is byte-identical to what it rendered before. |
 
-Not swept: `app/page.tsx`, the marketing page, which carries a pending local edit
-(Figtree there is now its own copy, so nothing else depends on it).
+**The v4 important-modifier bug was found by checking the rendering, not the
+source.** A browser pass that collected every class on each workspace route and
+looked each one up in the stylesheet reported `/reports` with two classes that
+did not exist — every other page was clean, because only dense table controls
+used them. Nothing in lint, types, or the build could have caught it: the class
+names are strings.
 
 `docs/design.md` records the tokens, the two colour rules, and the checklist.
 
