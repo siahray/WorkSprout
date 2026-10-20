@@ -18,7 +18,7 @@ import { clampedPage, pageCount, pageRange, parsePage, listHref } from '@/lib/pa
 import { monthKey, monthLabel } from '@/lib/period'
 import { sanitizeSearch } from '@/lib/search'
 import { formatDate, nowDateInput, peso } from '@/lib/format'
-import { btnAccent, btnGhost, btnSecondary, card, focus, rowHover, tableHead, th } from '@/lib/ui'
+import { btnGhost, btnPrimary, btnSecondary, card, focus, rowHover, tableHead, th } from '@/lib/ui'
 import { display } from '@/lib/fonts'
 
 export const metadata: Metadata = {
@@ -172,7 +172,7 @@ export default async function ExpensesPage({
             <AddExpenseDialog
               projects={projects}
               label="Add your first expense"
-              className={`${btnAccent} ${focus}`}
+              className={`${btnPrimary} ${focus}`}
             />
           </div>
         ) : (

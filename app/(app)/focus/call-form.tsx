@@ -4,7 +4,7 @@ import { useActionState } from 'react'
 import { Field } from '@/components/ui/field'
 import { SubmitButton } from '@/components/ui/submit-button'
 import { createCall } from './actions'
-import { alertError, alertOk, btnAccent, input } from '@/lib/ui'
+import { alertError, alertOk, btnMango, input } from '@/lib/ui'
 import type { FormState } from '@/lib/validation'
 
 const DURATIONS = [15, 30, 45, 60, 90, 120]
@@ -74,7 +74,7 @@ export function CallForm({
       )}
       {state.ok && <p className={alertOk}>{state.ok}</p>}
 
-      <SubmitButton pendingText="Scheduling…" className={btnAccent}>
+      <SubmitButton pendingText="Scheduling…" className={btnMango}>
         Schedule call
       </SubmitButton>
     </form>

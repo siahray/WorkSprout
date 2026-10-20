@@ -5,7 +5,7 @@ import { useActionState } from 'react'
 import { Field } from '@/components/ui/field'
 import { SubmitButton } from '@/components/ui/submit-button'
 import { addPayment, updatePayment } from '../actions'
-import { alertError, alertOk, btnAccent, btnSecondary, input } from '@/lib/ui'
+import { alertError, alertOk, btnMango, btnSecondary, input } from '@/lib/ui'
 import { nowDateInput } from '@/lib/format'
 import { useSubmissionKey } from '@/lib/use-submission-key'
 import type { FormState } from '@/lib/validation'
@@ -117,12 +117,12 @@ export function PaymentForm({
           <button type="button" onClick={onCancel} className={btnSecondary}>
             Cancel
           </button>
-          <SubmitButton pendingText="Saving…" className={btnAccent}>
+          <SubmitButton pendingText="Saving…" className={btnMango}>
             Save changes
           </SubmitButton>
         </div>
       ) : (
-        <SubmitButton pendingText="Recording…" className={btnAccent}>
+        <SubmitButton pendingText="Recording…" className={btnMango}>
           Record payment
         </SubmitButton>
       )}

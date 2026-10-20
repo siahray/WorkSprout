@@ -7,7 +7,7 @@ import { SubmitButton } from '@/components/ui/submit-button'
 import { createExpense, updateExpense } from './actions'
 import { EXPENSE_CATEGORIES } from '@/lib/expenses'
 import { nowDateInput } from '@/lib/format'
-import { alertError, alertOk, btnAccent, btnSecondary, input } from '@/lib/ui'
+import { alertError, alertOk, btnMango, btnSecondary, input } from '@/lib/ui'
 import type { FormState } from '@/lib/validation'
 
 // The values an existing expense prefills the form with. Amount is passed as
@@ -142,12 +142,12 @@ export function ExpenseForm({
           <button type="button" onClick={onCancel} className={btnSecondary}>
             Cancel
           </button>
-          <SubmitButton pendingText={expense ? 'Saving…' : 'Adding…'} className={btnAccent}>
+          <SubmitButton pendingText={expense ? 'Saving…' : 'Adding…'} className={btnMango}>
             {expense ? 'Save changes' : 'Add expense'}
           </SubmitButton>
         </div>
       ) : (
-        <SubmitButton pendingText={expense ? 'Saving…' : 'Adding…'} className={btnAccent}>
+        <SubmitButton pendingText={expense ? 'Saving…' : 'Adding…'} className={btnMango}>
           {expense ? 'Save changes' : 'Add expense'}
         </SubmitButton>
       )}

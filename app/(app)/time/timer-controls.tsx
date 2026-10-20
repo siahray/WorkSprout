@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useTransition } from 'react'
 import { pauseTimer, resumeTimer, startTimer, stopTimer } from './actions'
-import { alertError, btnAccent, btnSecondary, card, focus, input } from '@/lib/ui'
+import { alertError, btnMango, btnPrimary, btnSecondary, card, focus, input } from '@/lib/ui'
 import { display } from '@/lib/fonts'
 import { formatElapsed, timerElapsedSeconds, type RunningTimer } from '@/lib/timer'
 
@@ -118,7 +118,7 @@ export function StartTimer({
       {error && <p role="alert" className={alertError}>{error}</p>}
 
       <div className="flex items-center gap-3">
-        <button type="submit" disabled={pending || !taskId} className={`${btnAccent} ${focus}`}>
+        <button type="submit" disabled={pending || !taskId} className={`${btnMango} ${focus}`}>
           {pending ? 'Starting…' : 'Start timer'}
         </button>
         {hasRunning && <span className="text-xs text-ink-3">Starting a new timer stops the current one.</span>}
@@ -195,7 +195,7 @@ export function RunningTimerCard({ active }: { active: ActiveTimer }) {
             type="button"
             disabled={pending}
             onClick={() => run(() => stopTimer(active.id))}
-            className={`${btnAccent} bg-ink hover:bg-sprout-deep ${focus}`}
+            className={`${btnPrimary} ${focus}`}
           >
             {pending ? 'Stopping…' : 'Stop & save'}
           </button>

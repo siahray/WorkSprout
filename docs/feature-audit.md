@@ -457,15 +457,21 @@ brand colours, not a different palette.
 | Change | Notes |
 |---|---|
 | `app/globals.css` | A five-step Ink ramp mixed toward the canvas rather than toward grey, `line`/`line-strong` hairlines, `canvas`/`panel` surfaces, a real type scale (12/13/15/17/22/28/34), three radii, and three depths, all as `@theme` tokens. The four brand values are byte-identical to before, plus `mango-strong` (`#E9A82A`) which was already in use as Mango's hover. |
-| `lib/ui.ts` | Every shared class string rewritten on the tokens: `panel`/`card`, `meta`, `panelHeader`/`panelTitle`, the button set (`btnPrimary`, `btnAccent`, `btnMango`, `btnSecondary`, `btnGhost`, `btnDanger`), `input`, `tableHead`/`th`/`rowHover`, `alertError`/`alertOk`. |
+| `lib/ui.ts` | Every shared class string rewritten on the tokens: `panel`/`card`, `meta`, `panelHeader`/`panelTitle`, the button set (`btnPrimary`, `btnMango`, `btnSecondary`, `btnGhost`, `btnDanger`), `input`, `tableHead`/`th`/`rowHover`, `alertError`/`alertOk`. |
 | Dashboard, invoices | The two screens restructured first: four stat cards became one hairline-divided strip, the month's figures became a definition list, and invoice rows read as a ledger — tabular figures right-aligned, a balance in Ink when it is owed. |
 | The rest of the app | Swept onto the same tokens: ~63 files, so the ramp, hairlines, radii, and sentence-case meta labels are now one vocabulary everywhere. Five pages that had grown their own field/label/error/CTA strings now import the shared ones. |
 | `lib/fonts.ts` | Figtree retired: the body face is Geist (already set on `<html>`), and Bricolage is kept for page titles, hero figures, and the invoice document. |
 | `app/(app)/loading.tsx`, `dashboard/loading.tsx`, `error.tsx` | New. Before this, a click showed nothing until the server in Sydney answered; now the shape of the next screen paints immediately, and a failed render says so inside the frame instead of looking like a broken product. |
 | `app/(app)/layout.tsx` | The profile and active-timer reads were independent but sequential — one wasted round trip to `ap-southeast-2` on every cold load. Now `Promise.all`. |
+| Tailwind v4 important modifier | Fixing the sweep turned up 32 `!px-*` / `!py-*` classes that had been silently ignored since the v3→v4 upgrade — v4 moved the modifier to the end of the utility (`px-2.5!`). Every dense table button had therefore been rendering at its full size. |
+| `app/page.tsx` (branch `design/landing`) | The marketing page swept last, after its pending local edit had landed as its own commit (`29ed521`, the hero's "Free beta" badge removed). It was the final home of Figtree and of hand-written hexes; it now uses `canvas`/`ink`/`sprout-deep`/`mango`/`mango-strong` and the shared field and Mango CTA from `lib/ui`. Every computed colour is byte-identical to what it rendered before. |
 
-Not swept: `app/page.tsx`, the marketing page, which carries a pending local edit
-(Figtree there is now its own copy, so nothing else depends on it).
+**The v4 important-modifier bug was found by checking the rendering, not the
+source.** A browser pass that collected every class on each workspace route and
+looked each one up in the stylesheet reported `/reports` with two classes that
+did not exist — every other page was clean, because only dense table controls
+used them. Nothing in lint, types, or the build could have caught it: the class
+names are strings.
 
 `docs/design.md` records the tokens, the two colour rules, and the checklist.
 

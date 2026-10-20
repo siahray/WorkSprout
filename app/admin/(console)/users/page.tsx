@@ -4,7 +4,7 @@ import { createClient } from '@/lib/supabase/server'
 import { PageHeader } from '@/components/ui/page-header'
 import { ConfirmAction } from '@/components/ui/confirm-action'
 import { formatDate, formatDateTime, hoursFromMinutes } from '@/lib/format'
-import { btnDanger, btnSecondary, card, input, label, rowHover, tableHead, th } from '@/lib/ui'
+import { btnDanger, btnPrimary, btnSecondary, card, input, label, rowHover, tableHead, th } from '@/lib/ui'
 import { setUserBanned, setUserRole } from '@/app/admin/admin-actions'
 import type { AdminUser } from '@/app/admin/types'
 
@@ -63,7 +63,7 @@ export default async function AdminUsersPage({
         </div>
         <button
           type="submit"
-          className="inline-flex items-center justify-center rounded-control bg-ink px-4 py-2.5 text-sm font-semibold text-white hover:bg-sprout-deep"
+          className={btnPrimary}
         >
           Search
         </button>
